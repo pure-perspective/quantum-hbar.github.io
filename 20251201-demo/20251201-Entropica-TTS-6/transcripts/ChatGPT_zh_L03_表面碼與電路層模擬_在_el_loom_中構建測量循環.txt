@@ -1,0 +1,840 @@
+表面碼與電路層模擬：在 el-loom 中構建測量循環
+
+本課程聚焦於如何在 el-loom（Entropica Labs 的量子錯誤更正模擬框架）中，從「抽象穩定子定義」一路走到「具體的電路層測量循環」，並結合噪聲模型進行表面碼（surface code）的電路層模擬。內容包含：
+
+ 表面碼穩定子的數學結構與拓樸編碼直覺。
+
+ 測量循環（syndrome extraction circuits）的設計與等價性推導。
+
+ 如何在 el-loom 裡定義表面碼晶格、穩定子與測量輪次。
+
+ 如何在電路層加入噪聲，並取得 syndrome 時間序列。
+
+ 進一步連結至解碼與 logical error rate 模擬的實務考量。
+
+ 圖 3-12: A high-level schematic showing the relationship between: (1) abstract stabilizer description of a surface code, (2) circuit-level syndrome extraction, and (3) el-loom modules (lattice, noise model, circuits, decoder). Arrows show the flow from theory to implementation.
+
+ Prompt: A high-level schematic showing the relationship between: (1) abstract stabilizer description of a surface code, (2) circuit-level syndrome extraction, and (3) el-loom modules (lattice, noise model, circuits, decoder). Arrows show the flow from theory to implementation.
+
+1. 表面碼穩定子與測量循環：數學與直覺
+
+1.1 穩定子形式主義回顧
+
+考慮一個 這個就是一個變數，念作「n」。
+ 物理量子位元的 Pauli 群 大寫花體的 P，下標 n。
+：
+P 下標 n，等於，大括號裡面加減一、加減 i，乘上，大括號裡面 I、X、Y、Z，的 n 重張量積。
+
+一個穩定子碼（stabilizer code）由一個阿貝爾子群
+大寫花體 S 是包含在大寫花體 P 下標 n 裡面，逗號，負的單位算符不屬於 S。
+
+定義。碼空間為
+C 等於所有態 ket psi 的集合，這些 ket psi 呢，是活在複數二維空間的 n 次張量積裡面，並且要滿足，對所有的 S 屬於集合 S，都有 S 作用在 ket psi 上等於 ket psi。
+
+若 呼叫igraph 的大寫花體 S。
+ 由 m
+ 個獨立生成元 大括號裡面是：S 一、逗點一直到 S m。
+ 生成，則碼空間維度為 二 的 n 減 m 次方。
+，故可編碼
+k 等於 n 減 m。
+
+個邏輯量子位元。邏輯保利算符 X 上面加一橫 j，逗號，Z 上面加一橫 j。
+ 為那些
+P̄ 屬於集合 P 下標 n，但是不在集合 S 裡面。
+
+且與所有穩定子對易但不在穩定子群中的運算子。
+
+錯誤 E 屬於 度為 n 的這個空間。
+ 若與部份穩定子反對易，則測量這些穩定子會產生 syndrome：
+
+念作：
+
+「S 下標 i 乘上 E 作用在 ket psi 上，等於 正負 E 乘上 ket psi。」
+
+測量結果 正負一
+ 對應二進位症候字串
+粗體的 s 等於括號裡面 s1 到 s m。 
+接著，s i 等於一減掉 m i，再除以二， 
+其中 m i 只能取加一或減一。
+
+為後續解碼的關鍵輸入。
+
+1.2 表面碼的幾何結構
+
+表面碼可視為在一個平面二維格點上的穩定子碼，其中物理 qubit 放在邊（edges）上，穩定子運算子對應於頂點（vertex）與面（plaquette）。最常見的版本是 square lattice surface code：
+
+ 每個邊上有一個物理 qubit。
+
+ 每個「黑色」頂點對應一個 X
+-type 穩定子，作用於該頂點相連的所有邊上的 qubit。
+
+ 每個「白色」面對應一個 大寫的 Z。
+-type 穩定子，作用於該面邊界上的所有邊上的 qubit。
+
+ 圖 3-2: A square lattice surface code patch with data qubits on edges, X-type stabilizers on vertices (colored in one color, e.g. blue dots), Z-type stabilizers on plaquettes (colored in another color, e.g. red squares). A small distance-3 patch with boundaries highlighted.
+
+ Prompt: A square lattice surface code patch with data qubits on edges, X-type stabilizers on vertices (colored in one color, e.g. blue dots), Z-type stabilizers on plaquettes (colored in another color, e.g. red squares). A small distance-3 patch with boundaries highlighted.
+
+以距離 就念成：小寫的 d。
+ 的 square patch 為例，粗略地，物理 qubit 數為 念作：「大 O 括弧 d 的平方 括弧。」
+，可編碼 1 個邏輯 qubit，邏輯 Z 上面加一槓。
+ 可由垂直方向貫穿晶格的 大寫的 Z。
+ 鏈構成，邏輯 X 上面加一槓。
+ 則為水平方向的 X
+ 鏈。此拓樸結構導致表面碼對局域錯誤具有高容錯性。
+
+1.3 穩定子測量與測量循環的需求
+
+在理想穩定子形式主義中，我們「假設」可以同時且無誤地測量所有穩定子 S 下標 i
+。但在實際設備與細粒度電路模擬中，我們需要顯式地構造測量電路：
+
+ 為每個穩定子配置一個輔助（ancilla）qubit。
+
+ 將 ancilla 初始化到 ket 零
+ 或 ket 加。
+（視穩定子型別而定）。
+
+ 透過受控閘（CNOT 或其變體）將 data qubit 上的錯誤資訊「反映」到 ancilla 的相位或位元。
+
+ 測量 ancilla，讀出 syndrome 比特。
+
+例如，對一個 大寫的 Z。
+-type 穩定子
+S 下標 Z 等於 Z 下標 i 一、乘上 Z 下標 i 二，一直到乘上 Z 下標 i 的 w。
+
+其測量電路可以是：
+
+ ancilla 初始化為 ket 零
+（Z-basis）。
+
+ 對每個 data qubit i 下標 j
+ 執行 CNOT（data 為控制，ancilla 為目標）。
+
+ 測量 ancilla 在 Z-basis；測量結果 正負一。
+ 即為 S 下標 Z。
+ 的本徵值。
+
+對 X
+-type 穩定子
+S 下標 X，等於，X 下標 i1，乘上 X 下標 i2，一直到乘上 X 下標 i w。
+
+常見作法是：
+
+ ancilla 初始化為 ket 加。
+。
+
+ 對每個 data qubit i 下標 j
+ 執行 CNOT（ancilla 為控制，data 為目標）。
+
+ 測量 ancilla 在 X-basis。
+
+這兩種電路在理想情況下都實現了測量對應穩定子 這個就是大寫的英文字母 S。
+，但在有噪聲時，閘序、布局與線路深度皆會影響錯誤的時空傳播行為，因而影響解碼與錯誤閾值。el-loom 的核心價值之一就在於能夠在「電路層」解析這些細節。
+
+ , CNOTs from data to ancilla, then Z measurement; (right) an X-type stabilizer measurement with ancilla in |+>, CNOTs from ancilla to data, then X measurement. Emphasize ancilla roles.">
+ 圖 3-14: Two small circuits side-by-side: (left) a Z-type stabilizer measurement using an ancilla initialized in |0>, CNOTs from data to ancilla, then Z measurement; (right) an X-type stabilizer measurement with ancilla in |+>, CNOTs from ancilla to data, then X measurement. Emphasize ancilla roles.
+
+ Prompt: Two small circuits side-by-side: (left) a Z-type stabilizer measurement using an ancilla initialized in |0>, CNOTs from data to ancilla, then Z measurement; (right) an X-type stabilizer measurement with ancilla in |+>, CNOTs from ancilla to data, then X measurement. Emphasize ancilla roles.
+
+2. 表面碼穩定子結構的數學推導
+
+2.1 Planar code 的穩定子定義
+
+考慮一個 L 乘上 L
+ 的方格網，邊集合記為 E
+，頂點集合記為 V
+，面集合記為 F
+。每條邊 小寫的 e 屬於集合 E。
+ 上放置一個物理 qubit，數目
+n 等於 E 的元素個數。
+
+定義：
+
+ 對每個頂點 v 屬於 V。
+，令 偏微分 v 是 E 的子集合。
+ 為與該頂點相接的邊集合。定義
+ A 下標 v，等於，對所有在頂點 v 邊界上的邊 e，把 X 下標 e 做乘積。
+
+ 對每個面 f 屬於 F。
+，令 f 的邊界是 E 的子集合。
+ 為該面邊界上的邊集合。定義
+
+可以檢查所有 A 下標 v。
+ 彼此對易，所有 B 下標 f。
+ 彼此對易，且任何 A 下標 v。
+ 與任意 B 下標 f。
+ 也對易（除了共享奇數條邊時，需注意邊界條件；對 planar code 適當處理邊界後仍保對易）。整體穩定子群為
+S 等於一個內積括號，裡面是：第一個是 A 下標 v 的這一整組，v 跑在 V 這個撇集合裡；逗號；第二個是 B 下標 f 的這一整組，f 跑在 F 撇這個集合裡。
+
+其中 V 逼橫線。
+ 與 F 撇
+ 為扣除線性依存關係後的生成元集合。對 planar code，最終得到 k 等於一。
+ 個邏輯 qubit。
+
+2.2 對易關係與 syndrome 結構
+
+給定一個 Pauli 錯誤
+大寫的 E 等於，對所有邊 e 做張量積的 E 下標 e， 
+其中 E 下標 e 只會是 I、X、Y、Z 這四個算符之一。
+
+其 syndrome 為
+s 下標 v 等於，大括號：
+
+當 A 下標 v 乘上 E 等於 E 再乘上 A 下標 v 的時候，取零；
+
+當 A 下標 v 乘上 E 等於負的 E 再乘上 A 下標 v 的時候，取一。
+
+同樣地，s 下標 f 等於，大括號：
+
+當 B 下標 f 乘上 E 等於 E 再乘上 B 下標 f 的時候，取零；
+
+當 B 下標 f 乘上 E 等於負的 E 再乘上 B 下標 f 的時候，取一。
+
+具體而言，若 E
+ 含有某條邊 就一個小寫的「e」。
+ 上的 大寫的 Z。
+ 或 Y
+ 錯誤，則與相鄰頂點的 A 下標 v。
+ 反對易，對應於「X-syndrome」翻轉；若含有 X
+ 或 Y
+ 錯誤，則對應於相鄰面的 B 下標 f。
+ syndrome 翻轉。這導致了經典圖論上的「錯誤鏈」與「缺陷端點（defects）」結構。
+
+ 圖 3-8: Illustration of a Z error on a single edge and the resulting flipped X-type stabilizers at the two adjacent vertices. Show edges with errors highlighted in red, and flipped stabilizers as filled blue nodes.
+
+ Prompt: Illustration of a Z error on a single edge and the resulting flipped X-type stabilizers at the two adjacent vertices. Show edges with errors highlighted in red, and flipped stabilizers as filled blue nodes.
+
+在時間序列的觀點，我們進行多輪 syndrome 測量，得到
+粗體的 s 加上上標括號 t，等於一個有序對。 
+第一個成分是，大括號裡面 s 下標 v，上標括號 t，v 跑遍整個集合 V。 
+第二個成分是，大括號裡面 s 下標 f，上標括號 t，f 跑遍整個集合 F。 
+後面逗點，t 從一到大寫 T。
+
+即使在測量本身有錯誤的情況下，適當考慮時序維度後，整體仍可映射成一個三維（2D 空間 + 1D 時間）的錯誤圖，並使用最小權完美匹配（MWPM）等演算法解碼。這正是表面碼電路層模擬的重點：不僅需要空間結構，也要顯式存在時間軸。
+
+3. 測量電路等價性與噪聲傳播
+
+3.1 單一穩定子測量的等價電路
+
+以 大寫的 Z。
+-type 穩定子
+S 下標 Z，等於 Z 一乘上 Z 二乘上 Z 三乘上 Z 四。
+
+為例，其測量電路可有多種實作方式，只要滿足：
+左邊念作：
+
+「助記量測的 Z 測量，套用在算符 U 之後，作用在 rho 張量 ket 零 bra 零 上。」
+
+右邊念作：
+
+「等於，對 m 等於正一和負一求和，皮牌下標 m，rho，皮牌下標 m，張量 ket m bra m。」
+
+其中 大寫希臘字母「派」，底下標一個 m。
+ 為 S 下標 Z。
+ 投影算符。標準作法為：
+
+ ancilla a
+ 初始化為 ket 零
+。
+
+ 依序施行四個 CNOT：
+ CNOT 一控制到 a，逗號，CNOT 二控制到 a，逗號，CNOT 三控制到 a，逗號，CNOT 四控制到 a。
+
+ 測量 ancilla 在 Z-basis，得到 m 等於 正負一。
+。
+
+在理想（無噪聲）情況下，CNOT 的群論作用可形式化為：
+CNOT，控制在 i、作用在 a。它把算符 Z 下標 i 映到 Z 下標 i 不變；把 Z 下標 a 映到 Z 下標 i 乘上 Z 下標 a。 
+所以推出，Z 下標 a 會變成 Z 一、乘上 Z 二、乘上 Z 三、乘上 Z 四、再乘上 Z 下標 a。
+
+在四個 CNOT 串接後，因此
+ 下標 a 的 final，等於 乘上 下標 a 的 initial。
+
+若初始 ancilla 為 念作：「加一」。
+ 本徵態 Z 下標 a 作用在 ket 零，等於 ket 零。
+，則測量最終 ancilla 的 Z 本徵值即為 S 下標 Z。
+ 的本徵值。
+
+3.2 噪聲下的錯誤傳播
+
+在有噪聲時，單一兩體 CNOT 閘可被視為理想 CNOT 唸作：「U 下標 C N O T」。
+ 加上一個通道 唸作「花體的 N」。
+：
+E 作用在 rho 上，等於 N 作用在，CNOT 這個酉算符乘上 rho，再乘上 CNOT 的 dagger，這整個結果。
+
+若採用 Pauli 通道近似，例如雙邊隨機 Pauli 錯誤，
+N 作用在 rho 上，等於一減 p 乘上 rho，加上對所有在 X、Y、Z 的二重張量裡面的 P 做總和，把每一項寫成 p 下標 P 乘上 P、rho、再乘上 P。 
+而且，對所有 P 的機率 p 下標 P 加總起來，等於 p。
+
+則可透過 Heisenberg picture 分析 Pauli 錯誤在電路中的傳播；例如，控制端的 X
+ 錯誤在 CNOT 後：
+X 下標 c 箭頭到 X 下標 c 乘上 X 下標 t。
+
+故 X
+ 錯誤可從 data qubit 傳至 ancilla。這些傳播路徑正是時間相關 syndrome 結構的來源。
+
+ 圖 3-9: Circuit diagram with one ancilla in the center connected via CNOTs to four data qubits. Overlay red markers showing how an X error on one data qubit propagates through a CNOT into ancilla, and how a Z error on ancilla propagates to data, using arrows.
+
+ Prompt: Circuit diagram with one ancilla in the center connected via CNOTs to four data qubits. Overlay red markers showing how an X error on one data qubit propagates through a CNOT into ancilla, and how a Z error on ancilla propagates to data, using arrows.
+
+在表面碼中，測量每個穩定子需要一個 ancilla，且為了避免兩個穩定子的測量電路相互干擾，CNOT 時序與排程（scheduling）必須謹慎設計。這些時序設計在 el-loom 中會具體反映在「層」（layers）與「cycle」的實作。
+
+3.3 連續測量循環與時間維度
+
+在實際容錯運算場景中，我們會連續執行 syndrome 測量輪次
+t 等於一、二、一直到大寫的 T。
+
+每一輪包含所有頂點與面穩定子的測量。為了簡化實作，常令每一輪具有固定的閘序與排程。形式化地，可定義一個「測量循環超算符」：
+大寫花體的 M，等於讀出的超算子 M，去複合在雜訊加量子閘的超算子 U 的後面。
+
+其中 大寫花體的 M，下標標成 readout。
+ 包含 ancilla 測量及其 classical outcome 的紀錄。
+經過 T
+ 輪測量後，整體演化為
+rho 的上標 T，等於算符 M 的上標 T 作用在 rho 的上標零 上。
+
+同時取得 syndrome 串列
+大括號裡面是一整串的向量 s 上標 t，從 t 等於一一路到大寫 T。
+
+這正是 el-loom 中典型的「測量循環模擬」任務：給定初態、噪聲模型與測量電路，在多輪循環後生成 syndrome 時序與最終 logical 狀態（或 logical 錯誤事件）。
+
+4. 在 el-loom 中構建表面碼晶格與穩定子
+
+本節說明如何在 el-loom 中，從表面碼的抽象拓樸結構，建構出一個可供電路層模擬使用的「晶格」與穩定子資料結構。假設讀者已安裝 el-loom，並熟悉其 Python API 的基本語法。
+
+4.1 安裝與基本結構概覽
+
+el-loom 的原始碼在 GitHub：
+
+pip install el-loom
+
+整體架構（以典型使用流程為例）：
+
+ 使用預建的 code family，例如 surface code。
+
+ 或手動定義物理 qubit、穩定子、測量 qubit（ancilla）等結構。
+
+ 選擇或定義噪聲模型（single-qubit / two-qubit / measurement noise）。
+
+ 構建測量循環（measurement cycle），並將其轉為電路層。
+
+ 執行多輪模擬，收集 syndrome 與 logical event。
+
+ Measurement Circuit Generator -> Noise Model -> Simulator -> Syndrome & Logical Error Logs. Each block labeled with corresponding Python modules/classes in el-loom.">
+ 圖 3-3: A block diagram showing el-loom components: Code/Lattice definition -> Measurement Circuit Generator -> Noise Model -> Simulator -> Syndrome & Logical Error Logs. Each block labeled with corresponding Python modules/classes in el-loom.
+
+ Prompt: A block diagram showing el-loom components: Code/Lattice definition -> Measurement Circuit Generator -> Noise Model -> Simulator -> Syndrome & Logical Error Logs. Each block labeled with corresponding Python modules/classes in el-loom.
+
+4.2 使用預建的表面碼 code family
+
+el-loom 通常提供 surface code 的 code family，例如距離 就念成：小寫的 d。
+ 的 planar code。概念上，我們可以做：
+
+from loom.codes import SurfaceCode
+
+d = 3 # code distance
+code = SurfaceCode(distance=d, boundary='planar')
+
+在內部，這會建立：
+
+ data qubits：對應於格點邊。
+
+ ancilla qubits：對應於每個 X-/Z- 穩定子。
+
+ 穩定子生成元資料結構，包含：
+
+ 型別（X or Z stabilizer）。
+
+ 所作用的 data qubit 列表。
+
+ ancilla qubit index。
+
+研究者如需變形 lattice（例如 rotated surface code、heavy-hex 等），可以透過 el-loom 的低階 API 自行定義 qubit 與 check 的幾何關係。這部分在進階研究中相當重要，因為實際硬體拓樸多半不是完美的 square lattice。
+
+4.3 自行定義一個 minimal surface code 例子
+
+為了講解如何在 el-loom 中精確控制結構，我們示範手動定義一個最小的距離 3 planar code patch（只為教學示意，實際 API 名稱請依官方文件為準）。假設有：
+
+ data qubits：用索引 0,1,2,3,... 表示。
+
+ ancilla qubits：用索引 100,101,... 表示。
+
+ 穩定子以物件 Stabilizer 表示。
+
+from loom.lattice import Lattice, Stabilizer
+
+lat = Lattice()
+
+# 新增 data qubits
+data_ids = [0, 1, 2, 3, 4, 5, 6] # example
+for q in data_ids:
+ lat.add_data_qubit(q)
+
+# 新增 ancilla qubits
+ancilla_x = [100, 101, 102]
+ancilla_z = [200, 201, 202]
+for q in ancilla_x + ancilla_z:
+ lat.add_ancilla_qubit(q)
+
+# 定義一個 Z-type 穩定子作用在 data qubits 0,1,3,4
+stab_z0 = Stabilizer(
+ kind='Z',
+ data_support=[0, 1, 3, 4],
+ ancilla=200
+)
+lat.add_stabilizer(stab_z0)
+
+# 類似地新增其他 X-/Z-stabilizers
+...
+
+實際 el-loom 中，Lattice 物件可能包含更豐富的結構，例如：
+
+ qubit 的座標（x,y），便於視覺化與與硬體映射。
+
+ 時間槽（time slot）資訊，用於自動產生 CNOT 排程。
+
+ 對於 rotated / dislocation / twist 版本的表面碼，特別的邊界型別註記。
+
+ 圖 3-6: Small explicit lattice drawing for a distance-3 planar surface code: show data qubits labeled by integer IDs on edges, ancilla qubits on faces and vertices with their own IDs, and arrows indicating mapping from IDs in Python to positions in the lattice picture.
+
+ Prompt: Small explicit lattice drawing for a distance-3 planar surface code: show data qubits labeled by integer IDs on edges, ancilla qubits on faces and vertices with their own IDs, and arrows indicating mapping from IDs in Python to positions in the lattice picture.
+
+5. 在 el-loom 中構建測量循環（measurement cycle）
+
+5.1 測量循環的抽象描述
+
+在抽象層次，一輪 surface code 測量循環包含：
+
+ 初始化所有 ancilla qubits：
+
+ X-stabilizer ancilla 初始化為 ket 加。
+。
+
+ Z-stabilizer ancilla 初始化為 ket 零
+。
+
+ 按一定排程對每個穩定子執行 CNOT 串接：
+
+ 對 Z-stabilizer：CNOT(data → ancilla)。
+
+ 對 X-stabilizer：CNOT(ancilla → data)。
+
+ 測量所有 ancilla：
+
+ Z-stabilizer ancilla 在 Z-basis 測量。
+
+ X-stabilizer ancilla 在 X-basis 測量（等價於在 Z-basis 測量前後加 Hadamard）。
+
+在 el-loom 中，這通常被封裝成一個「cycle object」或「measurement round」描述，然後轉譯為底層的門序列（gate list 或 circuit object）。例如（示意）：
+
+from loom.circuits import MeasurementCycleBuilder
+
+builder = MeasurementCycleBuilder(lattice=lat)
+
+cycle = builder.build_standard_surface_code_cycle(
+ schedule='canonical', # or 'checkerboard', custom, etc.
+)
+
+此處 schedule 參數會決定各 CNOT 的 time slot，確保沒有 qubit 同時參與多個閘，同時盡可能壓低總深度。對於 square lattice surface code 的標準實作，常使用 4-step 或 8-step CNOT 排程。
+
+ 圖 3-1: Time-layered diagram of a single measurement cycle: rows are qubits, vertical axis is time. Show ancilla initialization, 4 layers of CNOTs with colored links between ancillas and data, then measurements at the end.
+
+ Prompt: Time-layered diagram of a single measurement cycle: rows are qubits, vertical axis is time. Show ancilla initialization, 4 layers of CNOTs with colored links between ancillas and data, then measurements at the end.
+
+5.2 電路層實作：初始化、閘與測量
+
+在較底層的 API 中，一輪循環可用一串門操作描述，例如：
+
+from loom.circuits import Circuit
+
+circ = Circuit()
+
+# 1. 初始化 ancilla
+for q in ancilla_z:
+ circ.add_reset(q, basis='Z') # |0>
+for q in ancilla_x:
+ circ.add_reset(q, basis='X') # |+>, often implemented as |0> then H
+
+# 2. CNOT scheduling
+for timeslot in schedule:
+ for (ctrl, tgt) in timeslot.cnot_pairs:
+ circ.add_cnot(ctrl, tgt)
+
+# 3. 測量 ancilla
+for q in ancilla_z:
+ circ.add_measure(q, basis='Z')
+for q in ancilla_x:
+ circ.add_measure(q, basis='X')
+
+在 surface code 中，一般會令同類型穩定子（如所有 X-stabilizer 或所有 Z-stabilizer）共享相同的「CNOT layer 結構」。而 el-loom 通常已為 standard surface code 提供預設排程，研究者只需在必要時覆寫或擴充。
+
+5.3 數學上檢查測量循環的正確性
+
+對於任一固定循環電路 C
+，我們希望它在理想情況下實現以下 POVM：
+大括號裡面是一整族的 Π 下標 s，然後這個下標 s 呢，是跑遍所有長度為 m 的零一串，也就是集合裡面所有從零一 m 次方來的 s。
+
+其中每個 element 為
+皮伊下標粗體的 s，等於從 i 等於一到 m 的連乘，裡面是二分之一乘上括號，I 加上負一的 s 下標 i 次方乘上 S 下標 i。
+
+S 下標 i
+ 為穩定子生成元。也就是說：
+
+ 若初態 rho。
+ 在碼空間中（所有 S 下標 i 等於正一。
+），則理想狀況下 syndrome 粗體的 s 等於粗體的零向量。
+ 機率為 1。
+
+ 若錯誤 E
+ 作用在 rho。
+ 上，使得某些 S 下標 i
+ 批次反對易，則 syndrome 分佈與錯誤支撐完美對應。
+
+在 circuit 模型中，測量循環定義了量子通道
+大 M 作用在 rho 上，等於對所有粗體的 s 做總和， 
+對每一項是，先取對輔助系統的偏跡，裡面是大 K 下標粗體 s 作用在 rho 張量積上 m 個輔助 qubit 的態，也就是 ket 零 bra 零 的 m 次張量積， 
+然後再把結果張量積上經典標記態 ket 粗體 s bra 粗體 s。
+
+其中 大寫花體 K，下標粗體 s。
+ 包含整個 unitary + projection 的組合。若 CNOT 排程沒有彼此干擾（例如不同穩定子對同一 data qubit 的作用順序在 ideal case 下僅改變局部虛相位），則可證明：
+皮 大寫希臘字母 Pi，下標粗體的 s，等於，對 a 做偏跡，括號裡面是，K 下標粗體的 s 的 dagger，乘上 K 下標粗體的 s。
+
+其中 K 下標粗體 s
+ 為相對應 Kraus operator。這證明測量循環對應於理想的穩定子測量 POVM。
+
+在 el-loom 實作過程中，我們可透過：
+
+ 對小尺寸 code 做完全狀態向量或密度矩陣模擬。
+
+ 檢查理想條件下 syndrome 分佈是否如理論預期。
+
+以距離 3 的最小例子，隨機取 100 個碼空間態，施加隨機單 qubit Pauli 錯誤 E 屬於大括號裡面的集合，包含 I、X、Y、Z。
+，執行一次測量循環，檢查 syndrome 是否與 E
+ 對應的「端點」結構一致，即可驗證 el-loom 中 cycle 結構的正確性。
+
+ s.">
+ 圖 3-13: A small table showing various single-qubit Pauli errors on a distance-3 code patch and the corresponding syndromes produced by an ideal measurement cycle. Indicate mapping E -> s.
+
+ Prompt: A small table showing various single-qubit Pauli errors on a distance-3 code patch and the corresponding syndromes produced by an ideal measurement cycle. Indicate mapping E -> s.
+
+6. 在 el-loom 中加入噪聲：電路層 noise model
+
+6.1 噪聲模型的結構
+
+el-loom 提供多種噪聲模型組件，概念上可拆為：
+
+ 單 qubit 門噪聲：e.g. after every 1-qubit gate apply Pauli channel。
+
+ 雙 qubit 門噪聲：e.g. after every CNOT apply two-qubit depolarizing channel。
+
+ idle / decoherence：在 qubit 閒置時間槽中施加 T 一除以 T 二。
+ 導致的噪聲。
+
+ 測量錯誤：classical readout flip 或量子非理想 projective measurement。
+
+在數學上，可用 Kraus operator 或超算符描述。以最常見的兩體 depolarizing 通道為例：
+ 等於 
+一減掉 p，再乘上 rho， 
+加上，p 除以十五，乘上，把所有在二量子位泡利集合裡面、但不要包含單位算符 I I 的那些算符 P， 
+每一個都做一次：P 乘上 rho 再乘上 P， 
+然後把這些通通加總起來。
+
+這可以近似真實硬體的 CNOT gate noise。el-loom 會將此與特定閘關聯，形成一個 noisy gate 模型：
+
+U CNOT 上面加個波浪號，作用在 rho 上，等於，二量子位的退相干通道 D p，作用在，U CNOT、rho、再乘上 U CNOT dagger 的這個結果上。
+
+6.2 在 el-loom 中設定 noise model
+
+在程式層面，常見用法為先建立一個 noise configuration，再將之套用到電路模擬器上，如：
+
+from loom.noise import NoiseModel
+
+noise = NoiseModel()
+
+# 單 qubit gate noise
+noise.set_1q_gate_noise(
+ p=1e-4, # error probability
+ model='depolarizing'
+)
+
+# 兩 qubit gate noise (e.g., CNOT)
+noise.set_2q_gate_noise(
+ p=5e-3,
+ model='depolarizing'
+)
+
+# 測量錯誤：讀出 bit-flip
+noise.set_measurement_noise(
+ p=1e-3,
+ model='bitflip'
+)
+
+# 若有 idle noise / T1T2
+noise.set_idle_noise(T1=50e-6, T2=60e-6, gate_time=20e-9)
+
+之後，在執行測量循環模擬時：
+
+from loom.sim import CircuitSimulator
+
+sim = CircuitSimulator(noise_model=noise)
+
+# 建立 measurement cycle circuit
+cycle = builder.build_standard_surface_code_cycle(...)
+
+# 執行 T 輪
+T = 20
+syndrome_records = []
+state = code.initial_state() # or logical |0_L>, etc.
+
+for t in range(T):
+ result = sim.run(cycle, init_state=state)
+ syndrome_records.append(result.syndrome)
+ state = result.final_state # optional, if tracking full state
+
+針對大尺寸 code 或長時間序列，完整追蹤密度矩陣或狀態向量代價過高，el-loom 一般會採用更高效率的 Pauli frame tracking 或 stabilizer simulation 技術。在數學上，很多標準噪聲模型（Pauli 通道）在 Clifford 電路下穩定封閉（stabilizer formalism closed under Clifford + Pauli noise），因此可以以 O 括號 n 的三次方。
+ 或更佳的複雜度跟蹤 syndrome 與 logical operator 的轉換。
+
+ 圖 3-10: Conceptual diagram illustrating noise model attachment: each gate in the measurement circuit is annotated with a small icon representing associated noise channels (single-qubit, two-qubit, measurement), and an arrow indicating how they are composed into an effective noisy operation.
+
+ Prompt: Conceptual diagram illustrating noise model attachment: each gate in the measurement circuit is annotated with a small icon representing associated noise channels (single-qubit, two-qubit, measurement), and an arrow indicating how they are composed into an effective noisy operation.
+
+6.3 syndrome 時間序列的統計性質
+
+在噪聲存在下，觀測到的 syndrome 粗體的 s，上標括號 t。
+ 不再只依賴 data qubit 錯誤；測量本身與 ancilla 錯誤也會導致 syndrome「雜訊」。在理想情況下，對每輪測量有：
+粗體的 s，括號上標 t，等於，粗體的 s，下標 data，括號上標 t，xor，粗體的 s，下標 meas，括號上標 t。
+
+其中 粗體的 s，底下是 data，右上角有個括號 t。
+ 由當輪與過去輪次累積的 data 錯誤決定，粗體的 s，上標 meas，括號 t。
+ 則是測量／ancilla 錯誤造成的「假陽性」。在時間維度上，典型解碼器會使用空間–時間圖結構；例如 3D MWPM 將 syndrome 變化當作「缺陷端點」，並於空間–時間中進行匹配。
+
+在 el-loom 中，我們可以直接取得每輪 syndrome：
+
+# syndrome_records[t][i]: i-th stabilizer outcome at round t
+
+進一步，可將這些 syndrome 餵給外部解碼器（如 PyMatching）的 Python 介面。此處 el-loom 主要提供的是準確的、帶有電路層噪聲的 syndrome time series。
+
+7. 表面碼測量循環實作範例：距離 3 planar code
+
+下面給出一個相對具體的端到端流程範例：在距離 3 planar surface code 上，構建標準測量循環與噪聲模型，並執行多輪 syndrome 模擬。（請注意：具體類別與函式名稱需以官方文件為準，下列為教學式 pseudo-API。）
+
+7.1 建立 code 與 lattice
+
+from loom.codes import SurfaceCode
+from loom.circuits import MeasurementCycleBuilder
+from loom.noise import NoiseModel
+from loom.sim import CircuitSimulator
+
+# 1. 建立距離 3 planar surface code
+d = 3
+code = SurfaceCode(distance=d, boundary='planar')
+
+lattice = code.lattice
+data_qubits = lattice.data_qubits()
+ancilla_x = lattice.ancilla_x()
+ancilla_z = lattice.ancilla_z()
+
+7.2 建立標準測量循環
+
+# 2. 建立 surface code 測量循環
+builder = MeasurementCycleBuilder(lattice=lattice)
+cycle = builder.build_standard_surface_code_cycle(
+ schedule='canonical_4step'
+)
+
+此處 canonical_4step 表示採用一個 4 層 CNOT 排程，每個穩定子在每一層與其中一個 data qubit 互動，整體確保：
+
+ 沒有 qubit 在同一 time step 參與兩個閘。
+
+ 對稱性良好，便於分析 error propagation。
+
+ 圖 3-7: Four-step CNOT schedule diagram over a 3x3 patch: each step shows disjoint ancilla-data pairs; colors distinguish X- vs Z-stabilizer interactions; a legend explains the scheduling pattern.
+
+ Prompt: Four-step CNOT schedule diagram over a 3x3 patch: each step shows disjoint ancilla-data pairs; colors distinguish X- vs Z-stabilizer interactions; a legend explains the scheduling pattern.
+
+7.3 定義噪聲模型
+
+# 3. 定義噪聲模型
+noise = NoiseModel()
+
+noise.set_1q_gate_noise(p=1e-4, model='depolarizing')
+noise.set_2q_gate_noise(p=5e-3, model='depolarizing')
+noise.set_measurement_noise(p=1e-3, model='bitflip')
+noise.set_idle_noise(T1=50e-6, T2=60e-6, gate_time=20e-9)
+
+sim = CircuitSimulator(noise_model=noise)
+
+7.4 選擇初態與執行多輪循環
+
+假設我們欲模擬邏輯 念作：「ket 零 加 上 橫 線」。
+ 狀態在 T
+ 輪測量循環中的表現。我們可令初態為：
+rho 上標零，等於 ket bar 零 bra bar 零。
+
+在 el-loom 中，可能有直接建立 logical state 的 API：
+
+state = code.logical_state('0') # or code.encode(|0> logical)
+T = 30
+
+syndrome_records = []
+logical_flips = []
+
+for t in range(T):
+ result = sim.run(cycle, init_state=state)
+ syndrome_records.append(result.syndrome)
+ state = result.final_state
+
+ # 選擇性：在每輪後測試 logical Z 的期望值，估計是否發生 logical X 錯誤
+ exp_ZL = code.expect_logical_Z(state)
+ # 例如簡單判斷 sign flip 作為邏輯錯誤 proxy（實務通常會用 decoder）
+ logical_flips.append(1 if exp_ZL < 0 else 0)
+
+在更典型的工作流程中，logical 錯誤判斷應透過解碼器完成：給定所有 syndrome 大括號裡面放著粗體的 s，上標是小括號 t。
+，求得最有可能的 Pauli frame 並比較與實際錯誤鏈是否存在邏輯差異。在 el-loom 生產環境中，通常會與解碼器框架（如 PyMatching 或內建 decoder）整合。
+
+ 圖 3-15: Time series plot of a single run: x-axis is measurement round t, y-axis shows syndrome bits (e.g. as colored dots in a grid per round). Another panel shows logical Z expectation value over time, with occasional flips indicating logical errors.
+
+ Prompt: Time series plot of a single run: x-axis is measurement round t, y-axis shows syndrome bits (e.g. as colored dots in a grid per round). Another panel shows logical Z expectation value over time, with occasional flips indicating logical errors.
+
+8. 深入：循環結構對錯誤閾值的影響與在 el-loom 中的比較實驗
+
+8.1 不同測量循環方案的比較
+
+理論上，只要電路正確實現穩定子測量 POVM，在無噪聲下不同循環方案是等價的。然而，在有噪聲的實際情境中：
+
+ 不同排程可能產生不同的錯誤傳播路徑（例如 hook errors）。
+
+ 某些設計可減少單 qubit 錯誤延伸成 weight-2 或更高的 correlated error。
+
+ 某些方案允許局部變更以適應硬體耦合圖限制。
+
+這些差異會直接反映在 logical error rate 與閾值估計上。el-loom 是進行這類比較的理想工具：我們可實作多種 cycle 版本，在同樣的 noise model 下模擬，並比較 logical failure probability。
+
+8.2 在 el-loom 中實作多種 cycle 並比較
+
+假設我們有兩種不同的 CNOT 排程：
+
+ schedule='canonical_4step'
+
+ schedule='optimized_hook_suppression'
+
+可簡單建構兩種 cycle：
+
+cycle_A = builder.build_standard_surface_code_cycle(
+ schedule='canonical_4step'
+)
+cycle_B = builder.build_standard_surface_code_cycle(
+ schedule='optimized_hook_suppression'
+)
+
+然後針對同樣的距離 就念成：小寫的 d。
+、噪聲強度 p
+、輪數 T
+，統計 logical failure rate：
+
+def estimate_logical_failure(cycle, trials=1000, T=30):
+ failures = 0
+ for _ in range(trials):
+ state = code.logical_state('0')
+ all_syndromes = []
+ for t in range(T):
+ res = sim.run(cycle, init_state=state)
+ all_syndromes.append(res.syndrome)
+ state = res.final_state
+ # decode and check logical error
+ if has_logical_error(all_syndromes):
+ failures += 1
+ return failures / trials
+
+pA = estimate_logical_failure(cycle_A)
+pB = estimate_logical_failure(cycle_B)
+
+print("Canonical schedule logical error rate:", pA)
+print("Optimized schedule logical error rate:", pB)
+
+其中 has_logical_error 代表一個外部或內建解碼器。實作上，可將 syndrome 投給 MWPM 解碼器求得估計錯誤鏈 E 上面加一個帽子。
+，並檢查 E 帽子 乘上 E
+ 是否含非平凡邏輯運算子（例如 X 上面畫一橫。
+ 或 Z 上面加一槓
+）。
+
+ 圖 3-4: A comparative bar chart of logical error rates for two different measurement cycles at the same physical error rate p. Label the bars 'canonical_4step' and 'optimized_hook_suppression', showing that the optimized one has lower logical error rate.
+
+ Prompt: A comparative bar chart of logical error rates for two different measurement cycles at the same physical error rate p. Label the bars 'canonical_4step' and 'optimized_hook_suppression', showing that the optimized one has lower logical error rate.
+
+8.3 數學上理解 hook error 的抑制
+
+所謂 hook error，指的是由於 CNOT 排程某種組合，使得原本單一物理錯誤（例如一個 ancilla 上的錯誤）透過多個 CNOT 傳播到多個 data qubits 上，形成一個「勾形」錯誤鏈，其權重可能接近或等於 code distance，從而在解碼時更難被偵測。
+
+形式化而言，若在某 ancilla a
+ 上發生一個 X 下標 a
+ 錯誤，經過兩個連續 CNOT（a
+ 為控制，唸作：「d 一逗號 d 二」。
+ 為目標）：
+X 下標 a，經過一個控制非閘，控制是 a、目標是 d 一，變成 X 下標 a 乘上 X 下標 d 一， 
+再經過一個控制非閘，控制是 a、目標是 d 二，變成 X 下標 a 乘上 X 下標 d 一 乘上 X 下標 d 二。
+
+進一步與其他 CNOT 交纏，可能產生 weight-3 甚至更高的 correlated error。透過適當設計排程，確保特定 Pauli error 只會在「短距離」內傳播，可以在一定程度上抑制 hook error，提升閾值。
+
+el-loom 允許我們在電路層精確插入單一 Pauli 錯誤並追蹤其最終作用；例如：
+
+from loom.debug import inject_pauli_error
+
+cycle_hook_test = builder.build_standard_surface_code_cycle(
+ schedule='candidate_schedule'
+)
+
+# 在特定 time step t0、ancilla q 上注入 X error
+inj_cycle = inject_pauli_error(cycle_hook_test, qubit=q, pauli='X', time=t0)
+
+res = sim.run(inj_cycle, init_state=code.logical_state('0'),
+ noise_model=None) # no additional noise
+
+final_pauli = analyze_final_error(res)
+print("Effective weight of propagated error:", final_pauli.weight())
+
+如此可對照不同 schedule 的 hook error 傳播情形，從而在理論與實作上優化測量循環。
+
+ 圖 3-5: Diagram showing an ancilla qubit connected to multiple data qubits with CNOTs forming a chain. Highlight how an X error on the ancilla propagates through sequential CNOTs, forming a hook-shaped multi-qubit error. Contrast with an alternative schedule where the propagation is limited to fewer qubits.
+
+ Prompt: Diagram showing an ancilla qubit connected to multiple data qubits with CNOTs forming a chain. Highlight how an X error on the ancilla propagates through sequential CNOTs, forming a hook-shaped multi-qubit error. Contrast with an alternative schedule where the propagation is limited to fewer qubits.
+
+9. 總結與進一步延伸
+
+本課程從穩定子形式主義與表面碼拓樸結構出發，推導了表面碼穩定子測量與測量循環的數學基礎，並說明在電路層如何實作這些測量電路，進一步介紹如何在 el-loom 中：
+
+ 建立表面碼 lattice 與穩定子結構。
+
+ 構造標準測量循環（measurement cycle）。
+
+ 定義電路層噪聲模型（1-qubit、2-qubit、measurement、idle）。
+
+ 執行多輪 syndrome 測量模擬並取得時間序列資料。
+
+ 比較不同測量循環設計在 logical error rate 上的表現，並分析 hook error。
+
+對博士生與研究者而言，el-loom 在表面碼研究上的主要價值在於：
+
+ 從抽象碼到具體電路的橋樑：能將高階穩定子描述自動化轉換為真實可執行的電路與測量循環。
+
+ 靈活的噪聲模型：支援多種物理動力學與噪聲來源，便於與實際裝置參數匹配。
+
+ 與解碼器整合：可輸出 syndrome 時間序列到專用解碼器，進行閾值與容錯架構的研究。
+
+ 可擴展的 lattice 與 code family：可實作 rotated surface code、heavy-hex code 等現代架構。
+
+建議的進一步延伸方向包括：
+
+ 在 el-loom 中實作 rotated surface code 與 XZZX code，並比較在 biased noise 下的表現。
+
+ 嘗試將自訂的排程策略（例如 minimizing hook errors, respecting hardware connectivity）整合進 MeasurementCycleBuilder。
+
+ 針對特定硬體平台（如超導、離子阱）建立更物理化的噪聲模型（包括非 Markovian 效應或漏失錯誤）。
+
+ 將 el-loom 與高階容錯方案（如 lattice surgery、magic state distillation）連結，進行端到端容錯成本估計。
+
+ 圖 3-11: A roadmap-style figure showing progression: (1) simple planar surface code with ideal noise; (2) more complex codes and biased noise; (3) hardware-constrained layouts; (4) full fault-tolerant protocols like lattice surgery, all powered by el-loom simulations.
+
+ Prompt: A roadmap-style figure showing progression: (1) simple planar surface code with ideal noise; (2) more complex codes and biased noise; (3) hardware-constrained layouts; (4) full fault-tolerant protocols like lattice surgery, all powered by el-loom simulations.
+
+透過上述框架，你可以在 el-loom 中系統性地探索「表面碼 + 電路層噪聲 + 實際測量循環」三者的交互作用，從而為下一代容錯量子計算架構的設計提供定量依據。

@@ -1,0 +1,831 @@
+穩定子碼與通道建模：在 el-loom 中刻畫物理噪聲
+
+本課程聚焦於如何在 Entropica Labs 的 el-loom 框架中，嚴謹且靈活地刻畫量子通道與穩定子碼上的物理噪聲。目標讀者為已熟悉基本量子資訊理論與量子糾錯（QEC）的博士生與研究者。
+
+一、從物理噪聲到穩定子碼：問題設定
+
+在實驗與理論量子糾錯研究中，我們常面對以下層級的建模問題：
+
+ 物理層（Physical layer）：單體與多體的量子通道 唸作：「花體的 N。」
+，描述在物理時間步中發生的噪聲與閘門誤差。
+
+ 碼空間層（Code space layer）：噪聲在穩定子碼上的「投影」或「有效作用」，例如邏輯通道、syndrome 分佈、錯誤鏈結構。
+
+ 數值模擬層（Simulation layer）：如何以有效的數值形式（以位元組、矩陣、Pauli 頻譜等）表示並演進這些通道。
+
+el-loom 主要提供：
+
+ 量子通道的結構化表示（Kraus、Pauli channel、noise models）。
+
+ 穩定子碼與 Clifford 電路的高效模擬（表達為 Pauli frame / symplectic representation）。
+
+ 錯誤模型在碼上的作用、錯誤鏈生成與解碼介面。
+
+本節將從數學定義出發，逐步對接到 el-loom 的具體 API 與用法。
+
+ 圖 2-10: A three-layer diagram: bottom layer labeled 'Physical noise channel N', middle layer labeled 'Stabilizer code (enc/dec)', top layer labeled 'Effective logical noise', with arrows showing mapping via encoding and decoding. On the side, a box labeled 'el-loom' interfacing all three layers.
+
+ Prompt: A three-layer diagram: bottom layer labeled 'Physical noise channel N', middle layer labeled 'Stabilizer code (enc/dec)', top layer labeled 'Effective logical noise', with arrows showing mapping via encoding and decoding. On the side, a box labeled 'el-loom' interfacing all three layers.
+
+二、量子通道與噪聲模型的數學基礎
+
+2.1 完全正規跡保持映射（CPTP map）
+
+一個 這個就念成：「小寫的 n」。
+ 量子位元系統的量子通道是作用在密度矩陣 rho 屬於二的 n 次方維複數向量空間上所有量子態的集合。
+ 上的線性映射
+N 從 C 的二的 n 次方維的線性算符空間，映到 C 的二的 n 次方維的線性算符空間。
+
+滿足：
+
+ 完全正（Completely positive）：
+ 括號，N 張量單位算符 I 下標 k，作用在 X 上，大於等於零，逗號，對所有正半定的 X，都要成立，並且對所有自然數 k 都要成立。
+
+ 跡保持（Trace preserving）：
+ Trace 括號 N 作用在 rho 上括號，等於 trace 括號 rho 括號，對所有的 rho。
+
+最常用的表示是 Kraus 展開：
+N 作用在 rho 上，等於對所有 j 做總和，K 下標 j 乘上 rho 再乘上 K 下標 j 的匕首。 
+同時，所有 j 的 K 下標 j 的匕首乘上 K 下標 j 的總和，等於單位算符 I。
+
+在 el-loom 中，通道通常會以更結構化形式（特別是 Pauli 通道）表示，以便與穩定子框架相容。
+
+2.2 Pauli 通道與 Pauli 轉換
+
+Pauli 群 唸作： 
+「花體的大寫 P，下標 n。」
+ 為
+P 下標 n 等於，大括號裡面是： 
+ω 乘上 P1 張量一直到 Pn， 
+其中每一個 Pi 都從 I、X、Y、Z 這四個裡面選一個， 
+而 ω 則從加減一、加減 i 這四個複數裡面選一個。
+
+忽略相位，我們只關心 n
+-qubit Pauli 字串
+P 等於 P 一 套 tensor 到 P n，逗號，其中每一個 P i 都是從 I、X、Y、Z 這四個裡面挑出來的。
+
+Pauli 通道是指形如
+N 作用在 rho 上，等於對所有 P 屬於那個 P 下標 n 的陪集，也就是除掉正負一、正負 i 之後的那些泡利算符，做一次總和； 
+每一項是機率 p 下標 P，乘上 P rho P dagger。 
+而且每個 p 下標 P 都大於等於零，所有的 p 下標 P 加起來等於一。
+
+這包含了許多重要模型，如：
+
+ 單一位元 depolarizing noise：
+ 等於一減掉 
+
+ 獨立同分布（i.i.d.）Pauli 通道：
+ N 的 n 次張量積，等於從 i 等於一到 n 的 N 下標 i 的張量積。
+
+接著，N 下標 i 作用在 rho，上面這個通道，等於對所有在括號裡面 I、X、Y、Z 這四個 P，把 p 下標 P 乘上 P rho P，加總起來。
+
+對穩定子碼而言，Pauli 通道特別重要，因為 stabilizer formalism 對 Pauli 誤差具有閉包性與可追蹤性：Pauli 誤差與 Clifford 閘互動後仍是 Pauli 誤差。
+
+ 圖 2-4: A diagram showing a density matrix input going through a 'Pauli channel' box that outputs a probabilistic mixture of X, Y, Z errors applied to the state. Emphasize that Clifford gates map Pauli operators to Pauli operators.
+
+ Prompt: A diagram showing a density matrix input going through a 'Pauli channel' box that outputs a probabilistic mixture of X, Y, Z errors applied to the state. Emphasize that Clifford gates map Pauli operators to Pauli operators.
+
+2.3 從一般通道到 Pauli-twirled 通道
+
+實務上，物理噪聲不一定是 Pauli 型，但在穩定子碼分析中，我們常使用 Pauli twirling 近似：
+
+N twirl 作用在 rho 上，等於， 
+一除以帕uli 群 P 下標 n 的元素總數， 
+再對所有屬於這個 P 下標 n 的 P 做總和， 
+P dagger，接著作用通道 N 在 P 乘上 rho 再乘上 P dagger 上面，最後再乘上一個 P。
+
+可證明 大寫花體的 N，下標是 twirl。
+ 仍為 CPTP，且在 Pauli 基底下對角化，變成一個 Pauli 通道。這在 el-loom 中可以由使用者先在分析層完成，再以 Pauli 通道輸入模擬引擎。
+
+三、穩定子碼的數學結構與誤差作用
+
+3.1 穩定子群與碼空間
+
+一個 雙中括號 n、k、d。
+ 穩定子碼由一個 Abelian 子群
+Script S 是包含在 Script P n 裡面。
+
+所定義，滿足：
+
+ 負一乘上大寫的 I，不屬於集合 S。
+。
+
+ 這個念作：「花體的大寫 S」。
+ 生成的共同 +1 本徵空間作為碼空間：
+ C 等於，一個集合，裡面所有的 psi ket，都是屬於複數平方張量 n 次方這個空間，然後滿足，S 作用在 psi ket 上等於 psi ket，對所有的 S 屬於 S 這個集合都要成立。
+
+ 絕對值 S 等於 2 的 n 減 k 次方。
+，因此 C 的維度等於二的 k 次方。
+。
+
+給定一組獨立穩定子生成元 大括號裡面是： 
+S 一、一直到 S 下標 n 減 k。
+，任何誤差 E 屬於 P 下標 n 這個集合。
+ 在碼空間上的作用將由其與穩定子的對易/反對易關係決定。
+
+對 syndromes 向量 s 左括號 E 右括號，屬於，F 二 上的 n 減 k 維向量空間。
+：
+s 下標 i 的括號 E，等於： 
+如果中括號 E 跟 S 下標 i 等於零，那就給零； 
+如果大括號 E 跟 S 下標 i 等於零，那就給一。 
+然後 i 從一到 n 減 k。
+
+3.2 邏輯算符與距離
+
+邏輯 Pauli 算符 上橫線 X 下標 j，逗號，上橫線 Z 下標 j，屬於 script P 下標 n。
+ 滿足：
+
+ 中括號，X 上加一槓，底下 j，逗號，S 底下 i，中括號，等於零。
+, 中括號 Z 上加一橫 j，逗號 S i，中括號等於零，對所有的 i。
+。
+
+ 大括號裡面，X 上面一槓加下標 j，逗號，Z 上面一槓加下標 j，大括號等於零。
+，且對不同 j 不等於 l。
+ 彼此對易。
+
+ 在 P 下標 n 再除以 S。
+ 中為非平凡元素。
+
+碼距離 這個就是一個小寫的「d」。
+ 定義為：
+d 等於，在所有屬於大 L 這個集合但又不是單位算符 I 的那些 L 裡面，權重函數 w t 括號 L 的最小值。
+
+其中 calligraphy 的大寫 L。
+ 為邏輯 Pauli 群，w、t，小括號裡面一個點。
+ 為 Pauli 字串的 Hamming weight。
+
+ 圖 2-6: Lattice visualization for a small stabilizer code, with physical qubits as nodes, stabilizers as plaquettes, and example of a minimal-weight logical operator drawn as a nontrivial loop.
+
+ Prompt: Lattice visualization for a small stabilizer code, with physical qubits as nodes, stabilizers as plaquettes, and example of a minimal-weight logical operator drawn as a nontrivial loop.
+
+3.3 誤差作用與 syndrome 分佈
+
+若物理噪聲為 Pauli 通道
+N 作用在 rho 上，等於，對所有在 P n 裡面的 E 做加總，機率 p 下標 E，乘上 E、rho、再乘上一個 E。
+
+假設初始狀態 羅。
+ 在碼空間 大寫花體的 C。
+ 內。測量所有穩定子生成元（或對應之 syndrome qubits）後，得到 syndrome s 屬於二元有限體上，長度是 n 減 k 的向量空間。
+ 的機率為：
+機率括號 s，等於，把所有讓 s 括號 E 等於 s 的那些事件 E 的機率 p 下標 E，全部加總起來。
+
+條件在 syndrome s
+ 下的未歸一化後驗狀態：
+rho 底 s 的撇，正比於，對所有滿足 s 括號 E 等於 s 的那些 E，把 p 底 E 乘上 E、rho、E 的和。
+
+若我們只關心邏輯資訊，可以將所有相差穩定子的誤差等同視為同一「邏輯誤差類別」：
+E 跟 E 撇是等價，當且僅當，E 撇乘上 E 的反元素，屬於集合 S。
+
+在每一個 syndrome s
+ 下，對邏輯誤差類的後驗分佈就是解碼演算法的輸入；el-loom 可以生成這些 syndrome 分佈與對應的錯誤樣本。
+
+四、在 el-loom 中定義量子通道與噪聲模型
+
+本節將示範如何使用 el-loom（Python 介面）來刻畫物理噪聲通道，並準備好應用到穩定子碼。
+
+4.1 安裝與基本匯入
+
+pip install el-loom
+
+from loom import channels, noise, codes, simulate
+
+注意：實際模組名稱與結構請以官方文件為準（ loom-api-docs ）。以下示例採用典型命名風格，重點在概念與 workflow。
+
+4.2 單量子位 Pauli 通道
+
+假設我們要定義單量子位的 Pauli 通道
+N 作用在 rho 上， 
+等於 p 下標 I 乘上 rho， 
+加上 p 下標 X 乘上 X、rho、X， 
+加上 p 下標 Y 乘上 Y、rho、Y， 
+加上 p 下標 Z 乘上 Z、rho、Z。 
+
+同時滿足 
+p 下標 I 加上 p 下標 X 加上 p 下標 Y 加上 p 下標 Z 等於一。
+
+在 el-loom 中可用類似：
+
+from loom.channels import PauliChannel
+
+# 定義單 qubit Pauli 通道
+p_I, p_X, p_Y, p_Z = 0.97, 0.01, 0.01, 0.01
+
+single_qubit_pauli = PauliChannel.from_probs({
+ "I": p_I,
+ "X": p_X,
+ "Y": p_Y,
+ "Z": p_Z,
+})
+
+若要將此通道延伸成 這個就念成：「小寫的 n」。
+ qubits 上的獨立同分布通道，可以使用 tensor product 或 iid 建構子：
+
+n = 7
+iid_noise = single_qubit_pauli.iid(num_qubits=n)
+# or:
+# iid_noise = channels.tensor_product(single_qubit_pauli, n)
+
+ 圖 2-1: Code-like schematic showing a PauliChannel box with probabilities pI, pX, pY, pZ, then replicated across multiple qubits to form an iid noise model.
+
+ Prompt: Code-like schematic showing a PauliChannel box with probabilities pI, pX, pY, pZ, then replicated across multiple qubits to form an iid noise model.
+
+4.3 Depolarizing noise 與 amplitude damping 等標準模型
+
+許多常見噪聲模型在 el-loom 中通常已有預設工廠方法，例如：
+
+ DepolarizingChannel：
+ 等於 
+一減 p，乘上 rho， 
+再加上，p 除以三，乘上括號裡面， 
+X 乘上 rho 再乘上 X， 
+加上 Y 乘上 rho 再乘上 Y， 
+加上 Z 乘上 rho 再乘上 Z。
+
+ AmplitudeDampingChannel：
+ 由 Kraus operators
+ K 零等於一個二乘二的矩陣， 
+第一列是「一，零」， 
+第二列是「零，根號一減 gamma」。
+
+K 一等於一個二乘二的矩陣， 
+第一列是「零，根號 gamma」， 
+第二列是「零，零」。
+
+ 定義：
+ A 下標 gamma 作用在 rho，等於 
+K 零、rho、K 零 dagger，加上 K 一、rho、K 一 dagger。
+
+from loom.channels import DepolarizingChannel, AmplitudeDampingChannel
+
+p = 0.02
+depol = DepolarizingChannel(p=p)
+
+gamma = 0.005
+amp_damp = AmplitudeDampingChannel(gamma=gamma)
+
+如前所述，若要與穩定子碼分析結合，通常需要執行 Pauli twirling 或用近似的 Pauli channel 取代；
+el-loom 有些版本提供將一般通道「Pauli 化」的工具（例如 to_pauli_channel），可參考 API 文件。
+
+4.4 自訂 Kraus 通道
+
+對於自定義通道，可直接指定 Kraus operators：
+
+N 作用在 rho 上，等於對 j 做總和，K 下標 j 乘上 rho 再乘上 K 下標 j 的 dagger。 
+同時，對 j 的總和，K 下標 j 的 dagger 乘上 K 下標 j，等於單位算符 I。
+
+import numpy as np
+from loom.channels import KrausChannel
+
+# 例如：任意的兩 qubit 通道
+K0 = np.eye(4) * np.sqrt(0.9)
+K1 = np.kron(np.array([[0, 1],[0, 0]]), np.eye(2)) * np.sqrt(0.1)
+
+custom_kraus_channel = KrausChannel([K0, K1])
+
+注意：此類一般通道若要與穩定子碼模擬結合，通常需要進一步處理（Pauli decomposition / twirling），否則難以在大規模系統上高效模擬。
+
+五、穩定子碼在 el-loom 中的建模
+
+5.1 建立標準穩定子碼
+
+el-loom 提供常見穩定子碼的工廠函式，例如 雙左括號，五、一、三，雙右括號。
+ perfect code、Steane code、surface code 等。範例（具體名稱請以文件為準）：
+
+from loom.codes import SteaneCode
+
+code = SteaneCode() # [[7,1,3]] code
+print(code.n_qubits, code.k_logical)
+print(code.stabilizers) # list of Pauli strings
+print(code.logical_ops) # dictionary for logical X,Z...
+
+code.stabilizers 可能會以 Pauli 字串或 symplectic 向量形式存在，如：
+
+ Pauli 字串："XZZXIII" 等。
+
+ Symplectic：二元向量 括號 x 直線 z 括號，屬於二元有限域 F 二 的二 n 次方維空間。
+。
+
+ 圖 2-9: Illustration of Steane [[7,1,3
+
+ Prompt: Illustration of Steane [[7,1,3
+
+ code with 7 qubits arranged in a hexagon plus center, annotating some stabilizers as colored edges or faces.]]
+
+5.2 自訂穩定子碼
+
+若要自訂碼，可透過明示穩定子生成元與邏輯算符（或由程式自動推導邏輯算符）。概念上：
+
+from loom.codes import StabilizerCode
+
+stabilizers = [
+ "XXXXIIII", # for example
+ "ZZZZIIII",
+ # ...
+]
+
+logical_ops = {
+ "X_logical": "XIIIXII", 
+ "Z_logical": "ZIIIZII",
+}
+
+my_code = StabilizerCode(
+ stabilizers=stabilizers,
+ logical_ops=logical_ops,
+)
+
+在數學上，這相當於指定 大寫花體的 S 是大寫花體的 P 下標 n 的子集合。
+ 與一組生成 calligraphy 的大寫 L。
+ 的邏輯算符。el-loom 通常會內部轉成 symplectic representation，以支援高效的 Pauli 操作與 Clifford 模擬。
+
+5.3 編碼與解碼映射的抽象
+
+穩定子碼可視為一個 isometry
+V 冒號，從複數空間 C 的二的 k 次方維，映到複數空間 C 的二的 n 次方維。
+
+滿足
+V dagger，S，V，相乘等於單位算符 I，對於所有屬於集合 script S 的 S 都成立。
+
+且邏輯算符在碼空間上的實現為
+X 上面加一槓，底標 j，等於 V 乘上 X 底標 j 再乘上 V dagger；
+
+Z 上面加一槓，底標 j，等於 V 乘上 Z 底標 j 再乘上 V dagger。
+
+在 el-loom 中，通常不會顯式建構 V
+，而是透過 stabilizers 與 logical operators 來隱含這個編碼映射。對於模擬而言，最關鍵的是：如何將物理誤差 E
+ 映射為 syndrome s 括號 E 括號
+ 與邏輯誤差類 小寫的 L，括號 E。
+，而不是明確的 E
+-在-V
+ 上的 conjugation。
+
+六、物理噪聲在穩定子碼上的作用：數學推導
+
+6.1 編碼通道的作用
+
+考慮下列流程（單輪 error-correction cycle）：
+
+ 邏輯輸入狀態 rho 下標 L
+（維度 二 的 k 次方。
+）。
+
+ 編碼 isometry V
+：rho 映射到 V 乘上 rho 的 L，然後再乘上 V dagger。
+。
+
+ 物理噪聲通道 唸作：「花體的 N。」
+：rho 對應到 N 作用在 rho 上。
+。
+
+ syndrome 測量與糾錯映射 大寫花體的 R。
+。
+
+組合起來可視為邏輯通道：
+大 N 的底標 L，等於，先對助理系做偏跡運算，然後接上一個復原通道 R，再接上一個通道 N，最後接上一個編碼通道 E。
+
+其中編碼通道可寫成 CPTP 形式
+E 作用在 rho L，等於 V 乘上 rho L 再乘上 V dagger。
+
+若噪聲為 Pauli 通道
+N 作用在 rho 上，等於對所有屬於 P 下標 n 的 E 做總和，機率係數是 p 下標 E，乘上 E、rho、再乘上一個 E。
+
+則在編碼狀態上：
+N，大括號裡面是 V 乘上 rho 下標 L，再乘上 V 劍號， 
+等於對所有的 E 做總和，機率 p 下標 E，乘上 E V rho 下標 L V 劍號 E。
+
+測量 syndrome 等價於將 E
+ 分類依據 syndrome s 括號 E 括號
+。收集所有同一 syndrome 的項，可得
+大寫花體的 N，括號裡面是 V 乘上 rho 的下標 L，再乘上 V dagger。 
+等於，對 s 做總和，然後再對所有滿足 s 括號 E 等於 s 的那些 E 做總和，p 下標 E，乘上 E，再乘上 V rho 下標 L V dagger，再乘上 E。
+
+6.2 恢復映射與邏輯通道
+
+假設恢復映射 大寫花體的 R。
+ 是 syndrome 相依的 Cliffords 或 Pauli 校正 R 下標 s
+，即
+R of 圓點，等於對所有的 s 做總和， 
+R 下標 s，乘上 Π 下標 s，作用在括號裡那個東西上，再乘上 Π 下標 s，最後再乘上 R 下標 s 的 dagger。
+
+其中 Π 下標 s
+ 為對應 syndrome 子空間的投影。則對每個 syndrome s
+：
+
+rho 下標 L 跟 s，後面一撇，正比於 
+V dagger 乘上 R 下標 s， 
+再乘上括號裡面： 
+所有滿足 s 括號 E 等於 s 的那些 E，把它們加總起來， 
+每一項是機率 p 下標 E，乘上 E，乘上 V，乘上 rho 下標 L，乘上 V dagger，再乘上 E， 
+這一大坨括號起來， 
+最後再乘上 R 下標 s 的 dagger， 
+再乘上 V。
+
+若 R 下標 s
+ 能將大部分 syndrome class 糾回碼空間，我們可以寫成邏輯誤差算符：
+R 下標 s 的 E 乘上 V，等於 V 乘上 L 下標 s 逗號 E。
+
+其中 念作：
+
+「L，下標 s 逗點 E，屬於大寫花體 L。」
+ 為某個邏輯 Pauli。代入得：
+rho 下標 L 逗點 s 的撇，正比於，把所有滿足 s 括號 E 等於 s 的 E 做總和，權重是 p 下標 E，然後是 L 下標 s 逗點 E，乘上 rho 下標 L，再乘上一個 L 下標 s 逗點 E。
+
+因此，對給定 syndrome s
+，條件邏輯通道為一個 Pauli 通道
+N 下標 L 給定 s，作用在 rho L 上，等於，對所有屬於集合 script L 的 L 把它們加總起來，每一項是機率 q 下標 L 給定 s，乘上算符 L、rho L、再乘上算符 L。
+
+其中
+q 下標 L 直線 s，等於，s 的機率的倒數，乘上，把所有滿足 s 括號 E 等於 s，而且 L 下標 s 逗號 E 等於大寫 L 的那些事件 E，它們的 p 下標 E 全部加總起來。
+
+如果我們忽略 syndrome，則整體邏輯通道為
+N 下標 L 作用在 rho 下標 L， 
+等於把所有的 s 加總起來，機率 P 括號 s，乘上 N 下標 L 直線 s 作用在 rho 下標 L， 
+又等於把所有的 L 加總起來，係數 q 下標 L，乘上 L、rho 下標 L、再乘上 L。
+
+其中
+q 下標 L，等於對所有的 s 加總，機率括號 s，乘上 q 下標 L 直線 s。
+
+同時也等於對所有的 E 加總，p 下標 E，乘上指示函數，括號，L 下標 s 括號 E 逗點 E，等於 L，括號關起來。
+
+這些邏輯錯誤機率 q 下標 L。
+ 與 syndrome 分佈 機率，中括號 s。
+ 可以透過數值模擬估計——這正是 el-loom 提供的關鍵功能之一。
+
+ 圖 2-2: Flowchart showing: logical state rho_L encoded via V, noise channel N applied, syndrome measurement, correction Rs, and resulting logical channel N_L composed of logical Pauli errors with probabilities q_L.
+
+ Prompt: Flowchart showing: logical state rho_L encoded via V, noise channel N applied, syndrome measurement, correction Rs, and resulting logical channel N_L composed of logical Pauli errors with probabilities q_L.
+
+七、在 el-loom 中模擬噪聲作用與 syndrome 生成
+
+7.1 建立「碼 + 噪聲 + 量測」的工作流程
+
+典型的 el-loom 工作流程包括：
+
+ 指定穩定子碼 code。
+
+ 指定物理噪聲模型 noise_model（多為 Pauli 通道）。
+
+ 建立一個「error correction cycle」的電路或流程。
+
+ 利用樣本模擬大量 error instances，統計 syndrome 和邏輯錯誤。
+
+概念性程式碼（實際 API 請查官方文件）：
+
+from loom.codes import SteaneCode
+from loom.channels import PauliChannel
+from loom.simulate import run_qec_cycle
+
+code = SteaneCode()
+
+# 定義單 qubit pauli noise
+pI, pX, pY, pZ = 0.97, 0.01, 0.01, 0.01
+single_qubit_pauli = PauliChannel.from_probs({
+ "I": pI, "X": pX, "Y": pY, "Z": pZ,
+})
+noise_model = single_qubit_pauli.iid(num_qubits=code.n_qubits)
+
+# 執行多次 QEC cycle 模擬
+num_shots = 100000
+stats = run_qec_cycle(code=code, noise=noise_model, shots=num_shots)
+
+print("Logical error rate:", stats.logical_error_rate)
+print("Syndrome histogram:", stats.syndrome_counts)
+
+在背後，run_qec_cycle 類函式會：
+
+ 在每一個 shot 中，隨機從 Pauli 通道中抽取一個誤差 E
+。
+
+ 計算其 syndrome s 括號 E 括號
+ 與對應邏輯誤差類 L 下標 s 逗點 E
+。
+
+ 統計 syndrome 的出現頻率、邏輯錯誤類頻率。
+
+7.2 el-loom 中的 Pauli 誤差抽樣
+
+對 Pauli 通道
+N 作用在 rho 上，等於，對所有的 P 做總和，權重是 p 下標 P，乘上 P rho P。
+
+若我們只想模擬 syndrome 與邏輯錯誤率，而不顯式追蹤狀態 rho。
+，可使用「error sampling」策略：
+
+ 根據機率 大括號裡面是一個 抽樣一個 Pauli 錯誤 P
+。
+
+ 計算 s 括號 P 括號
+ 與 L 括號 P 括號
+。
+
+ 將 P
+ 作為「實際錯誤」，無需在狀態空間上應用 P
+。
+
+這是標準穩定子模擬框架中的關鍵效率來源。el-loom 內部會使用 symplectic operations 來計算 s 括號 P 括號
+ 與 L 括號 P 括號
+，而不需要矩陣乘法。
+
+ 圖 2-3: A schematic showing sampling from a discrete distribution over Pauli strings, then computing syndrome and logical class symbolically without acting on state vectors.
+
+ Prompt: A schematic showing sampling from a discrete distribution over Pauli strings, then computing syndrome and logical class symbolically without acting on state vectors.
+
+7.3 多輪 QEC 週期與時間相關噪聲
+
+若要模擬多輪 QEC（例如 T
+ 個循環）：
+
+括號， 合成 括號，整個的上標是 T，等於，底下有大括號的那一串： 合成 合成點點點合成 合成 ，總共重複 T 次。
+
+在 el-loom 中，可以：
+
+ 將 noise 指定為每一輪的物理噪聲（可隨時間變化）。
+
+ 透過迴圈呼叫 run_qec_cycle 或一個 multi-round API。
+
+ 累積邏輯錯誤事件（例如在最後一輪測量邏輯 qubit）。
+
+程式架構示意：
+
+T = 50 # number of QEC rounds
+logical_error_events = 0
+
+state = code.init_logical_state("0") # abstract handle, not full statevector
+for t in range(T):
+ result = run_qec_cycle(
+ code=code,
+ noise=noise_model, # could be time-dependent noise[t]
+ state=state,
+ )
+ state = result.state # logical state + Pauli frame
+ if result.logical_error_occurred:
+ logical_error_events += 1
+
+logical_error_rate_per_cycle = logical_error_events / (num_shots * T)
+
+實際上，state 通常是以「Pauli frame + syndrome history」的形式存在，而不是 二 的 n 次方。
+ 維密度矩陣。
+
+八、通道建模的變體：閘門誤差、量測誤差、空間與時間相關噪聲
+
+8.1 Clifford 閘上的噪聲模型
+
+在實驗設計中，更自然的模型是「每個閘門具有獨特的噪聲 channel」：
+
+ 單 qubit 閘 G
+ 之後作用 念作：「花體的大寫英文字母 N，底下加一個下標 G。」
+。
+
+ 雙 qubit 閘（如 CNOT）具有相關誤差通道 唸作：「大寫花體的 N，下標 CNOT。」
+。
+
+在 Clifford + Pauli 噪聲情境下，常見的建模方式是：
+
+U 下標 G 作用在 rho 上，等於大寫 U 下標 G，乘上 rho，再乘上 U 下標 G 的 dagger。 
+然後，N 下標 G 作用在 rho 上，等於對所有的 P 做總和，p 下標 G 逗號 P，乘上 P、rho、再乘上一個 P。
+
+總通道為
+ 下標 G，等於 下標 G，後面接一個複合符號，再接 下標 G。
+
+el-loom 通常會有「noisy gate」或「noisy circuit」的描述介面，例如：
+
+from loom import circuits, noise
+
+# 建立一個 Clifford circuit for syndrome extraction
+qc = circuits.StabilizerCircuit(code)
+
+# 為特定 gate type 指定 noise model
+gate_noise = {
+ "H": DepolarizingChannel(p=0.001),
+ "CNOT": PauliChannel.from_probs({...}),
+}
+
+noisy_qc = noise.attach_gate_noise(qc, gate_noise)
+
+8.2 量測誤差與 readout noise
+
+量測噪聲可建模為：
+
+ 在 z-basis 測量前的一個 classical confusion channel：
+ 機率，括號裡面是「outcome 等於 b prime，直線，true 等於 b」，關起來，等於 的下標 b prime b。
+
+ 等效為：在量測前施加 X
+ 錯誤，機率為 p 下標 m
+（bit-flip readout error）。
+
+在 syndrome 量測中，量測誤差會導致 syndrome bit 被翻轉。el-loom 中可:
+
+ 直接在測量結果上套用 classical bit-flip noise。
+
+ 或在量測前加入 Pauli X
+ 通道。
+
+meas_error_prob = 0.02
+
+# 假設我們有 syndrome measurement circuit qc
+noisy_meas = noise.add_measurement_bitflip(qc, p=meas_error_prob)
+
+ 圖 2-5: Diagram of a measurement circuit where the classical output bits go through a binary symmetric channel with flip probability pm, illustrating measurement error.
+
+ Prompt: Diagram of a measurement circuit where the classical output bits go through a binary symmetric channel with flip probability pm, illustrating measurement error.
+
+8.3 空間與時間相關噪聲
+
+在更多物理實際的模型中，噪聲具有空間相關性（例如距離相近 qubit 有相關 dephasing）與時間相關性（例如 一除以 f。
+ 雜訊）。在 el-loom 架構內，可以透過：
+
+ 自訂多體 Pauli 通道 唸作：「花體的 N。」
+ （例如兩體 大寫的 Z Z。
+ 相干誤差）。
+
+ 在每個時間步定義不同的 noise channel 唸作：「花體的 N，下標 t。」
+。
+
+ 利用 Monte Carlo 抽樣誤差歷史 大括號裡面是一整族的 ，所以我會念成：
+
+「 下標 這一族，隨著 變動。」
+ 來統計系統性行為。
+
+例如：雙體 correlated dephasing
+N 作用在 rho 上，等於一減掉 p 乘上 rho，加上 p 乘上 乘上 rho 再乘上 。
+
+from loom.channels import PauliChannel
+
+# correlated ZZ error on qubits (i, j)
+p = 0.001
+correlated_zz = PauliChannel.from_probs({
+ "I" * n: 1 - p,
+ "I" * i + "Z" + "I" * (j - i - 1) + "Z" + "I" * (n - j - 1): p,
+})
+
+九、範例：Steane 碼下的 depolarizing noise 通道建模
+
+本節將具體示範如何在 el-loom 中建構「Steane 碼 + i.i.d. depolarizing noise」，計算 syndrome 分佈與邏輯錯誤率。
+
+9.1 數學設定
+
+Steane 左中括號七、逗號一、逗號三右中括號。
+ 碼，假設每個物理 qubit 在每一個 QEC 週期經歷單步 depolarizing noise：
+大寫的 𝒟 下標 p 作用在 rho，等於一減 p 乘上 rho，加上 p 除以三，乘上括號裡面，X 乘 rho 再乘 X，加上 Y 乘 rho 再乘 Y，加上 Z 乘 rho 再乘 Z。
+
+整體噪聲為
+大寫花體的 N 等於大寫花體的 D 下標 p 的七重張量積。
+
+根據距離 d 等於三。
+，此碼可以糾正所有 weight 小於等於一。
+ 的 Pauli 誤差。對小 p
+ 下，主要邏輯錯誤來自 weight-2 與 weight-3 誤差。邏輯錯誤率約為 大 O 括弧 p 的平方 括弧。
+。
+
+ 圖 2-7: Schematic of a 7-qubit code block labeled with a depolarizing channel on each qubit, then a measurement of all stabilizers, illustrating the flow of error to syndrome.
+
+ Prompt: Schematic of a 7-qubit code block labeled with a depolarizing channel on each qubit, then a measurement of all stabilizers, illustrating the flow of error to syndrome.
+
+9.2 在 el-loom 中實作
+
+from loom.codes import SteaneCode
+from loom.channels import DepolarizingChannel
+from loom.simulate import run_qec_cycle
+import numpy as np
+
+# 1. 定義碼
+code = SteaneCode()
+
+# 2. 定義物理噪聲 (i.i.d depolarizing)
+p = 0.01
+single_qubit_depol = DepolarizingChannel(p=p)
+noise_model = single_qubit_depol.iid(num_qubits=code.n_qubits)
+
+# 3. 多次模擬 QEC 週期
+shots = 200000
+stats = run_qec_cycle(code=code, noise=noise_model, shots=shots)
+
+# 4. 統計結果
+logical_X_rate = stats.logical_error_rate["X_logical"]
+logical_Z_rate = stats.logical_error_rate["Z_logical"]
+logical_Y_rate = stats.logical_error_rate["Y_logical"]
+
+print("Logical X error rate:", logical_X_rate)
+print("Logical Z error rate:", logical_Z_rate)
+print("Logical Y error rate:", logical_Y_rate)
+
+# Syndrome 分佈
+for syndrome, count in stats.syndrome_counts.items():
+ print(syndrome, count / shots)
+
+在數學上，我們期待（對小 p
+）：
+
+ 單一 weight-1 誤差通常可被完全糾正，不 造成邏輯錯誤。
+
+ 某些 weight-2 誤差會 map 到非平凡邏輯錯誤。
+
+因此邏輯錯誤率約為
+ 下標 
+其中 這個是大寫英文字母 C。
+ 取決於碼的結構與糾錯策略。透過 el-loom 模擬，我們可數值估計 這個是大寫英文字母 C。
+。
+
+9.3 syndrome 統計與 ML 解碼
+
+若我們將 stats.syndrome_counts 做歸一化，就得到 syndrome 分佈
+P 帽加上中括號的 s，等於 count 括號 s，除以 shots。
+
+對於每個 syndrome s
+，可再細分邏輯誤差類別：
+q L 直線 s，等於，count 括號 L 逗號 s，除以，count 括號 s。
+
+這些資訊可以用來實作最大似然（ML）解碼器，或作為 machine-learning 解碼器的訓練資料。el-loom 提供直接/間接地輸出 syndrome-邏輯錯誤對的功能，使得研究者可輕鬆從「物理噪聲模型」走到「解碼器行為」。
+
+十、進階主題：通道壓縮、邏輯通道重建與 threshold 分析
+
+10.1 邏輯通道重建（Logical channel tomography）
+
+給定一個 雙中括號 n、k、d。
+ 碼與物理噪聲 唸作：「花體的 N。」
+，我們可以（理論上）求得完整邏輯通道
+ 下標 
+其 Pauli representation：
+N 下標 L 括弧 rho 下標 L 括起來，等於，對 L 跟 L 撇 做總和，chi 下標 L、L 撇，乘上 L、rho 下標 L、再乘上 L 撇。
+
+對穩定子碼與 Pauli 噪聲，chi。
+ 通常是對角的：
+N 下標 L 括號 rho 下標 L，等於，對所有 L 做總和，q 下標 L，乘上 L、rho 下標 L、再乘上 L。
+
+在實務上，我們以 Monte Carlo 估計 q 下標 L。
+。el-loom 可讓使用者：
+
+ 對每一個 sample 抽取錯誤 E
+。
+
+ 推得其對應的邏輯 Pauli L 括弧 E 括弧起來。
+。
+
+ 累計出各 這個就是一個大寫的英文字母 L。
+ 的頻率 q 上面戴個帽子，底下標一個 L。
+。
+
+10.2 threshold 分析與 scaling 行為
+
+在量子糾錯中，閾值（threshold） 指存在一個臨界物理錯誤率 p 下標 t h。
+，使得當 p 小於 p 下標 t h。
+ 時，隨碼距離 這個就是一個小寫的「d」。
+ 增加，邏輯錯誤率可指數下降。一般預期
+ 下標 L 括號 d 跟 p，大約等於指數函數的負的 alpha 括號 p 乘上 d。 
+逗號後面，p 小於 p 下標 t h。
+
+而 α 括號 p，趨近於零。
+ 當 p 趨近到臨界的 p，從左邊，也就是從比較小的那一側逼近。
+。
+
+在 el-loom 中，可對一族碼（例如 surface codes with distance 
+
+念作：
+
+d 等於 3、5、7，依此類推。
+）與各種 p
+ 值進行系統模擬：
+
+distances = [3,5,7,9]
+ps = np.linspace(0.005, 0.02, 8)
+
+data = []
+for d in distances:
+ code = SurfaceCode(distance=d)
+ for p in ps:
+ noise_model = DepolarizingChannel(p=p).iid(num_qubits=code.n_qubits)
+ stats = run_qec_cycle(code=code, noise=noise_model, shots=50000)
+ pL = stats.logical_error_rate["Z_logical"] # for example
+ data.append((d, p, pL))
+
+接著可在 Python 中做 fitting，用於估計 threshold 及 scaling exponent。此類統計分析與物理噪聲模型的精緻建模息息相關，也是 el-loom 設計的主要應用場景。
+
+ 圖 2-8: Log-log and semi-log plots illustrating logical error rate vs distance for several physical error rates, demonstrating threshold behavior.
+
+ Prompt: Log-log and semi-log plots illustrating logical error rate vs distance for several physical error rates, demonstrating threshold behavior.
+
+十一、總結與建議實作路線
+
+本課中，我們從數學角度嚴謹地推導了：
+
+ 量子通道（尤其是 Pauli 通道）與穩定子碼結合的基本形式。
+
+ 如何從物理噪聲 唸作：「花體的 N。」
+ 推得 syndrome 分佈與邏輯通道 念作：「花體的 N，下標 L。」
+。
+
+ 如何在 el-loom 中定義噪聲模型、穩定子碼，並執行 QEC 週期模擬。
+
+對於進一步研究與實作，可考慮以下方向：
+
+ 非 Pauli 噪聲的 Pauli twirling 與 approximation 誤差分析：
+ 比較 exact channel 與 Pauli-twirled channel 在邏輯層的差異，例如 diamond distance 或邏輯錯誤率差距。
+
+ 時間與空間相關噪聲對閾值的影響：
+ 建立 correlated Pauli models，在 el-loom 中實作並做 threshold 分析。
+
+ 與具體硬體平台對接：
+ 例如超導量子位元或離子阱的噪聲特性（如 amplitude damping + dephasing + leakage），將其轉譯為有效的 Pauli 通道模型，再利用 el-loom 做碼設計與參數優化。
+
+ 資料驅動的噪聲學習：
+ 利用實驗 tomography 結果學習通道，再在 el-loom 裡套用學得的噪聲模型進行 QEC 評估。
+
+掌握這些技巧後，讀者即可使用 el-loom 作為完整的「從物理噪聲到穩定子碼性能」的實驗與理論研究平台，實現高度可重現、可擴展的量子糾錯模擬工作流程。

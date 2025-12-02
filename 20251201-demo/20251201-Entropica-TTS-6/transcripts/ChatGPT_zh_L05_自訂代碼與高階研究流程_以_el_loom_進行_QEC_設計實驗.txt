@@ -1,0 +1,1027 @@
+自訂代碼與高階研究流程：以 el-loom 進行 QEC 設計實驗
+
+本課程聚焦於如何使用 Entropica Labs 的 el-loom 套件，從理論設計到數值實驗，完整走過「自訂量子糾錯碼（quantum error-correcting code, QEC）」的研究流程。內容假設讀者已熟悉穩定子碼（stabilizer codes）、噪聲通道、邏輯門與閾值分析等基礎概念。
+
+本章將分為以下部分：
+
+ 整體研究流程概觀：從代碼構想到數值實驗
+
+ 在 el-loom 中建立自訂代碼的數學結構與資料結構
+
+ 定義噪聲模型、邏輯門與量測程序
+
+ 蒙地卡羅與故障閾值分析流程
+
+ 設計掃描實驗與參數最佳化（碼族、解碼器、排程）
+
+ 可重現研究與軟體工程實務建議
+
+ 圖 5-12: A high-level flowchart showing the research pipeline: "Code design" → "Noise modeling" → "Implementation in el-loom" → "Simulation & decoding" → "Data analysis & threshold estimation". Each box annotated with corresponding el-loom modules or abstractions.
+
+ Prompt: A high-level flowchart showing the research pipeline: "Code design" → "Noise modeling" → "Implementation in el-loom" → "Simulation & decoding" → "Data analysis & threshold estimation". Each box annotated with corresponding el-loom modules or abstractions.
+
+1. 量子糾錯研究流程與 el-loom 的角色
+
+1.1 典型 QEC 研究問題
+
+博士階段與進階研究者在 QEC 領域常見的研究問題包括：
+
+ 為特定硬體限制（耦合圖、退相干機制、量測頻率）設計新的穩定子碼。
+
+ 針對已知碼（如 surface code, color code）在非對稱噪聲或具體硬體噪聲下重新評估閾值。
+
+ 研究新型解碼器（neural decoder, tensor-network decoder, belief propagation, etc.）的效能。
+
+ 設計自訂的量測排程、閘排程（schedule），分析捨入誤差與時間相關噪聲的影響。
+
+ 比較不同碼族（code families）在漸近尺度（asymptotic scaling）上的邏輯錯誤率表現。
+
+這些問題的共同需求是：能快速、系統性地把「抽象的碼結構＋噪聲模型」轉成「可重現的數值實驗」。el-loom 正是為此設計的一套 Python 工具，重點在於：
+
+ 對穩定子碼與量測主體（measurement circuits）的統一抽象。
+
+ 與 stim 等高效模擬器整合，進行大規模蒙地卡羅模擬。
+
+ 支援多種解碼器與輸出格式，便於後續資料分析。
+
+ 圖 5-1: Diagram showing el-loom sitting between "Theoretical code design" (stabilizer generators, logical operators) and "Low-level simulator" (Stim). Highlight arrows indicating that el-loom translates code abstractions into Stim circuits and back into error statistics / decoder inputs.
+
+ Prompt: Diagram showing el-loom sitting between "Theoretical code design" (stabilizer generators, logical operators) and "Low-level simulator" (Stim). Highlight arrows indicating that el-loom translates code abstractions into Stim circuits and back into error statistics / decoder inputs.
+
+2. 從數學形式到 el-loom 資料結構：自訂穩定子碼
+
+2.1 一般穩定子碼的數學定義
+
+一個 穩定子碼 定義在 念成：「小寫的 n。」
+ 個物理量子比特上，其穩定子群 S
+ 為 念成：「小寫的 n。」
+-粒子 Pauli 群中的一個阿貝爾子群，且不包含 負的單位矩陣。
+。令 S 等於 角括號裡面放著 S1 一直到 S 的 n 減 k 次方 這些元素。
+，則其編碼空間為
+C這個集合，定義成：所有的 ket ψ，屬於複數二維空間的 n 次張量積，也就是括號 C 二平方，外面上一個 n 次張量積，滿足對所有的 i，算符 S 下標 i 作用在 ket ψ 上之後，會等於原來的 ket ψ。
+
+若 S
+ 的生成元線性獨立（在 Pauli 群上 modulo 正負一。
+），則編碼 k 等於 n 減掉 S 的 rank。
+ 個邏輯比特。
+
+邏輯 Pauli 生成元可選取為
+大括號裡面是：第一個到第 k 個帶橫線的 X，逗號分開，接著是第一個到第 k 個帶橫線的 Z。
+
+使得：
+
+ 中括號，X 上面一橫、下標 i，逗號，Z 上面一橫、下標 j，中括號，等於零。
+ 對 i 不等於 j。
+，
+
+ 大括號，X 上橫線加下標 i，逗號，Z 上橫線加下標 i，大括號，等於零。
+（反對易），
+
+ 對所有 唸成：「i 逗號 j」。
+，左括號，X 上面一槓，下標 i，逗號，S 下標 j，右括號，等於，左括號，Z 上面一槓，下標 i，逗號，S 下標 j，右括號，等於零。
+。
+
+2.2 Pauli 向量表示與二元矩陣形式
+
+在實作時，我們常使用 binary symplectic representation 來表示 Pauli：
+P 等於 i 的 k 次方，乘上 X 的粗體 a 次方，再乘上 Z 的粗體 b 次方；對應到括號粗體 a 直線粗體 b，屬於二元有限域的二乘 n 維向量空間。
+
+其中 粗體的 a、粗體的 b 屬於 F 二 的 n 維向量空間。
+；第 就念成：「小寫的 j」。
+ 比特若為 X
+ 則 a 下標 j 等於一，逗號，b 下標 j 等於零。
+，若為 Z
+ 則 a 下標 j 等於零，逗號，b 下標 j 等於一。
+，若為 Y
+ 則 a 下標 j 等於 1，b 下標 j 也等於 1。
+，若為 大寫的英文字母 I。
+ 則 a 下標 j 等於零，b 下標 j 也等於零。
+。
+
+兩個 Pauli P，逗號，Q。
+ 的（反）對易性由辛內積決定：
+P 乘上 Q，等於括號負一的內積 P 跟 Q 次方，乘上 Q 再乘 P。
+
+其中
+內積括號，左邊是小括號 a 直線 b，逗號，小括號 c 直線 d 的內積，等於，a 點乘 d，加上，b 點乘 c，屬於 F 二。
+
+因此，一個穩定子碼可由一個 括號裡面是：n 減 k，乘上 2n。
+ 的二元矩陣
+H 下標 S 等於，中括號 A 直槓 B 中括號。
+
+來表示，其中每一列對應一個穩定子生成元的 Pauli 向量表示。
+
+ 圖 5-9: Graphic illustrating the mapping from a physical Pauli operator like XIZY to a binary symplectic vector (a|b) with highlighted positions, and showing the symplectic inner product determining commutation.
+
+ Prompt: Graphic illustrating the mapping from a physical Pauli operator like XIZY to a binary symplectic vector (a|b) with highlighted positions, and showing the symplectic inner product determining commutation.
+
+2.3 在 el-loom 建立自訂碼的核心概念
+
+在 el-loom 中，核心抽象並非只是一個靜態的 H 下標 S。
+，而是：
+
+ 幾何／拓樸資料： qubit 位置、鄰接關係、層級結構（如 lattice, tiling）。
+
+ 穩定子、邏輯算符的 Pauli 結構： 可視為 algebraic layer。
+
+ 測量電路與 schedule： 如何在時間上實現這些穩定子的量測。
+
+具體到 Python，典型流程（以 pseudo-code 表示）如下：
+
+from loom import codes, circuits, layouts
+
+# 1. 定義 qubit layout (可 1D, 2D, graph-based)
+layout = layouts.CustomLayout(qubits=range(n), connectivity=edges)
+
+# 2. 定義 stabilizer 與 logical Pauli
+stabilizers = [
+ "X0 X1 X3 X4", # textual Pauli representation
+ "Z1 Z2 Z4 Z5",
+ # ...
+]
+logical_x = ["X0 X2 X4", ...]
+logical_z = ["Z1 Z3 Z5", ...]
+
+code = codes.StabilizerCode(
+ n_qubits=n,
+ stabilizers=stabilizers,
+ logical_x=logical_x,
+ logical_z=logical_z,
+ layout=layout,
+)
+
+# 3. 從 code 構造 syndrome measurement circuit
+meas_circuit = circuits.SyndromeMeasurementCircuit.from_code(code)
+
+實際 API 名稱請以官方文件為準，上述示例只展示「抽象層級」。核心思想是：
+
+ 你應該把自訂碼的數學規格（穩定子、邏輯算符）明確寫入。
+
+ 幾何（layout）是為了實現局域性約束與 schedule 建構。
+
+ 電路（circuit）是為了後續噪聲插入與模擬。
+
+3. 從數學設計到具體範例：自訂小型 topological code
+
+3.1 範例：一個 9-qubit planar surface code (小型)
+
+為了示範，我們考慮一個簡化的 9-qubit planar surface code patch。物理 qubit 排列成 三乘上三。
+ 方格：
+
+q0 q1 q2
+q3 q4 q5
+q6 q7 q8
+
+對於此簡化示例，設計 4 個 Z
+-type plaquette 穩定子與 4 個 X
+-type star 穩定子（為了示範，這裡採一個稍不標準但結構清楚的版本）。
+
+ Z
+-type 穩定子（作用在 plaquettes 上）：
+ S 上標 Z 的一，等於 Z 零、Z 一、Z 三、Z 四 的乘積；
+
+S 上標 Z 的二，等於 Z 一、Z 二、Z 四、Z 五 的乘積。
+
+ S 上標括號 Z 的三，等於，Z 三乘 Z 四乘 Z 六乘 Z 七； 
+S 上標括號 Z 的四，等於，Z 四乘 Z 五乘 Z 七乘 Z 八。
+
+ X
+-type 穩定子（作用在頂點 star）：
+ S 上標 X 的一，等於 X 零、X 一、X 三、X 四，相乘。
+
+逗點。
+
+S 上標 X 的二，等於 X 一、X 二、X 四、X 五，相乘。
+
+ S 上標括號 X，下標三，等於，X 三、X 四、X 六、X 七 的乘積； 
+S 上標括號 X，下標四，等於，X 四、X 五、X 七、X 八 的乘積。
+
+顯然，各 Z
+-type 彼此對易，各 X
+-type 彼此對易，而任意一個 X
+-type 與任意一個 Z
+-type 的重疊 qubit 數為偶數（0,2,4），故亦對易。總共有 8 個獨立生成元，但其中一個整體相乘關係可能導致 rank < 8；假設最後 rank 為 8，則
+k 等於 n 減掉 S 的 rank，等於 9 減 8，等於 1。
+
+是一個 左中括號，九逗點一逗點 d，右中括號。
+ code。最小距離 這個就是一個小寫的英文字母 d。
+ 約為 3（對應穿越 patch 的 string-like 邏輯算符）。
+
+3.2 binary symplectic 檢查與距離估計
+
+將上述 8 個穩定子轉成 Pauli 向量表示，建立 H 下標 S。
+：
+H 下標 S 等於一個八乘十八、在二元有限體上的矩陣， 
+它長得像這樣：
+
+第一列是粗體的 a，帶上標 X、下標一，跟粗體的 b，上標 X、下標一； 
+下面是省略號對省略號； 
+接著是粗體的 a，上標 X、下標四，跟粗體的 b，上標 X、下標四； 
+再來是粗體的 a，上標 Z、下標一，跟粗體的 b，上標 Z、下標一； 
+下面一樣是省略號對省略號； 
+最後是粗體的 a，上標 Z、下標四，跟粗體的 b，上標 Z、下標四。
+
+對於任意候選邏輯 Pauli L 等於，左括號，向量 a 的下標 L，豎線，向量 b 的下標 L，右括號。
+，它需滿足：
+
+ L
+ 與所有穩定子對易：
+ H 下標 S，乘上 J，再乘上 L 的轉置，等於粗體的零，括號裡面是 modulo 2。
+
+ 其中
+ J 等於一個二乘二的分塊矩陣，左上角是零矩陣，右上角是 n 維的單位矩陣，左下角也是 n 維的單位矩陣，右下角是零矩陣。這個 J 是屬於二元體上，二 n 乘二 n 的矩陣空間。
+
+ L
+ 不屬於穩定子群（modulo 相位），即 L 不屬於 H 下標 S 的列空間。
+。
+
+距離 這個就是一個小寫的英文字母 d。
+ 則是所有 非穩定子 邏輯 Pauli 中最小的 Pauli weight：
+d 等於，對所有屬於集合 N 括號 S，扣掉集合 S 之後的那些 L，取它們的 weight，也就是 w t 括號 L，的最小值。
+
+其中 N 括弧 S 括弧關起來。
+ 為 normalizer。
+
+在實作上，可利用高效 binary linear algebra（numpy 或 rust 實作）搜尋所有重量 小於或等於 的最大值。
+ 的 Pauli，檢查是否屬於 normalizer \& 非穩定子。el-loom 通常會提供類似：
+
+ 給定 StabilizerCode 結構，自動計算 k
+、距離估計等。
+
+ 或與外部 library（如 qecsim, stim）互通。
+
+ 圖 5-7: Matrix diagram showing H_S as an 8x18 binary matrix, with colored blocks for X-part (A) and Z-part (B), and a vector L. Arrows indicate multiplication with symplectic form J and the constraint H_S J L^T = 0.
+
+ Prompt: Matrix diagram showing H_S as an 8x18 binary matrix, with colored blocks for X-part (A) and Z-part (B), and a vector L. Arrows indicate multiplication with symplectic form J and the constraint H_S J L^T = 0.
+
+3.3 在 el-loom 中定義此自訂 surface-like code
+
+對應上例，可以這樣在 el-loom 中表達（使用概念性範例）：
+
+from loom import codes, layouts
+
+# 1. 定義 3x3 grid layout
+coords = {
+ 0: (0, 0), 1: (0, 1), 2: (0, 2),
+ 3: (1, 0), 4: (1, 1), 5: (1, 2),
+ 6: (2, 0), 7: (2, 1), 8: (2, 2),
+}
+layout = layouts.Grid2DLayout(coords)
+
+# 2. 穩定子列表（文字 Pauli 表示）
+stabilizers = [
+ "X0 X1 X3 X4",
+ "X1 X2 X4 X5",
+ "X3 X4 X6 X7",
+ "X4 X5 X7 X8",
+ "Z0 Z1 Z3 Z4",
+ "Z1 Z2 Z4 Z5",
+ "Z3 Z4 Z6 Z7",
+ "Z4 Z5 Z7 Z8",
+]
+
+# 3. 選擇一組邏輯 Pauli（示意）
+logical_x = ["X0 X3 X6"]
+logical_z = ["Z2 Z5 Z8"]
+
+code = codes.StabilizerCode.from_pauli_strings(
+ n_qubits=9,
+ stabilizers=stabilizers,
+ logical_x=logical_x,
+ logical_z=logical_z,
+ layout=layout,
+)
+
+對這類 code，el-loom 通常會提供方法來：
+
+ 檢查 commutation（自動驗證是合法穩定子碼）。
+
+ 計算或估計 中括號中，n、k、d，三個連在一起。
+。
+
+ 輸出對應的測量電路骨架（skeleton），再疊加噪聲模型。
+
+4. 噪聲模型與時間結構的嚴謹建模
+
+4.1 噪聲通道的抽象與 local noise 假設
+
+在 QEC 理論分析中，我們通常假設 局域獨立噪聲（local stochastic noise）。在一個單步（time slice）內，每一個受控物理操作（閘、量測、idle）都可能伴隨獨立噪聲通道：
+E 作用在 rho 上，等於一減掉 p 乘上 rho，加上對 i 求和，p 下標 i 乘上 E 下標 i，rho，再乘上 E 下標 i 的 dagger。
+
+常見簡化為：
+
+ 單比特 depolarizing：
+ D 下標 p 作用在 rho，等於一減掉 p，乘上 rho，加上 p 除以三，乘上括號裡面： 
+X 乘上 rho 再乘上 X，加上 Y 乘上 rho 再乘上 Y，加上 Z 乘上 rho 再乘上 Z。
+
+ 二比特 depolarizing：
+ 大 D 上標括號二，下標 p，作用在 rho，等於括號一減 p 括號乘上 rho，加上 p 除以十五，乘上對所有屬於大 P 二、但不要 II 的那些 P 做總和，裡面的項是 P 乘上 rho 再乘上 P dagger。
+
+ 非對稱噪聲（p 下標 X 不等於 p 下標 Z。
+）：
+ E 作用在 rho 上，等於一減掉 p 下標 X 再減掉 p 下標 Z，乘上 rho，加上 p 下標 X 乘上 X、rho、X，再加上 p 下標 Z 乘上 Z、rho、Z。
+
+在更實際的硬體場合，也會考慮 amplitude damping、dephasing、crosstalk 等非 Pauli 噪聲，但在 Pauli twirling approximation 下，常用 Pauli channel 近似，便於與 Stim 這類 Pauli 模擬器接軌。
+
+4.2 在 el-loom 中指定噪聲模型
+
+el-loom 通常透過一個「噪聲規則集」來描述：
+
+ 對應到哪種 gate / measurement / idle。
+
+ 概率參數（單一標量 這個就是一個小寫的英文字母 **p**。
+ 或多參數 左括號， 下標 、逗號、 下標 、逗號、一直到點點點，右括號。
+）。
+
+ 是否 time-correlated（跨周期關聯）。
+
+概念性範例：
+
+from loom import noise
+
+noise_model = noise.NoiseModel()
+
+# 單比特 gate depolarizing
+noise_model.add_gate_noise(
+ gate_type="H",
+ noise="depolarizing",
+ p=1e-3,
+)
+
+# CNOT 的二比特 depolarizing
+noise_model.add_gate_noise(
+ gate_type="CNOT",
+ noise="two_qubit_depolarizing",
+ p=2e-3,
+)
+
+# 量測錯誤
+noise_model.add_measurement_noise(
+ basis="Z",
+ p_meas=5e-3,
+)
+
+對應到理論分析，我們希望保證 model 中的 noise channel 大寫花體的 E，底下標註 hardware。
+ 與理論假設 大寫花體的 E，下標寫 theory。
+ 在 diamond norm 上接近：
+鑽石範數下，硬體實際的超算符減掉理論上的超算符，遠小於一。
+
+或至少在實驗設計中清楚說明採用之近似（如 Pauli twirling）。
+
+ 圖 5-2: Diagram showing circuit elements (single-qubit gate, two-qubit gate, measurement, idle) each decorated with a small noise box indicating associated noise channels. Arrows show mapping from abstract noise parameters p, p_X, p_Z into Stim or el-loom noise definitions.
+
+ Prompt: Diagram showing circuit elements (single-qubit gate, two-qubit gate, measurement, idle) each decorated with a small noise box indicating associated noise channels. Arrows show mapping from abstract noise parameters p, p_X, p_Z into Stim or el-loom noise definitions.
+
+4.3 時間結構與循環（cycles）
+
+QEC 通常以 循環（cycle） 為單位：每個 cycle 執行一次完整的 syndrome measurement 序列。從邏輯態 rho 下標 L
+ 開始，經過 這個就是一個大寫的英文字母 **T**。
+ 個 cycle 後：
+rho 下標 L 的括號 T，等於「R 接著 M 接著 N」這個組合算符的 T 次方，作用在 rho 下標 L 上。
+
+其中：
+
+ 大寫花體的 N。
+：實際噪聲通道（包含 gate noise, idle noise）。
+
+ 這個就是花體的大寫英文字母 M。
+： syndrome measurement 與 classical post-processing（decoder input）。
+
+ 大寫的花體 R。
+： decoder 產生的恢復算符。
+
+在 el-loom 的設計裡，會以「repeated circuit」或「cycle template」方式實作：
+
+from loom import circuits
+
+cycle_circuit = circuits.SyndromeMeasurementCircuit.from_code(code)
+
+# 疊加噪聲
+noisy_cycle = cycle_circuit.with_noise(noise_model)
+
+# 重複 T 次
+T = 100
+full_circuit = noisy_cycle.repeat(T)
+
+此種 time-structured circuit 再交給 Stim 等底層模擬器，即可獲得對應長時間演化下的邏輯錯誤統計。
+
+5. 測量電路設計與錯誤傳播分析
+
+5.1 CNOT-based syndrome extraction
+
+對於一個穩定子 S 等於，從 j 等於 1 到 n，所有 P 下標 j 的張量積。
+（其中 P 下標 j 屬於大括號裡面的 I、X、Y、Z。
+），典型的 syndrome 量測電路如下：
+
+ 引入一個 ancilla qubit a
+，初始化為 ket 零，下標 a。
+（對 Z
+-type）或 ket 加，底下標上 a。
+（對 X
+-type）。
+
+ 對於 Z
+-type：
+
+ 對每個物理 qubit 就念成：「小寫的 j」。
+ 若 P 下標 j 等於 Z。
+，執行 CNOT：CNOT，從 j 控到 a。
+。
+
+ 最後量測 ancilla 在 Z
+ 基底，得 syndrome bit。
+
+ 對於 X
+-type：
+
+ 若 ancilla 在 ket 加。
+，則使用 C N O T，括號裡面 a 控制到 j。
+ 對每個 P 下標 j 等於 X。
+。
+
+ 最後量測 ancilla 在 X
+ 基底。
+
+我們可形式化地寫出 Z-type case 的測量算符：
+大寫的 M 下標 S，等於，對 s 等於正一和負一做總和，把 s 乘上大寫的 Π 下標 s。
+
+其中
+皮 帽 底標 s 等於二分之一，括號裡面是 I 加上 s 乘上 S。
+
+是投影到 S
+ 本徵值 s
+ 的 projector，被 ancilla 的演化與測量實現。錯誤傳播的重點在於 CNOT 的 Heisenberg 圖像：
+
+ C N O T，左括號，控制線到目標線，右括號。
+ 下：
+ X 下標 c 對應到 X 下標 c 乘上 X 下標 t，
+
+Z 下標 c 對應到 Z 下標 c，
+
+X 下標 t 對應到 X 下標 t，
+
+Z 下標 t 對應到 Z 下標 c 乘上 Z 下標 t。
+
+因此，一個在 ancilla 上的 X
+ 錯誤可透過 CNOT 傳到所有 target qubit 上，反之亦然。這就是為何 syndrome circuit 排程與 ancilla reuse 會嚴重影響 correlated errors 之結構。
+
+ , followed by multiple CNOTs (data as control to ancilla as target), then measurement. Overlaid arrows indicate propagation of an X error on ancilla back along CNOTs to data qubits.">
+ 圖 5-8: Quantum circuit illustrating a Z-type stabilizer measurement: data qubits as horizontal lines, an ancilla at top initialized to |0>, followed by multiple CNOTs (data as control to ancilla as target), then measurement. Overlaid arrows indicate propagation of an X error on ancilla back along CNOTs to data qubits.
+
+ Prompt: Quantum circuit illustrating a Z-type stabilizer measurement: data qubits as horizontal lines, an ancilla at top initialized to |0>, followed by multiple CNOTs (data as control to ancilla as target), then measurement. Overlaid arrows indicate propagation of an X error on ancilla back along CNOTs to data qubits.
+
+5.2 在 el-loom 中自訂測量 schedule
+
+el-loom 提供兩種典型策略：
+
+ 自動生成 schedule： 根據穩定子的 support 與 layout，嘗試產生無衝突、深度盡量小的電路。
+
+ 手動指定 schedule： 研究者自行定義多輪 CNOT 與 ancilla 使用策略，精細控制錯誤傳播結構。
+
+一個手動指定的示意：
+
+from loom import circuits
+
+builder = circuits.CircuitBuilder(code)
+
+# 為某個 Z-type stabilizer S_1 設計量測電路
+anc = builder.new_ancilla(init="0")
+
+# round 1: CNOTs on disjoint pairs
+builder.cnot(control=0, target=anc) # Z on data 0
+builder.cnot(control=3, target=anc) # Z on data 3
+
+# round 2: next layer
+builder.cnot(control=1, target=anc)
+builder.cnot(control=4, target=anc)
+
+# measure ancilla in Z
+builder.measure(anc, basis="Z")
+
+syndrome_circuit = builder.to_circuit()
+
+利用這種 builder 介面，可以針對：
+
+ 避免多個 ancilla 同時接觸相鄰 qubit（降低 correlated error）。
+
+ 優化 circuit depth（考量 T1/T2 decoherence）。
+
+ 插入 idle gate 噪聲模型。
+
+並可將這個「局部 stabilizer 量測電路」複製到所有 face/star，組成一個完整 cycle。
+
+6. 解碼與蒙地卡羅模擬：從 syndrome 到邏輯錯誤率
+
+6.1 syndrome 與錯誤類別的數學結構
+
+給定一個 Pauli 錯誤 E
+，其 syndrome s 括弧 E 括弧，屬於 F 二 的 n 減 k 維向量空間。
+ 由
+s 下標 i 的括號 E，等於，
+
+如果中括號 E 跟 S 下標 i 的對易子等於零，那就給零；
+
+如果大括號 E 跟 S 下標 i 的反對易子等於零，那就給一。
+
+或等價表示為
+s 括號 E 括號，等於 H 下標 S，乘上 J，乘上 E 的轉置，屬於 F 二上標，n 減 k 維的向量空間。
+
+其中 E
+ 以 binary symplectic 向量表示。
+
+解碼器本質上是一個 map
+大寫花體的 D，冒號，從二元域上、維度是 n 減 k 的向量空間，映到 P 下標 n 對 S 取商的空間。
+
+在給定 syndrome 後，輸出一個恢復操作 R
+ 的等價類。對邏輯錯誤率感興趣的是 R 乘上 E 不屬於集合 S。
+ 的機率（即發生非平凡邏輯錯誤）。
+
+6.2 蒙地卡羅估計邏輯錯誤率
+
+假設每個 cycle 之噪聲強度為 這個就是一個小寫的英文字母 **p**。
+，我們關心的是：
+p 下標 L，括號裡面是小 p、d、還有大 T，等於發生「在經過 T 個循環之後產生邏輯錯誤」這件事的機率。
+
+蒙地卡羅流程如下：
+
+ 隨機 sample 噪聲實例 E 的上標 t。
+ 在每個 cycle t
+ 上。
+
+ propagate through measurement circuit，得到 syndrome sequence 大括號裡面放著，s 的 t 次，這一整串序列。
+。
+
+ 將 大括號裡面放著，s 的 t 次，這一整串序列。
+ 傳入解碼器 大寫花體的 D。
+，取得每 cycle 的恢復操作 大括號，裡面的元素是 的括號 t。
+。
+
+ 最終邏輯 error operator L 下標 e f f。
+ 為所有 noise \& recovery 的組合，在 logical subspace 上是否為非平凡 Pauli。
+
+利用大數法則，估計
+p 帽子下標 L 等於，邏輯錯誤的次數除以實驗總次數。
+
+並對不同 這個就是一個小寫的英文字母 **p**。
+ 與 這個就是一個小寫的英文字母 d。
+ 取樣，進行閾值分析。
+
+ 圖 5-10: Flow diagram showing Monte Carlo process: Sample noise → Run circuit (Stim) → Obtain syndrome → Decode → Check whether logical error occurred. Repeated many times, then estimated logical error rate p_L vs. physical p plotted.
+
+ Prompt: Flow diagram showing Monte Carlo process: Sample noise → Run circuit (Stim) → Obtain syndrome → Decode → Check whether logical error occurred. Repeated many times, then estimated logical error rate p_L vs. physical p plotted.
+
+6.3 在 el-loom 中設定解碼器與模擬流程
+
+el-loom 支援多種解碼器掛接方式，包括：
+
+ 內建最小重量完美匹配（MWPM）或 Union-Find 解碼器。
+
+ 與外部 decoder library 互通（例如開源的 PyMatching）。
+
+ 自訂 Python 解碼器（研究新演算法）
+
+設定流程範例：
+
+from loom import decoders, simulate
+
+decoder = decoders.MWPMDecoder.from_code(code)
+
+sim = simulate.Simulator(
+ code=code,
+ cycle_circuit=cycle_circuit,
+ noise_model=noise_model,
+ decoder=decoder,
+)
+
+results = sim.run(
+ p=5e-3,
+ n_trials=10_000,
+ n_cycles=100,
+)
+print(results.logical_error_rate)
+
+在高階研究中，重點通常不是單一點的 p 下標 L。
+，而是：
+
+ 固定 這個就是一個小寫的英文字母 d。
+，掃描 這個就是一個小寫的英文字母 **p**。
+ → 畫出 p 下標 L。
+ vs. 這個就是一個小寫的英文字母 **p**。
+ 曲線。
+
+ 對多個 這個就是一個小寫的英文字母 d。
+ 重複 → 找到 crossing point → 閾值估計。
+
+ 分析 p 的底標 L，小括號裡面放一個 p。
+ 的漸近斜率（如 p 下標 L，大約等於，p 除以 p 下標 t h 的這個比值，整個括號起來，然後再升到 d 加一 除以 二 的次方。
+）。
+
+7. 閾值與縮放律分析：多碼距實驗設計
+
+7.1 閾值的嚴謹定義與 scaling ansatz
+
+一個 QEC code family 大括號，裡面放一個帶底線 d 的粗體大寫 C。
+（如距離 d 等於 3、5、7，一直這樣下去。
+ 之 surface code）在某種噪聲模型下有閾值 p，下標 t h。
+，若存在 p 的下標 t h，大於零。
+ 使得：
+對所有小於臨界機率的 p，當 d 趨近無限大時，p 下標 L 括號 p 逗點 d 會趨近於零。
+
+另一方面，若 p 大於臨界機率 p 下標 t h。
+，則 當維度 d 趨近無窮大的時候， 
+p 下標 L 括號裡面是 p 跟 d，的 lim inf 大於零。
+。
+
+在數值實驗中，常假設近閾值區域遵守 scaling ansatz：
+p 下標 L，括號裡面帶變數 p 跟 d，大約等於一個函數 f，裡面的自變數是括號 p 減掉 p 下標 t h，也就是臨界的那個 p，整個再乘上 d 的一除以 ν 次方。
+
+其中 唸作：「紐」。
+ 為相關長度臨界指數，這個就是「f」。
+ 為某 universal scaling function。對 fixed 這個就是一個小寫的英文字母 d。
+ 掃描 這個就是一個小寫的英文字母 **p**。
+，再對不同 這個就是一個小寫的英文字母 d。
+ 作 collapse 分析，可同時估計 p，下標 t h。
+ 與 唸作：「紐」。
+。
+
+ 圖 5-5: Plot example showing logical error rate p_L vs physical error p for multiple code distances d. Curves cross near a common point p_th. Inset shows finite-size scaling collapse where p_L plotted vs (p-p_th)*d^{1/nu} collapses onto a single curve.
+
+ Prompt: Plot example showing logical error rate p_L vs physical error p for multiple code distances d. Curves cross near a common point p_th. Inset shows finite-size scaling collapse where p_L plotted vs (p-p_th)*d^{1/nu} collapses onto a single curve.
+
+7.2 在 el-loom 中設計多距離碼族與批次模擬
+
+規劃一個完整的閾值研究通常需要：
+
+ 選擇一系列距離 d 這個變數屬於一個集合，裡面從 d 最小一直到 d 最大。
+。
+
+ 對應每個 這個就是一個小寫的英文字母 d。
+ 建立一個 code instance 大寫花體的 C，下標一個 d。
+。
+
+ 選定一組物理錯誤率 grid：p 屬於一個集合，這個集合裡面有 p1 到 pM。
+。
+
+ 為每個 左括號 d 逗號 p 右括號。
+ 組合進行 念作：「大寫的英文字母 N。」
+ 次蒙地卡羅試驗，估計 p 下標 L，小括號裡面 d 逗號 p。
+。
+
+ 將所有結果存至統一資料結構（例如 pandas.DataFrame）以利分析。
+
+在 el-loom 中可以利用 loops + config 驅動：
+
+from loom import codes, simulate, decoders
+
+distances = [3, 5, 7]
+phys_ps = [2e-3, 3e-3, 4e-3, 5e-3]
+
+records = []
+
+for d in distances:
+ code_d = codes.SurfaceCode(distance=d) # 或自訂家族生成
+ decoder_d = decoders.MWPMDecoder.from_code(code_d)
+ sim_d = simulate.Simulator(
+ code=code_d,
+ cycle_circuit=code_d.default_cycle_circuit(),
+ noise_model=noise_model,
+ decoder=decoder_d,
+ )
+ for p in phys_ps:
+ res = sim_d.run(
+ p=p,
+ n_trials=20_000,
+ n_cycles=round(d), # 或更複雜的 T(d) 選擇
+ )
+ records.append({
+ "distance": d,
+ "p_phys": p,
+ "p_log": res.logical_error_rate,
+ "stderr": res.stderr,
+ })
+
+為了避免「在閾值附近需要非常多樣本」的問題，常採用 adaptive sampling 或 importance sampling，el-loom 也可能提供：
+
+ 基於 target confidence interval 的自動停止條件。
+
+ 支援 Stim 的 --count-logical-errors / --sample 高效統計介面。
+
+7.3 結果分析與交叉驗證
+
+當得到 p 下標 L，小括號裡面 d 逗號 p。
+ 的資料後，數學上要處理：
+
+ 適當的誤差條（standard error）：
+ sigma 下標 p_L 等於開根號，根號裡面是 p_L 乘上括號一減掉 p_L，全部再除以 N trials。
+
+ 使用加權最小平方擬合 crossing point。
+
+ 檢查不同 decoder / noise model 下 p，下標 t h。
+ 是否穩定（robustness）。
+
+ 和理論預測（如 self-dual code 的對稱性、對應統計物理模型的臨界點）對照。
+
+ 圖 5-11: Example data visualization with error bars, showing p_L vs p for multiple d, and a zoomed-in region near the crossing with a fitted vertical line marking p_th. Another panel shows error bars for p_th estimated with different decoders or noise models.
+
+ Prompt: Example data visualization with error bars, showing p_L vs p for multiple d, and a zoomed-in region near the crossing with a fitted vertical line marking p_th. Another panel shows error bars for p_th estimated with different decoders or noise models.
+
+8. 自訂碼設計實驗：從幾何到代碼優化
+
+8.1 問題設定：為非對稱噪聲設計最佳碼
+
+考慮一個具體研究問題：
+
+給定一個硬體噪聲模型，其 Z
+-錯誤遠多於 X
+-錯誤（如 dephasing-dominated noise），希望設計一個在固定 qubit 數下最小化長時間邏輯錯誤率的穩定子碼。
+
+數學上，我們可以將噪聲通道 parameterize 成：
+E 作用在 rho 上，等於，括號一減掉 p 下標 Z 再減掉 p 下標 X，乘上 rho，加上 p 下標 X 乘上 X、rho、X，再加上 p 下標 Z 乘上 Z、rho、Z。
+
+並假設 p 下標 Z 遠大於 p 下標 X。
+。對一個代碼 這個唸作「花體的大寫 C」。
+，可定義「X-type distance」與「Z-type distance」：
+
+ d 下標 X
+：造成 上橫線的 X。
+ 邏輯錯誤的最小 Z-type 錯誤 weight。
+
+ 念作： 
+「d 下標 Z」。
+：造成 Z 上面加一槓。
+ 邏輯錯誤的最小 X-type 錯誤 weight。
+
+在 p 下標 Z 遠大於 p 下標 X。
+ 下，我們希望 d 下標 X 遠大於 d 下標 Z。
+，即對 dominating noise 方向拉高距離。
+
+8.2 幾何設計空間與搜尋策略
+
+在 el-loom 中，可以設計一個 parametric code family：
+
+ 幾何參數：如長寬比 L 下標 x 乘上 L 下標 y
+ 的 rectangular surface code。
+
+ 邊界型態：smooth/rough 邊界組合。
+
+ 穩定子選擇：是否引入變形 plaquette/star。
+
+例如 rectangular surface code 中：
+d 下標 X 等於 L 下標 x，逗號，d 下標 Z 等於 L 下標 y。
+
+（視具體邊界選擇而定），則在 p 下標 Z 遠大於 p 下標 X。
+ 時可選擇 L x 遠大於 L y。
+ 以優化。
+
+ 圖 5-4: Illustration of rectangular surface code patches with different aspect ratios Lx x Ly. Highlight logical X and Z operators as string-like paths, indicating their lengths correspond to d_X and d_Z, respectively. Show that increasing one dimension increases one logical distance.
+
+ Prompt: Illustration of rectangular surface code patches with different aspect ratios Lx x Ly. Highlight logical X and Z operators as string-like paths, indicating their lengths correspond to d_X and d_Z, respectively. Show that increasing one dimension increases one logical distance.
+
+在 el-loom 內，可這樣 parametrize：
+
+def make_rect_surface(Lx, Ly):
+ return codes.SurfaceCode(
+ size_x=Lx,
+ size_y=Ly,
+ boundaries=("rough", "smooth"), # example
+ )
+
+# 搜尋在固定 qubit 數下的最佳 Lx, Ly
+budget = 100 # qubit budget
+candidates = []
+for Lx in range(3, 11, 2):
+ for Ly in range(3, 11, 2):
+ code = make_rect_surface(Lx, Ly)
+ if code.n_qubits <= budget:
+ candidates.append((code, Lx, Ly))
+
+8.3 以 el-loom 進行自動化比較實驗
+
+對每個候選 括號，L 下標 x，逗號，L 下標 y，括號。
+ 之 code instance，我們可：
+
+ 採用同一噪聲模型（非對稱 p 下標 Z，逗號，p 下標 X。
+）。
+
+ 使用固定解碼器（如 MWPM with anisotropic weights）。
+
+ 在一組 這個就是一個小寫的英文字母 **p**。
+ or 括號 p 下標 X，逗號，p 下標 Z，括號。
+ 參數下估計 p 下標 L。
+。
+
+ 比較在相同 qubit 數下的 performance。
+
+官能定義為例如：
+F 括號 C 括號 關起來，等於 p 下標 L，括號裡面帶 p 下標 X、p 下標 Z、逗號 T，分號 C，括號關起來。
+
+以「越小越好」為優化目標。在 el-loom 的 Python 環境中可直接寫：
+
+best = None
+
+for code, Lx, Ly in candidates:
+ decoder = decoders.MWPMDecoder.from_code(code)
+ sim = simulate.Simulator(
+ code=code,
+ cycle_circuit=code.default_cycle_circuit(),
+ noise_model=noise_model,
+ decoder=decoder,
+ )
+ res = sim.run(
+ p=None, # 這裡可直接以 p_X, p_Z 傳入
+ p_X=1e-4,
+ p_Z=1e-3,
+ n_trials=50_000,
+ n_cycles=200,
+ )
+ score = res.logical_error_rate
+ if (best is None) or (score < best["score"]):
+ best = {
+ "code": code,
+ "Lx": Lx,
+ "Ly": Ly,
+ "score": score,
+ }
+
+print("Best aspect ratio:", best["Lx"], best["Ly"], "with p_L=", best["score"])
+
+這類 parametric search 實驗，在過往文獻中常用於：
+
+ 變形 surface code / XZZX code 的性能比較。
+
+ 幾何限制下（例如可用 coupler 的拓樸）尋找最佳 tiling。
+
+ 探索 fracton-like code 或嵌入在 3D layout 的 code 結構。
+
+9. 高階議題：自訂解碼器與資料匯出
+
+9.1 將 syndrome / error history 輸出給外部解碼器
+
+許多新型解碼器（machine learning-based, tensor networks 等）並非原生整合在 el-loom 內。典型 workflow 是：
+
+ 使用 el-loom + Stim 產生 syndrome samples。
+
+ 將 syndrome 時間序列或 graph representation 匯出成檔案（如 JSON, HDF5）。
+
+ 在獨立環境（PyTorch, JAX）訓練或執行 decoder。
+
+ 將解碼結果回傳或離線分析邏輯錯誤率。
+
+示意：
+
+samples = sim.sample_syndromes(
+ n_samples=100_000,
+ n_cycles=50,
+ return_errors=True, # 同時輸出實際 error operator
+)
+
+# 將 samples 轉為 NumPy/Tensor
+import numpy as np
+syndrome_array = np.array(samples["syndromes"]) # shape (N, T, n_stab)
+error_labels = np.array(samples["logical_errors"]) # 0/1 per sample
+
+# 儲存或直接送入 ML 模型
+np.savez("qec_dataset.npz",
+ syndromes=syndrome_array,
+ labels=error_labels)
+
+ 圖 5-3: Workflow diagram: el-loom/Stim generating syndrome samples → exported as numpy/hdf5 → external ML-based decoder (e.g., neural network) → returned logical correction performance metrics. Arrows clearly indicate data formats and boundaries between tools.
+
+ Prompt: Workflow diagram: el-loom/Stim generating syndrome samples → exported as numpy/hdf5 → external ML-based decoder (e.g., neural network) → returned logical correction performance metrics. Arrows clearly indicate data formats and boundaries between tools.
+
+9.2 自訂 Python 解碼器與 el-loom 的介面
+
+若希望直接在 el-loom 之內實作一個 prototype decoder，可以實作一個介面類別，例如：
+
+from loom.decoders import BaseDecoder
+
+class MyCustomDecoder(BaseDecoder):
+ def __init__(self, code, params):
+ super().__init__(code)
+ self.params = params
+ # 可於此建構 syndrome graph, precompute tables, etc.
+
+ def decode(self, syndrome_history):
+ # syndrome_history: shape (T, n_stabilizers)
+ # 回傳一個 Pauli operator (e.g., textual or binary)
+ # 這裡示意 return identity (不做矯正)
+ return "I" * self.code.n_qubits
+
+# 使用
+decoder = MyCustomDecoder(code, params={...})
+sim = simulate.Simulator(..., decoder=decoder)
+
+此介面允許：
+
+ 在 simulator 內部直接呼叫 decode，獲得每 cycle 的恢復操作。
+
+ 比較不同 decoder class 在同一 code, noise model 下的性能。
+
+ 對 decoder 的 parameter θ（希臘字母 theta）
+ 做 sweep 或最適化。
+
+10. 可重現研究與軟體工程實務：基於 el-loom 的實驗專案結構
+
+10.1 專案結構建議
+
+為了讓 QEC 設計實驗可重現、可擴充，建議採用如下專案結構（示意）：
+
+qec-project/
+ configs/
+ base.yaml
+ noise_asym.yaml
+ code_family_rect.yaml
+ src/
+ codes/
+ rect_surface.py
+ custom_topological.py
+ experiments/
+ threshold_scan.py
+ aspect_ratio_opt.py
+ decoders/
+ my_custom_decoder.py
+ data/
+ raw/
+ processed/
+ notebooks/
+ analysis_threshold.ipynb
+ analysis_scaling.ipynb
+ reports/
+ figures/
+ draft.md
+
+ 圖 5-6: Folder tree visualization of the suggested project structure, with folders for configs, src (codes, experiments, decoders), data (raw, processed), notebooks, and reports. Arrows indicate typical workflow: configs + src/experiments → data/raw → notebooks → reports/figures.
+
+ Prompt: Folder tree visualization of the suggested project structure, with folders for configs, src (codes, experiments, decoders), data (raw, processed), notebooks, and reports. Arrows indicate typical workflow: configs + src/experiments → data/raw → notebooks → reports/figures.
+
+重點在於：
+
+ configs：用 YAML/TOML 描述實驗參數（碼距、噪聲率、trial 數）。
+
+ src：所有 el-loom 相關 code（代碼定義、實驗腳本、解碼器）。
+
+ data：原始模擬結果與整理後的 summary。
+
+ notebooks：分析與繪圖。
+
+10.2 使用 Config 驅動 el-loom 實驗
+
+範例配置檔（configs/threshold_scan.yaml）：
+
+experiment: threshold_scan
+code_family: rect_surface
+distances: [3, 5, 7, 9]
+noise_model: asym_dephasing
+p_values: [0.002, 0.003, 0.004, 0.005]
+n_trials: 20000
+n_cycles_factor: 1.0 # n_cycles = factor * distance
+decoder: mwpm
+
+實驗腳本讀入 config，組裝 el-loom 元件並執行：
+
+import yaml
+from loom import codes, noise, decoders, simulate
+
+with open("configs/threshold_scan.yaml") as f:
+ cfg = yaml.safe_load(f)
+
+# 根據 cfg 建立 code family, noise model, decoder, ...
+# 然後進行迴圈模擬，將結果寫入 data/raw/
+
+此種方式有利於：
+
+ 分享實驗設定：只需分享 config + commit hash。
+
+ 在 cluster 上 parameter sweep：以 config 為單位派發 job。
+
+ 日後對同一實驗在不同硬體／el-loom 版本上重跑。
+
+11. 小結與延伸方向
+
+本課程從穩定子碼的嚴謹數學定義出發，說明如何將其映射到 el-loom 的資料結構與模擬流程，並展示高階研究者在「自訂代碼與設計實驗」時可採用的完整 pipeline：
+
+ 設計或選擇一個 code family，建立其穩定子與邏輯算符表示。
+
+ 在 el-loom 中定義 code + layout，生成或自訂測量電路與 schedule。
+
+ 建模噪聲通道（包含非對稱、時間結構、硬體特有效應）。
+
+ 選擇與實作解碼器，使用蒙地卡羅模擬估計邏輯錯誤率。
+
+ 設計多碼距、多參數掃描實驗，進行閾值與 scaling 分析。
+
+ 利用 parametric search 探索最佳代碼幾何或結構（如非對稱碼）。
+
+ 將 syndrome/data 匯出，連接外部 ML 或 tensor-network 解碼器。
+
+ 透過 config 驅動與良好專案結構，確保實驗的可重現性。
+
+下一步你可以嘗試：
+
+ 實作一個小型但 novel 的自訂碼（例如帶 dislocation 的 surface code），在 el-loom 中完整建立並比較其性能。
+
+ 針對具體硬體參數（實驗室提供的 T1/T2, gate fidelity, readout error）建立 realistic noise model，重新評估某碼族的實用閾值。
+
+ 將 el-loom 產生的 syndrome history 匯出，訓練一個 neural decoder，與傳統 MWPM 作系統性比較。
+
+隨著 el-loom 與周邊工具的演進，這套工作流程可以輕易擴展至 concatenated codes、LDPC codes、subsystem codes 等更複雜的架構，在理論與實務之間搭建更順暢的橋梁。

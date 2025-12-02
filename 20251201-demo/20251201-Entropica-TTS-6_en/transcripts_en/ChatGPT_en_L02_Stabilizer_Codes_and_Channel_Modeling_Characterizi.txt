@@ -1,0 +1,800 @@
+Stabilizer Codes and Channel Modeling: Characterizing Physical Noise in el-loom
+
+This lesson focuses on how to rigorously and flexibly characterize quantum channels and physical noise on stabilizer codes within the el-loom framework from Entropica Labs. The target audience is PhD students and researchers already familiar with basic quantum information theory and quantum error correction (QEC).
+
+1. From Physical Noise to Stabilizer Codes: Problem Setup
+
+In experimental and theoretical research on quantum error correction, we often face the following levels of modeling problems:
+
+ Physical layer: Single- and multi-qubit quantum channels Calligraphic N
+ describing noise and gate errors occurring in each physical time step.
+
+ Code space layer: The “projection” or “effective action” of noise on stabilizer codes, such as logical channels, syndrome distributions, and error chain structures.
+
+ Simulation layer: How to represent and propagate these channels in a numerically efficient way (in terms of bytes, matrices, Pauli spectra, etc.).
+
+el-loom mainly provides:
+
+ Structured representations of quantum channels (Kraus form, Pauli channels, noise models).
+
+ Efficient simulation of stabilizer codes and Clifford circuits (expressed as Pauli frames / symplectic representations).
+
+ Application of error models on codes, error chain generation, and decoding interfaces.
+
+This section starts from mathematical definitions and then gradually connects them to concrete APIs and usage in el-loom.
+
+ Figure 2-10: A three-layer diagram: bottom layer labeled 'Physical noise channel N', middle layer labeled 'Stabilizer code (enc/dec)', top layer labeled 'Effective logical noise', with arrows showing the mapping via encoding and decoding. On the side, a box labeled 'el-loom' interfaces with all three layers.
+
+ Prompt: A three-layer diagram: bottom layer labeled 'Physical noise channel N', middle layer labeled 'Stabilizer code (enc/dec)', top layer labeled 'Effective logical noise', with arrows showing mapping via encoding and decoding. On the side, a box labeled 'el-loom' interfacing all three layers.
+
+2. Mathematical Basics of Quantum Channels and Noise Models
+
+2.1 Completely Positive Trace-Preserving Maps (CPTP maps)
+
+A quantum channel on an n
+-qubit system is a linear map acting on density matrices Rho is an element of script D of C to the two to the n.
+:
+Calligraphic N, from script L of C two to the n into script L of C two to the n.
+
+satisfying:
+
+ Completely positive:
+ Calligraphic N tensor identity sub k, acting on X, is positive semidefinite, for all X positive semidefinite, and for all k in the natural numbers.
+
+ Trace-preserving:
+ Trace of script N of rho equals trace of rho, for all rho.
+
+The most commonly used representation is the Kraus expansion:
+Calligraphic N of rho equals the sum over j of K sub j, rho, K sub j dagger; and the sum over j of K sub j dagger K sub j equals the identity.
+
+In el-loom, channels are usually represented in more structured forms (especially Pauli channels) in order to be compatible with the stabilizer framework.
+
+2.2 Pauli Channels and Pauli Transformations
+
+The Pauli group Calligraphic P sub n.
+ is
+Script P sub n equals the set of all omega times P one tensor up to tensor P n, such that P i is in the set curly bracket I, X, Y, Z, and omega is in the set curly bracket plus or minus one, plus or minus i.
+
+Ignoring global phases, we only care about n
+-qubit Pauli strings
+P equals tensor dot dot dot tensor , where is in the set curly brace curly brace.
+
+A Pauli channel is a channel of the form
+Calligraphic N of rho equals the sum over capital P in script P sub n modulo plus or minus one and plus or minus i of p sub P times P rho P dagger, with p sub P greater than or equal to zero, and the sum over P of p sub P equal to one.
+
+This includes many important models, such as:
+
+ Single-qubit depolarizing noise:
+ Calligraphic D sub p of rho equals one minus p times rho plus p over three times open parenthesis X rho X plus Y rho Y plus Z rho Z close parenthesis.
+
+ Independent and identically distributed (i.i.d.) Pauli channels:
+ Calligraphic N tensor n equals the tensor product from i equals one to n of calligraphic N sub i, 
+and calligraphic N sub i of rho equals the sum over P in the set curly bracket I, X, Y, Z curly bracket of p sub P times P rho P.
+
+For stabilizer codes, Pauli channels are particularly important because the stabilizer formalism is closed and trackable under Pauli errors: Pauli errors remain Pauli errors after interacting with Clifford gates.
+
+ Figure 2-4: A diagram showing a density matrix input passing through a “Pauli channel” box that outputs a probabilistic mixture of X, Y, and Z errors applied to the state. It emphasizes that Clifford gates map Pauli operators to Pauli operators.
+
+ Prompt: A diagram showing a density matrix input going through a 'Pauli channel' box that outputs a probabilistic mixture of X, Y, Z errors applied to the state. Emphasize that Clifford gates map Pauli operators to Pauli operators.
+
+2.3 From General Channels to Pauli-Twirled Channels
+
+In practice, physical noise is not necessarily of Pauli type, but in stabilizer-code analysis we often use the Pauli twirling approximation:
+
+Calligraphic N sub twirl of rho equals one over the size of script P sub n, times the sum over P in script P sub n of P dagger, composed with calligraphic N of P rho P dagger, composed with P.
+
+One can show that Calligraphic N sub twirl.
+ is still CPTP and becomes diagonal in the Pauli basis, i.e., a Pauli channel. In el-loom, users can first perform this step analytically and then input the resulting Pauli channel into the simulation engine.
+
+3. Mathematical Structure of Stabilizer Codes and Error Action
+
+3.1 Stabilizer Group and Code Space
+
+An Double bracket n, k, d, double bracket.
+ stabilizer code is defined by an Abelian subgroup
+Script S is a subset of script P sub n.
+
+satisfying:
+
+ Negative capital I is not an element of calligraphic S.
+.
+
+ The joint +1 eigenspace of Script S
+ serves as the code space:
+ Calligraphic C equals the set of all kets psi in the n‑fold tensor product of C two, such that S acting on ket psi equals ket psi for all S in calligraphic S.
+
+ The size of script S equals two to the power of n minus k.
+, hence The dimension of script C equals two to the k.
+.
+
+Given a set of independent stabilizer generators The set of S one through S sub n minus k.
+, the action of any error E is an element of calligraphic P sub n.
+ on the code space is determined by its commutation/anticommutation relations with the stabilizers.
+
+For the syndrome vector s of E is an element of F two to the n minus k.
+:
+s sub i of E equals:
+
+zero, if the commutator of E and S sub i is zero;
+
+one, if the anticommutator of E and S sub i is zero;
+
+for i running from one to n minus k.
+
+3.2 Logical Operators and Distance
+
+Logical Pauli operators X bar sub j, comma Z bar sub j, are elements of script P sub n.
+ satisfy:
+
+ Open bracket, X bar sub j, comma, S sub i, close bracket, equals zero.
+, Open square bracket Z bar sub j comma S sub i close square bracket equals zero, for all i.
+.
+
+ Curly bracket, X bar sub j comma Z bar sub j, curly bracket, equals zero.
+, and for different j is not equal to l.
+ they mutually commute.
+
+ They correspond to nontrivial elements in Script P sub n over script S
+.
+
+The code distance d
+ is defined as:
+d equals the minimum, over all L in calligraphic script L except the identity, of the weight of L.
+
+where Script L.
+ is the logical Pauli group and “w t of dot”
+ is the Hamming weight of a Pauli string.
+
+ Figure 2-6: Lattice visualization for a small stabilizer code, with physical qubits as nodes, stabilizers as plaquettes, and an example of a minimal-weight logical operator drawn as a nontrivial loop.
+
+ Prompt: Lattice visualization for a small stabilizer code, with physical qubits as nodes, stabilizers as plaquettes, and example of a minimal-weight logical operator drawn as a nontrivial loop.
+
+3.3 Error Action and Syndrome Distribution
+
+If the physical noise is a Pauli channel
+Calligraphic N of rho equals the sum over E in calligraphic P sub n of p sub E times E rho E.
+
+and the initial state rho
+ lies in the code space Calligraphic C.
+, then after measuring all stabilizer generators (or their corresponding syndrome qubits), the probability of obtaining syndrome s is an element of F two to the n minus k.
+ is
+Probability of s equals the sum, over all E such that s of E equals s, of p sub E.
+
+The unnormalized posterior state conditioned on syndrome s
+ is
+Rho sub s prime is proportional to the sum over E such that s of E equals s, of p sub E times E rho E.
+
+If we only care about logical information, we can identify errors that differ by a stabilizer as belonging to the same “logical error class”:
+E is equivalent to E prime if and only if E prime times E inverse is in script S.
+
+For each syndrome s
+, the posterior distribution over logical error classes is the input to the decoding algorithm; el-loom can generate these syndrome distributions and the corresponding error samples.
+
+4. Defining Quantum Channels and Noise Models in el-loom
+
+This section demonstrates how to use the Python interface of el-loom to characterize physical noise channels and prepare them for application to stabilizer codes.
+
+4.1 Installation and Basic Imports
+
+pip install el-loom
+
+from loom import channels, noise, codes, simulate
+
+Note: Please refer to the official documentation (loom-api-docs) for the actual module names and structure. The examples below use typical naming conventions; the emphasis is on concepts and workflow.
+
+4.2 Single-Qubit Pauli Channels
+
+Suppose we want to define a single-qubit Pauli channel
+Calligraphic N of rho equals 
+p sub I times rho 
+plus p sub X times X rho X 
+plus p sub Y times Y rho Y 
+plus p sub Z times Z rho Z, 
+
+comma 
+
+p sub I plus p sub X plus p sub Y plus p sub Z equals one.
+
+In el-loom this can be written as:
+
+from loom.channels import PauliChannel
+
+# Define a single-qubit Pauli channel
+p_I, p_X, p_Y, p_Z = 0.97, 0.01, 0.01, 0.01
+
+single_qubit_pauli = PauliChannel.from_probs({
+ "I": p_I,
+ "X": p_X,
+ "Y": p_Y,
+ "Z": p_Z,
+})
+
+To extend this channel to an i.i.d. channel on n
+ qubits, we can use the tensor product or an iid constructor:
+
+n = 7
+iid_noise = single_qubit_pauli.iid(num_qubits=n)
+# or:
+# iid_noise = channels.tensor_product(single_qubit_pauli, n)
+
+ Figure 2-1: Code-like schematic showing a PauliChannel box with probabilities pI, pX, pY, pZ, then replicated across multiple qubits to form an i.i.d. noise model.
+
+ Prompt: Code-like schematic showing a PauliChannel box with probabilities pI, pX, pY, pZ, then replicated across multiple qubits to form an iid noise model.
+
+4.3 Standard Models such as Depolarizing Noise and Amplitude Damping
+
+Many commonly used noise models typically have factory methods in el-loom, for example:
+
+ DepolarizingChannel:
+ Calligraphic D sub p of rho equals one minus p times rho plus p over three times open parenthesis X rho X plus Y rho Y plus Z rho Z close parenthesis.
+
+ AmplitudeDampingChannel:
+ defined via Kraus operators
+ K naught equals the two by two matrix with first row one, zero, and second row zero, square root of one minus gamma; and K one equals the two by two matrix with first row zero, square root of gamma, and second row zero, zero.
+
+ so that
+ A sub gamma of rho equals K naught, rho, K naught dagger, plus K one, rho, K one dagger.
+
+from loom.channels import DepolarizingChannel, AmplitudeDampingChannel
+
+p = 0.02
+depol = DepolarizingChannel(p=p)
+
+gamma = 0.005
+amp_damp = AmplitudeDampingChannel(gamma=gamma)
+
+As mentioned earlier, when integrating with stabilizer-code analysis, one typically needs to perform Pauli twirling or replace the model with an approximate Pauli channel. Some versions of el-loom provide tools to “Pauli-ify” a general channel (e.g., to_pauli_channel); please refer to the API documentation.
+
+4.4 Custom Kraus Channels
+
+For custom channels, you can directly specify the Kraus operators:
+
+Script N of rho equals the sum over j of K sub j, rho, K sub j dagger; and the sum over j of K sub j dagger, K sub j equals the identity.
+
+import numpy as np
+from loom.channels import KrausChannel
+
+# Example: an arbitrary two-qubit channel
+K0 = np.eye(4) * np.sqrt(0.9)
+K1 = np.kron(np.array([[0, 1],[0, 0]]), np.eye(2)) * np.sqrt(0.1)
+
+custom_kraus_channel = KrausChannel([K0, K1])
+
+Note: To combine such general channels with stabilizer-code simulations, one usually needs additional processing (Pauli decomposition / twirling), otherwise large-scale simulation becomes difficult to perform efficiently.
+
+5. Modeling Stabilizer Codes in el-loom
+
+5.1 Constructing Standard Stabilizer Codes
+
+el-loom provides factory functions for common stabilizer codes, such as the Double bracket five, one, three, double bracket.
+ perfect code, the Steane code, surface codes, and others. For example (use the documentation for precise names):
+
+from loom.codes import SteaneCode
+
+code = SteaneCode() # [[7,1,3]] code
+print(code.n_qubits, code.k_logical)
+print(code.stabilizers) # list of Pauli strings
+print(code.logical_ops) # dictionary for logical X, Z, ...
+
+code.stabilizers may be stored as Pauli strings or in symplectic vector form, such as:
+
+ Pauli strings: "XZZXIII", etc.
+
+ Symplectic form: binary vectors Open parenthesis x bar z close parenthesis is an element of F two to the power two n.
+.
+
+ Figure 2-9: Illustration of the Steane [[7,1,3
+
+ Prompt: Illustration of Steane [[7,1,3
+
+ code with 7 qubits arranged in a hexagon plus center, annotating some stabilizers as colored edges or faces.]]
+
+5.2 Custom Stabilizer Codes
+
+To define a custom code, you can explicitly specify the stabilizer generators and logical operators (or have the program automatically infer logical operators). Conceptually:
+
+from loom.codes import StabilizerCode
+
+stabilizers = [
+ "XXXXIIII", # for example
+ "ZZZZIIII",
+ # ...
+]
+
+logical_ops = {
+ "X_logical": "XIIIXII", 
+ "Z_logical": "ZIIIZII",
+}
+
+my_code = StabilizerCode(
+ stabilizers=stabilizers,
+ logical_ops=logical_ops,
+)
+
+Mathematically, this is equivalent to specifying Calligraphic S is a subset of calligraphic P sub n.
+ and a set of logical operators that generate Script L.
+. Internally, el-loom usually converts these into a symplectic representation to support efficient Pauli manipulations and Clifford simulations.
+
+5.3 Abstracting Encoding and Decoding Maps
+
+A stabilizer code can be viewed as an isometry
+V from C to the two to the k, to C to the two to the n.
+
+satisfying
+V dagger S V equals I, for all S in script S.
+
+and the implementation of logical operators on the code space is
+X bar sub j equals V X sub j V dagger, and Z bar sub j equals V Z sub j V dagger.
+
+In el-loom, one typically does not construct Capital vee.
+ explicitly, but instead encodes it implicitly via stabilizers and logical operators. For simulation purposes, the most crucial question is: How do we map a physical error Capital E.
+ to its syndrome s of E
+ and logical error class ell of E
+, rather than explicitly conjugating Capital E.
+ by Capital vee.
+.
+
+6. Action of Physical Noise on Stabilizer Codes: Mathematical Derivation
+
+6.1 Action of the Encoding Channel
+
+Consider the following process (a single error-correction cycle):
+
+ Logical input state rho sub L
+ (dimension Two to the k.
+).
+
+ Encoding isometry Capital vee.
+: Rho maps to V, rho sub L, V dagger.
+.
+
+ Physical noise channel Calligraphic N
+: Rho maps to script N of rho.
+.
+
+ Syndrome measurement and recovery map Calligraphic capital R.
+.
+
+Putting these together, we obtain the logical channel:
+Calligraphic N sub L equals trace over the ancilla composed with calligraphic R composed with calligraphic N composed with calligraphic E.
+
+where the encoding channel can be written in CPTP form as
+Calligraphic E of rho sub L equals V rho sub L V dagger.
+
+If the noise is a Pauli channel
+Calligraphic N of rho equals the sum over E in calligraphic P sub n of p sub E times E rho E.
+
+then on the encoded state we have:
+Calligraphic N of V rho sub L V dagger equals the sum over E of p sub E times E V rho sub L V dagger E.
+
+Measuring the syndrome is equivalent to grouping the errors Capital E.
+ according to their syndrome s of E
+. Collecting all terms with the same syndrome gives
+Calligraphic N of V rho sub L V dagger equals the sum over s, and over all E such that s of E equals s, of p sub E times E V rho sub L V dagger E.
+
+6.2 Recovery Map and Logical Channel
+
+Assume the recovery map Calligraphic capital R.
+ consists of syndrome-dependent Clifford or Pauli corrections Capital R sub s
+, i.e.,
+Script R of dot equals the sum over s of R sub s, Pi sub s, dot, Pi sub s, R sub s dagger.
+
+where Pi sub s
+ is the projector onto the subspace corresponding to syndrome s
+. Then for each syndrome s
+:
+
+Rho, sub ell comma s, prime is proportional to 
+V dagger R sub s 
+of the quantity 
+sum over E such that s of E equals s, of p sub E times E V rho sub L V dagger E, 
+all of that, 
+R sub s dagger V.
+
+If Capital R sub s
+ successfully maps most syndrome classes back into the code space, we can write a logical error operator as
+Capital R sub s times capital E times capital V equals capital V times capital L sub s comma E.
+
+where Capital L with subscript s comma E is an element of calligraphic L.
+ is some logical Pauli operator. Substituting this yields:
+Rho sub L comma s prime is proportional to the sum over E such that s of E equals s, of p sub E times L sub s comma E, rho sub L, L sub s comma E.
+
+Thus, for a given syndrome s
+, the conditional logical channel is a Pauli channel
+Calligraphic N sub L given s of rho sub L equals the sum over L in calligraphic L of q sub L given s times L rho sub L L.
+
+where
+q sub L given s 
+equals one divided by the probability of s, 
+times the sum over all E such that s of E equals s and L sub s comma E equals L, 
+of p sub E.
+
+If we ignore the syndrome, the overall logical channel is
+Calligraphic N sub L of rho sub L equals the sum over s of probability of s times calligraphic N sub L given s of rho sub L, equals the sum over L of q sub L times L rho sub L L.
+
+with
+q sub ell equals the sum over s of probability of s times q sub ell given s, equals the sum over E of p sub E times the indicator that L sub s of E comma E equals L.
+
+These logical error probabilities q sub L
+ and the syndrome distribution P of s
+ can be estimated via numerical simulation—this is one of the key functionalities provided by el-loom.
+
+ Figure 2-2: Flowchart showing a logical state rho sub ell
+ encoded via Capital vee.
+, a noise channel Calligraphic capital N.
+ applied, syndrome measurement, corrections Capital R sub s
+, and the resulting logical channel Calligraphic N with subscript L.
+ composed of logical Pauli errors with probabilities q sub L
+.
+
+ Prompt: Flowchart showing: logical state rho_L encoded via V, noise channel N applied, syndrome measurement, correction Rs, and resulting logical channel N_L composed of logical Pauli errors with probabilities q_L.
+
+7. Simulating Noise Action and Syndrome Generation in el-loom
+
+7.1 Building a “Code + Noise + Measurement” Workflow
+
+A typical el-loom workflow includes:
+
+ Specify a stabilizer code code.
+
+ Specify a physical noise model noise_model (usually a Pauli channel).
+
+ Construct a circuit or process representing one “error correction cycle”.
+
+ Use sampling to simulate many error instances and collect statistics on syndromes and logical errors.
+
+Conceptual code (consult the official documentation for actual APIs):
+
+from loom.codes import SteaneCode
+from loom.channels import PauliChannel
+from loom.simulate import run_qec_cycle
+
+code = SteaneCode()
+
+# Define single-qubit Pauli noise
+pI, pX, pY, pZ = 0.97, 0.01, 0.01, 0.01
+single_qubit_pauli = PauliChannel.from_probs({
+ "I": pI, "X": pX, "Y": pY, "Z": pZ,
+})
+noise_model = single_qubit_pauli.iid(num_qubits=code.n_qubits)
+
+# Run many QEC cycles in simulation
+num_shots = 100000
+stats = run_qec_cycle(code=code, noise=noise_model, shots=num_shots)
+
+print("Logical error rate:", stats.logical_error_rate)
+print("Syndrome histogram:", stats.syndrome_counts)
+
+Behind the scenes, a function like run_qec_cycle will:
+
+ In each shot, randomly sample an error Capital E.
+ from the Pauli channel.
+
+ Compute its syndrome s of E
+ and the corresponding logical error class L sub s comma E
+.
+
+ Accumulate frequencies of syndromes and logical error classes.
+
+7.2 Pauli Error Sampling in el-loom
+
+For a Pauli channel
+Calligraphic N of rho equals the sum over P of p sub P times P rho P.
+
+if we are only interested in syndromes and logical error rates and do not need to explicitly track the state rho
+, we can use an “error sampling” strategy:
+
+ Sample a Pauli error Capital P.
+ according to probabilities Curly brace, .
+
+ Compute s of P
+ and Capital L of capital P
+.
+
+ Treat Capital P.
+ as the “actual error” without ever applying it to the state space.
+
+This is the key source of efficiency in standard stabilizer-simulation frameworks. Internally, el-loom uses symplectic operations to compute s of P
+ and Capital L of capital P
+ without matrix multiplications.
+
+ Figure 2-3: A schematic showing sampling from a discrete distribution over Pauli strings, followed by symbolic computation of syndromes and logical classes without acting on state vectors.
+
+ Prompt: A schematic showing sampling from a discrete distribution over Pauli strings, then computing syndrome and logical class symbolically without acting on state vectors.
+
+7.3 Multiple QEC Rounds and Time-Correlated Noise
+
+To simulate multiple QEC rounds (e.g., Capital T.
+ cycles):
+
+Open parenthesis script R composed with script N close parenthesis, all to the power T, equals script R composed with script N composed with dot dot dot composed with script R composed with script N, T times.
+
+In el-loom, you can:
+
+ Specify noise as the physical noise for each round (possibly time-dependent).
+
+ Use a loop to call run_qec_cycle repeatedly or use a dedicated multi-round API.
+
+ Accumulate logical error events (for example by measuring the logical qubit in the final round).
+
+Representative code structure:
+
+T = 50 # number of QEC rounds
+logical_error_events = 0
+
+state = code.init_logical_state("0") # abstract handle, not a full statevector
+for t in range(T):
+ result = run_qec_cycle(
+ code=code,
+ noise=noise_model, # could be time-dependent: noise[t]
+ state=state,
+ )
+ state = result.state # logical state + Pauli frame
+ if result.logical_error_occurred:
+ logical_error_events += 1
+
+logical_error_rate_per_cycle = logical_error_events / (num_shots * T)
+
+In practice, state often consists of a “Pauli frame + syndrome history” rather than a full Two to the power n.
+-dimensional density matrix.
+
+8. Variants of Channel Modeling: Gate Errors, Measurement Errors, and Spatio-Temporal Correlations
+
+8.1 Noise Models on Clifford Gates
+
+In experimental design, it is often more natural to model “a distinct noise channel for each gate”:
+
+ A single-qubit gate Capital G.
+ is followed by a noise channel Script capital N with subscript G.
+.
+
+ Two-qubit gates (such as CNOT) have correlated error channels calligraphic N sub CNOT
+.
+
+In Clifford + Pauli-noise settings, a common modeling approach is:
+
+Calligraphic U sub G of rho equals U sub G, rho, U sub G dagger; 
+calligraphic N sub G of rho equals the sum over P of p sub G comma P, times P rho P.
+
+and the total channel is
+Calligraphic E sub G equals calligraphic N sub G composed with calligraphic U sub G.
+
+el-loom usually provides an interface for describing “noisy gates” or “noisy circuits”, for example:
+
+from loom import circuits, noise
+
+# Build a Clifford circuit for syndrome extraction
+qc = circuits.StabilizerCircuit(code)
+
+# Assign noise models to specific gate types
+gate_noise = {
+ "H": DepolarizingChannel(p=0.001),
+ "CNOT": PauliChannel.from_probs({...}),
+}
+
+noisy_qc = noise.attach_gate_noise(qc, gate_noise)
+
+8.2 Measurement Errors and Readout Noise
+
+Measurement noise can be modeled as:
+
+ A classical confusion channel before z-basis measurement:
+ The probability that outcome equals , given that true equals , equals .
+
+ Equivalently: applying an Uppercase X.
+ error before measurement with probability p sub em
+ (bit-flip readout error).
+
+In syndrome measurements, measurement errors cause flips in syndrome bits. In el-loom, one can:
+
+ Directly apply classical bit-flip noise to measurement outcomes.
+
+ Or insert a Pauli Uppercase X.
+ channel immediately before measurement.
+
+meas_error_prob = 0.02
+
+# Suppose we have a syndrome measurement circuit qc
+noisy_meas = noise.add_measurement_bitflip(qc, p=meas_error_prob)
+
+ Figure 2-5: Diagram of a measurement circuit where the classical output bits pass through a binary symmetric channel with flip probability p sub em
+, illustrating measurement errors.
+
+ Prompt: Diagram of a measurement circuit where the classical output bits go through a binary symmetric channel with flip probability pm, illustrating measurement error.
+
+8.3 Spatially and Temporally Correlated Noise
+
+In more realistic physical models, noise exhibits spatial correlations (e.g., nearby qubits undergoing correlated dephasing) and temporal correlations (e.g., One over f.
+ noise). Within the el-loom framework, this can be addressed via:
+
+ Custom multi-qubit Pauli channels Calligraphic N
+ (e.g., two-body Capital Z times capital Z
+ coherent errors).
+
+ Defining different noise channels Calligraphic N sub t.
+ at each time step.
+
+ Using Monte Carlo sampling of error histories Curly bracket, , sub t, close curly bracket, sub t.
+ to study systematic behavior.
+
+For example, a two-qubit correlated dephasing model:
+Calligraphic N of rho equals one minus p times rho, plus p times Z sub i Z sub j rho Z sub i Z sub j.
+
+from loom.channels import PauliChannel
+
+# correlated ZZ error on qubits (i, j)
+p = 0.001
+correlated_zz = PauliChannel.from_probs({
+ "I" * n: 1 - p,
+ "I" * i + "Z" + "I" * (j - i - 1) + "Z" + "I" * (n - j - 1): p,
+})
+
+9. Example: Channel Modeling of Depolarizing Noise on the Steane Code
+
+This section presents a concrete example of how to construct “Steane code + i.i.d. depolarizing noise” in el-loom, and how to compute the syndrome distribution and logical error rate.
+
+9.1 Mathematical Setup
+
+Consider the Steane Double bracket seven, one, three, double bracket.
+ code, and assume that each physical qubit undergoes a single-step depolarizing noise process in every QEC cycle:
+Calligraphic D sub p of rho equals one minus p times rho plus p over three times the quantity X rho X plus Y rho Y plus Z rho Z.
+
+The total noise is
+Calligraphic N equals calligraphic D sub p tensor seven.
+
+Since the code distance is d equals 3.
+, this code can correct all Pauli errors of weight Less than or equal to one.
+. For small p
+, the dominant logical errors arise from weight-2 and weight-3 errors. The logical error rate scales roughly as Big O of p squared.
+.
+
+ Figure 2-7: Schematic of a 7-qubit code block with a depolarizing channel on each qubit, followed by measurement of all stabilizers, illustrating the propagation from physical errors to syndromes.
+
+ Prompt: Schematic of a 7-qubit code block labeled with a depolarizing channel on each qubit, then a measurement of all stabilizers, illustrating the flow of error to syndrome.
+
+9.2 Implementation in el-loom
+
+from loom.codes import SteaneCode
+from loom.channels import DepolarizingChannel
+from loom.simulate import run_qec_cycle
+import numpy as np
+
+# 1. Define the code
+code = SteaneCode()
+
+# 2. Define physical noise (i.i.d. depolarizing)
+p = 0.01
+single_qubit_depol = DepolarizingChannel(p=p)
+noise_model = single_qubit_depol.iid(num_qubits=code.n_qubits)
+
+# 3. Simulate many QEC cycles
+shots = 200000
+stats = run_qec_cycle(code=code, noise=noise_model, shots=shots)
+
+# 4. Collect statistics
+logical_X_rate = stats.logical_error_rate["X_logical"]
+logical_Z_rate = stats.logical_error_rate["Z_logical"]
+logical_Y_rate = stats.logical_error_rate["Y_logical"]
+
+print("Logical X error rate:", logical_X_rate)
+print("Logical Z error rate:", logical_Z_rate)
+print("Logical Y error rate:", logical_Y_rate)
+
+# Syndrome distribution
+for syndrome, count in stats.syndrome_counts.items():
+ print(syndrome, count / shots)
+
+Mathematically, we expect (for small p
+):
+
+ Single weight-1 errors are typically perfectly corrected and do not cause logical errors.
+
+ Certain weight-2 errors will be mapped to nontrivial logical errors.
+
+Thus the logical error rate is approximately
+p sub L is approximately equal to C times p squared.
+
+for some constant Capital C
+ depending on the code structure and the error-correction strategy. Using el-loom simulations, we can estimate Capital C
+ numerically.
+
+9.3 Syndrome Statistics and ML Decoding
+
+Normalizing stats.syndrome_counts gives an empirical syndrome distribution
+P hat of s equals the count of s divided by the number of shots.
+
+For each syndrome s
+, we can further resolve the logical error classes:
+q hat sub L given s equals the count of L and s divided by the count of s.
+
+This information can be used to implement maximum-likelihood (ML) decoders or to train machine-learning-based decoders. el-loom provides functionality to output pairs of syndromes and logical errors directly or indirectly, enabling researchers to bridge “physical noise models” and “decoder behavior” with ease.
+
+10. Advanced Topics: Channel Compression, Logical Channel Reconstruction, and Threshold Analysis
+
+10.1 Logical Channel Reconstruction (Logical Channel Tomography)
+
+Given an Double bracket n, k, d, double bracket.
+ code and a physical noise channel Calligraphic N
+, we can (in principle) determine the full logical channel
+Calligraphic N sub L colon script L of C to the two to the k maps to script L of C to the two to the k.
+
+with Pauli representation
+Script N sub L of rho sub L equals the sum over L and L‑prime of chi sub L comma L‑prime times L rho sub L L‑prime.
+
+For stabilizer codes under Pauli noise, Chi.
+ is typically diagonal:
+Script N sub L of rho sub L equals the sum over L of q sub L times L rho sub L L.
+
+In practice, we estimate q sub L
+ using Monte Carlo methods. With el-loom, users can:
+
+ Sample errors Capital E.
+ for each trial.
+
+ Determine the corresponding logical Pauli operator L of E
+.
+
+ Accumulate frequencies to obtain empirical estimates q hat sub L
+.
+
+10.2 Threshold Analysis and Scaling Behavior
+
+In quantum error correction, a threshold is a critical physical error rate p sub tee h.
+ such that when p is less than p sub tee h.
+, the logical error rate can decrease exponentially with increasing code distance d
+. Typically one expects
+p sub L of d comma p is asymptotically exp of minus alpha of p times d, for p less than p sub threshold.
+
+and Alpha of p tends to zero.
+ as tends to from below.
+.
+
+In el-loom, we can systematically simulate a family of codes (for example, surface codes with distances d equals three, five, seven, and so on.
+) and a range of p
+ values:
+
+distances = [3,5,7,9]
+ps = np.linspace(0.005, 0.02, 8)
+
+data = []
+for d in distances:
+ code = SurfaceCode(distance=d)
+ for p in ps:
+ noise_model = DepolarizingChannel(p=p).iid(num_qubits=code.n_qubits)
+ stats = run_qec_cycle(code=code, noise=noise_model, shots=50000)
+ pL = stats.logical_error_rate["Z_logical"] # for example
+ data.append((d, p, pL))
+
+We can then perform fits in Python to estimate the threshold and scaling exponents. Such statistical analyses are tightly linked to accurate physical noise modeling, and constitute one of the main application scenarios for which el-loom is designed.
+
+ Figure 2-8: Log-log and semi-log plots illustrating logical error rate versus distance for several physical error rates, demonstrating threshold behavior.
+
+ Prompt: Log-log and semi-log plots illustrating logical error rate vs distance for several physical error rates, demonstrating threshold behavior.
+
+11. Summary and Suggested Implementation Roadmap
+
+In this lesson, we have rigorously derived from a mathematical standpoint:
+
+ The basic framework for combining quantum channels (especially Pauli channels) with stabilizer codes.
+
+ How to derive the syndrome distribution and logical channel Calligraphic N with subscript L.
+ from a physical noise channel Calligraphic N
+.
+
+ How to define noise models and stabilizer codes in el-loom, and how to simulate QEC cycles.
+
+For further research and implementation, you may consider the following directions:
+
+ Pauli twirling for non-Pauli noise and approximation error analysis:
+ Compare the exact channel and its Pauli-twirled counterpart at the logical level, for example via diamond distance or differences in logical error rates.
+
+ Impact of spatio-temporally correlated noise on thresholds:
+ Construct correlated Pauli models, implement them in el-loom, and perform threshold analyses.
+
+ Integration with specific hardware platforms:
+ For example, translate the noise characteristics of superconducting qubits or trapped ions (such as amplitude damping + dephasing + leakage) into effective Pauli channel models, then use el-loom for code design and parameter optimization.
+
+ Data-driven noise learning:
+ Learn channels from experimental tomography data, and then apply the learned noise models in el-loom to evaluate QEC performance.
+
+Once these techniques are mastered, readers can use el-loom as a complete platform for both experimental and theoretical studies “from physical noise to stabilizer-code performance”, enabling highly reproducible and scalable workflows for quantum error-correction simulations.

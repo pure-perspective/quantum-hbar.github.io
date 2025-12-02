@@ -1,0 +1,744 @@
+解碼器與統計推論：在 el-loom 中實作與評估解碼演算法
+
+本課程聚焦於量子糾錯中最核心、也最容易被低估的部分：解碼（decoding） 與其背後的 統計推論 問題，並示範如何在 Entropica Labs 的 el-loom 框架中實作、組合與評估各式解碼器。內容假設讀者已熟悉基本的穩定子碼理論與量子通道，但會從統計推論與演算法角度重新整理解碼問題，並穿插對應的 el-loom 使用方式。
+
+ 圖 4-9: A conceptual diagram showing the relationship between physical qubits, noise channel, stabilizer measurements (syndrome), and a decoder that outputs recovery operations, with arrows labeled by probabilities; side-by-side panel showing el-loom software stack layers (code model, noise model, decoder, sampler).
+
+ Prompt: A conceptual diagram showing the relationship between physical qubits, noise channel, stabilizer measurements (syndrome), and a decoder that outputs recovery operations, with arrows labeled by probabilities; side-by-side panel showing el-loom software stack layers (code model, noise model, decoder, sampler).
+
+1. 解碼問題作為統計推論問題
+
+1.1 從穩定子測量到條件機率
+
+考慮一個穩定子碼，其穩定子群記為 calligraphic S 是 calligraphic P 下標 n 的子集合。
+（這個就是一個符號「n」。
+ 量子比特 Pauli 群），編碼空間為
+C 等於一組 ket psi 的集合，滿足 S 作用在 ket psi 上等於 ket psi，對所有屬於 S 這個集合裡面的 S 都要成立。
+
+雜訊通道 念作：「花體的大寫 N」。
+ 作用在物理態上，我們測量穩定子產生型 大括號裡面是：S 一，逗號，一直到 S m。
+，得到 syndrome 向量
+粗體的 s，等於括號裡面 s 一到 s m，然後這個向量是屬於加減一的 m 次笛卡兒積。
+
+解碼器的任務是根據 粗體的 s。
+ 推斷一個恢復算符 R，括號裡面一個粗體的 s。
+，並希望恢復後的邏輯錯誤最小。
+
+典型假設是雜訊由 Pauli 錯誤組成（或可 Pauli-twirl），令 E 是屬於 calligraphic P 的 n 次空間。
+ 表示某個 Pauli 錯誤。則 syndrome 決定於錯誤：
+小寫的 s 下標 i 等於正負一， 
+使得大寫的 S 下標 i 乘上 E，等於小寫的 s 下標 i 再乘上 E 再乘上大寫的 S 下標 i。
+
+因此 syndrome 是錯誤的線性訊息，解碼本質上是：
+
+ 給定雜訊模型 p 括號 E 括號 等於 大寫 P r 括號 E 括號。
+，
+
+ 給定 syndrome 粗體的 s。
+，
+
+ 從後驗分佈 P，括號裡面是事件 E 直線，給定粗體的 s。
+ 中求一個「最佳」恢復決策。
+
+形式上，Bayes 法則：
+機率 E 在給定粗體 s 的條件下，等於分子是，機率粗體 s 在給定 E 底下，乘上機率 E，然後除以分母機率粗體 s。
+
+在理想 syndrome 量測下，若 E
+ 對應的 syndrome 為 粗體的 s 括號 E。
+，則
+機率，括號 s 粗體，給定 E，等於：
+
+如果粗體的 s 等於粗體的 s 括號 E，那機率是一； 
+否則，機率是零。
+
+因此後驗分佈支撐在所有與 粗體的向量 s。
+ 相容的錯誤集合上：
+大寫花體的 E 作用在粗體的 s 上，定義成一個集合，裡面是所有在 𝒫 下標 n 裡面的 E，使得粗體的 s 作用在 E 上，會等於原本的粗體 s。
+
+完全最優解碼（Maximum Likelihood / Maximum A Posteriori, ML/MAP） 是尋找
+E 星號括弧 s 括弧，等於，對所有在大寫 script E 括弧 s 括弧 裡面的 E，取機率 Pr 括弧 E 括弧 的 arg max。
+
+但實務中，我們對邏輯錯誤較敏感。令 L 上面畫一槓。
+ 為邏輯 Pauli，兩個錯誤 大寫的 E，逗點，大寫的 E 撇。
+ 若只相差穩定子，即 E 角撇等於 E 乘上 S。
+ 對某 大寫的 S 屬於集合 script S。
+，則在編碼空間等價：
+E 撇，相似於 E。
+
+解碼真正相關的是「錯誤等價類」，或「引致哪個邏輯算符」。
+
+1.2 邏輯層面的 MAP 解碼
+
+定義邏輯錯誤類別 中括號 E。
+ 為
+中括號 E，定義成 E 乘上集合 script S，等於一個集合，裡面包含所有的 E 乘上 S，其中 S 跑遍 script S。
+
+給定 syndrome 粗體的向量 s。
+，在所有導致相同 syndrome 的錯誤中，可被分成若干邏輯等價類 中括號裡的 底標 alpha。
+，每類對應一個邏輯 Pauli:
+E calligraphic 括號 s 括號，等於 over alpha 的不交並，方括號 E 下標 alpha 方括號，交上 E calligraphic 括號 s 括號。
+
+則後驗機率在邏輯層面的量化是：
+機率，事件括號 E 下標 alpha，給定粗體 s，
+
+等於，所有在事件括號 E 下標 alpha 跟大寫書法 E 括號粗體 s 的交集裡面的 E，把機率 E 給定粗體 s 全部加總起來。
+
+最優邏輯 MAP 解碼為選擇最大後驗邏輯類別
+alpha 星號括號 s 等於，對 alpha 取使得機率最大值的那個 arg max，這個機率是事件 E 下標 alpha 在給定 s 的情況下發生的機率。
+
+並選取任一代表元作為恢復：
+R 括號 s 向量，屬於中括號裡面，E 下標 alpha 星號括號 s 向量。
+
+此為 最小化邏輯錯誤率 的最優解碼準則。
+
+直覺上，我們想回答：「在已知 syndrome 的情況下，哪一類邏輯錯誤最可能發生？」 將解碼視為對這個機率分佈的推論問題，是接入機器學習與統計方法的自然入口。
+
+ s, E -> L; caption: "Decoding as Bayesian inference over logical error classes given syndrome."">
+ 圖 4-2: A Bayesian graphical model: nodes for physical error E, syndrome s, logical class L, with arrows showing E -> s, E -> L; caption: "Decoding as Bayesian inference over logical error classes given syndrome."
+
+ Prompt: A Bayesian graphical model: nodes for physical error E, syndrome s, logical class L, with arrows showing E -> s, E -> L; caption: "Decoding as Bayesian inference over logical error classes given syndrome."
+
+2. el-loom 中的解碼抽象：DecodingTask 與 Decoder 介面
+
+el-loom 提供解碼的模組化抽象，核心是：
+
+ DecodingTask：定義「要解碼什麼」——碼、雜訊、量測輪數、是否考慮 time-correlated 等。
+
+ Decoder：定義「如何解碼」——從 syndrome（與可能的輔助資訊）輸出恢復或邏輯 guess。
+
+ Sampler / Experiment：產生樣本（錯誤、syndrome、邏輯結果），用來估計解碼效能。
+
+在典型 workflow 中：
+
+ 定義量子碼與雜訊模型。
+
+ 建立 DecodingTask（例如循環碼 under i.i.d. depolarizing noise）。
+
+ 選擇或實作一個 Decoder。
+
+ 使用 el-loom 的 sampling 工具產生 many trials，估計邏輯錯誤率、threshold 等。
+
+2.1 建立 DecodingTask：範例結構
+
+（以下程式片段為概念性範例，實際 API 以官方文件為準）
+
+from loom import codes, noise, tasks
+
+# 1. 建立 code model，例如 LxL planar surface code
+code = codes.PlanarSurfaceCode(distance=d)
+
+# 2. 建立 noise model
+channel = noise.DepolarizingNoise(p_error=p)
+
+# 3. 建立 DecodingTask
+task = tasks.DecodingTask(
+ code=code,
+ noise_model=channel,
+ n_rounds=1, # 單輪 syndrome
+ phenomenological=False # 或 True 表示直接在 syndrome 上加錯誤
+)
+
+DecodingTask 會隱含定義：
+
+ 可觀測的 syndrome 空間 花體的大寫英文字母 S。
+。
+
+ 可發生的錯誤集合（或抽樣過程）。
+
+ 邏輯觀測量（如 logical X
+/這個是「大寫的 Z」。
+ flip）。
+
+在數學上，你可以把它視為定義了一個 joint distribution
+機率括號裡面是 E、粗體的 s、還有 L，在給定的編碼加上雜訊的情況之下。
+
+其中 這個就是一個大寫的英文字母 L。
+ 是邏輯錯誤描述（例如 左括號，ℓ 下標 X，逗號，ℓ 下標 Z，右括號，屬於零一的二次方這個集合。
+）。
+
+2.2 Decoder 介面與簽名
+
+el-loom 中的典型解碼器物件會提供類似
+decoder 點 decode 括號裡面帶 syndrome，對應到 recovery 或是 logical guess。
+
+的介面。根據不同任務，可能有：
+
+ 輸出 recovery Pauli R
+，再由 framework 自行計算是否造成邏輯錯誤。
+
+ 直接輸出 邏輯錯誤猜測 L 上面加一個帽子。
+，不顯式給出物理解。
+
+ 多輪時間上的 syndrome（3D matching）需要輸入整個 syndrome history。
+
+對研究者而言，關鍵是 Decoder 被抽象成純函式：觀測 念成：「一個右箭頭」。
+ 決策。這樣便於比較不同演算法在同一 DecodingTask 下的效果。
+
+from loom import decoders
+
+decoder = decoders.SomeDecoder(task)
+
+syndrome = task.sample_syndrome() # 或來自實驗數據
+decision = decoder.decode(syndrome)
+
+ 圖 4-1: UML-style diagram showing classes: Code, NoiseModel, DecodingTask, Decoder, Sampler; arrows indicating dependencies; emphasis on Decoder as pluggable component into DecodingTask.
+
+ Prompt: UML-style diagram showing classes: Code, NoiseModel, DecodingTask, Decoder, Sampler; arrows indicating dependencies; emphasis on Decoder as pluggable component into DecodingTask.
+
+3. 最大似然解碼與 MWPM：從統計模型到匹配圖
+
+3.1 i.i.d. Pauli 雜訊下的獨立邊權重
+
+以 2D surface code 在 i.i.d. Pauli 雜訊下為例。假設單量子比特錯誤模型：
+機率 E 下標 j 等於 I 的時候，是一減 p。
+
+然後，機率 E 下標 j 等於 X，等於 E 下標 j 等於 Y，等於 E 下標 j 等於 Z，通通都是 p 除以三。
+
+且各 qubit 独立。因此整體錯誤 E 等於，從 j 等於 1 到 n 的所有 E_j 做張量積。
+ 的機率為
+P 括號 E 等於，從 j 等於一到 n 的機率 E 下標 j 的乘積。
+
+此處 syndrome 粗體的 s。
+ 通常等價於「發生一個 Pauli 錯誤時所激發的 defect（違反穩定子）」的集合。對表面碼的 X/Z 穩定子，錯誤導致的 syndrome 變化可以解釋成：錯誤邊（在 dual/ primal lattice 上）連接兩個激發。（不考慮邏輯邊界時）
+
+若我們聚焦在 single-type 錯誤（例如純 Z 錯誤對應 X-type syndrome）的情況，則錯誤可視為 lattice 邊集合 大寫的 E 是被包含在花體的 E 裡面。
+（圖的邊集合）。每條邊 e。
+ 代表在那條邊上的 Z 錯誤 flip 某兩個 X 穩定子。則：
+P 大寫 R 括號 E，等於，對所有屬於集合 E 的邊 e，這些 p 下標 e 通通相乘，再乘上所有不在 E 裡面的邊 e 的一減 p 下標 e 通通相乘。
+
+其中對 i.i.d. 模型，p 下標 e 等於 p。
+。
+
+在給定 syndrome（即給定哪些 stabilizer flipped）的情況下，不同的錯誤集 E
+ 會對應到不同的配對方式（matching）將 syndrome defects 成對連接（或連到邏輯邊界）。MWPM（minimum-weight perfect matching）解碼的思想是：將
+負的 log，括號裡面是事件 E 的機率，等於兩個和。
+
+第一項是：對所有屬於 E 的邊 e，把負的 log p 下標 e 加總起來。
+
+再加上第二項：對所有不屬於 E 的邊 e，把負的 log 括號一減掉 p 下標 e 括號，通通加總起來。
+
+的差異簡化為只考慮使用到的邊集合對應的「重量」
+w 下標 e 等於 log，後面是分數，分子是一減掉 p 下標 e，分母是 p 下標 e。
+
+因此最大似然解碼等價於在 syndrome defects 間找一個
+
+總邊權和最小的配對（matching）。
+
+在 i.i.d. 情況下，所有邊權重相同（或仅取決於距離），圖結構簡化為常見的 MWPM 問題，可以使用 Blossom 等多項式時間演算法。
+
+ 圖 4-8: Lattice diagram of a planar surface code showing data qubits on edges, X stabilizers on faces, and Z errors as edges creating syndrome defects on adjacent X stabilizers; on the right, corresponding matching graph with defects as vertices and candidate edges between them with weights.
+
+ Prompt: Lattice diagram of a planar surface code showing data qubits on edges, X stabilizers on faces, and Z errors as edges creating syndrome defects on adjacent X stabilizers; on the right, corresponding matching graph with defects as vertices and candidate edges between them with weights.
+
+3.2 el-loom 中的 MWPM 解碼器
+
+el-loom 提供與 MWPM 類似的解碼器，封裝了從 syndrome 建構 matching graph，並呼叫後端 matching solver 的流程。一般用法（示意）：
+
+from loom import decoders
+
+mwpm_decoder = decoders.MWPMDecoder(task)
+
+syndrome = task.sample_syndrome()
+recovery = mwpm_decoder.decode(syndrome)
+
+# 評估邏輯錯誤
+logical_error = task.logical_effect(recovery, syndrome)
+
+在內部流程上，可抽象為三步：
+
+ 將 syndrome defects 投影到某個圖上的節點集合 這個我會念成：
+
+「 是 的子集合。」
+。
+
+ 對每對 defects 左括號 u, v 右括號。
+ 產生 edge，邊權設定為對應錯誤 path 的負對數機率。
+
+ 在圖上求最小權重完美匹配，得到一組邊，詮釋為錯誤 path 的估計。
+
+在研究中，常需要修改第 2 步的權重模型，來反映更複雜的雜訊（非 i.i.d.、有 bias、空間相關等）。在 el-loom，這通常透過自訂 EdgeWeigher 或相關 callback 來實作。
+
+ build defect graph -> assign edge weights based on noise model -> run matching solver -> translate matching to recovery operator.">
+ 圖 4-4: Flowchart for MWPM decoder implementation in el-loom: input syndrome -> build defect graph -> assign edge weights based on noise model -> run matching solver -> translate matching to recovery operator.
+
+ Prompt: Flowchart for MWPM decoder implementation in el-loom: input syndrome -> build defect graph -> assign edge weights based on noise model -> run matching solver -> translate matching to recovery operator.
+
+3.3 負對數機率與「統計物理」視角
+
+將邊權重定義為
+w 下標 e 等於負的自然對數，括號裡面是事件 e 發生的機率。
+
+則一個錯誤配置 E
+ 的權重為
+W 括號 E 等於，對所有屬於集合 E 的小寫 e，把 w 下標 e 全部加總起來。
+
+（忽略常數項）。最大似然解碼即
+E 星號，等於對所有和粗體 s 同分佈的 E，讓 W 括號 E 最小的那個 E。
+
+這形同在一個「能量函數」W 括號 E 括號。
+ 下的基態問題，與統計物理中 Ising 型系統、自由能最小化有深刻關聯。此視角對理解 threshold、phase transition 有益，也與 el-loom 的 Monte Carlo 模擬與 error sampling 相契合。
+
+4. 最佳 Bayesian 解碼與 Belief Propagation
+
+4.1 從 ML 到 MAP：邏輯概率的邊緣化
+
+完全最佳的邏輯 MAP 解碼需要計算
+機率，括號裡面是中括號的 下標 alpha，給定粗體的 s，這個條件機率，正比於， 
+把所有屬於中括號 下標 alpha，跟集合 calligraphic E 括號粗體 s 的交集裡面的那些事件 ，把它們的機率 全部加總起來。
+
+在 i.i.d. Pauli 模型下，
+P E 的機率，等於從 j 等於 1 到 n 的連乘積，乘上每一個 E j 的機率。
+
+然而 syndrome 相容性條件 粗體的 s 括號 E 等於 粗體的 s。
+ 將 Pauli 錯誤間建立「parity constraints」，導致邊緣化變成 NP-hard 的計數問題（#P-hard）。這與 classical LDPC code under belief propagation 的情況相似。
+
+Belief propagation (BP) 或 message passing 演算法試圖在 factor graph 上近似計算這些邊緣機率：
+機率，括號裡面是事件 的下標 j，直線後面是粗體的 s。
+
+進而推導對邏輯錯誤的近似 posteriors。對量子 LDPC 及 CSS 碼，常先拆分成 X/Z 錯誤子問題，對應兩個 classical code 的 BP 解碼。
+
+ 圖 4-7: Factor graph representation for a CSS code: variable nodes representing qubit error bits, factor nodes representing stabilizer parity checks; arrows indicating iterative messages as in belief propagation.
+
+ Prompt: Factor graph representation for a CSS code: variable nodes representing qubit error bits, factor nodes representing stabilizer parity checks; arrows indicating iterative messages as in belief propagation.
+
+4.2 BP 的 factor graph 形式與更新方程
+
+以 classical binary parity check 為例，factor graph 上的消息更新方程是：
+
+ 變數節點 v
+ 到檢查節點 c
+ 的訊息：
+ m v 箭頭 c 的訊息，在 x v 這個取值的時候，跟機率 Pr 括號 x v 成正比，然後再乘上，對所有在節點 v 的鄰居裡面、但不包含 c 的那些節點 c prime，從 c prime 到 v 的訊息，在 x v 這個取值的時候，把它們全部相乘。
+
+ 其中 x 下標 v，屬於大括號裡面的零跟一。
+ 是錯誤 bit，念作：
+
+「機率的 P，括號裡面是 x 下標 v。」
+ 為先驗。
+
+ 檢查節點 c
+ 到變數節點 v
+ 的訊息：
+ m 下標 c 箭頭 v，括號裡面帶 x 下標 v，跟某個常數成正比。等號右邊是，把所有在鄰居集合裡、但不包含 v 的那些 x v prime，做一個求和。
+
+裡面有一個指示函數一，方括號裡是，把所有在這個檢查節點鄰居集合裡的 x v prime 全部加起來，這個和在模二的意義下，要等於 s 下標 c。然後，再乘上，對所有在鄰居集合裡但不包含 v 的那些 v prime，對每個都乘上一個 m 下標 v prime 箭頭 c，括號裡面是 x v prime。
+
+ 其中 s 下標 c
+ 是 syndrome bit。
+
+最終邊緣分佈估計為
+P 帳帽，括弧 x 下標 v，跟……正比於……P，括弧 x 下標 v，乘上，對所有屬於 v 的鄰居 c 的乘積，m 從 c 到 v 的訊息，括弧 x 下標 v。
+
+量子 CSS code 可對 X/Z 子問題各跑一次 BP。對非 CSS code 可使用 generalized BP 或針對 Pauli group 的 generalization。
+
+在 el-loom 中，可以從 code 的 parity check 矩陣或 stabilizer 結構建構 factor graph，然後實作一個 BPDecoder 類別，遵守 Decoder 介面即可：
+
+class BPDecoder(Decoder):
+ def __init__(self, task, max_iters=50, damping=0.5):
+ self.task = task
+ self.max_iters = max_iters
+ self.damping = damping
+ self.graph = build_factor_graph(task.code)
+
+ def decode(self, syndrome):
+ beliefs = run_bp(self.graph, syndrome,
+ max_iters=self.max_iters,
+ damping=self.damping)
+ return self._beliefs_to_recovery(beliefs)
+
+其中 build_factor_graph 與 run_bp 部分可以完全獨立開發，reuse 在不同碼與雜訊模型上。
+
+5. 機器學習式解碼：從統計模型到學習模型
+
+5.1 統計意義：從手寫概率模型到學習 posteriors
+
+前述 MWPM 與 BP 假設了特定的 factorization 與雜訊模型形式，邊權或 message update 都是明確推導而得。另一方面，若我們有足夠模擬／實驗資料 括號裡面是，粗體的 s，右上標括號 i，逗點，接著是大寫的 L，右上標括號 i，整個一起。
+，可以嘗試以 machine learning 直接近似 mapping
+f 下標 theta 冒號，粗體的 s 對應到算符 L 帽。
+
+或更理想的是逼近後驗分佈
+小寫的 q，下標 θ，括號裡面是 L 直線，給定粗體的 s，大約等於條件機率，L 在給定粗體 s 底下的機率。
+
+這本質上是 supervised classification / probabilistic prediction 問題。
+
+對於穩定子碼，syndrome 維度可很高（特別是 space-time decoding），因此常見選擇 CNN / GNN / transformer 來捕捉 syndrome pattern 的局部與長程結構。量子解碼特有的難點在於：輸入空間巨大、label 噪訊、distribution shift（實驗與模擬不符）、以及需要精確估計 extremely low error rates 區域的 tail behavior。
+
+ 圖 4-10: Neural network decoder schematic: input is a 2D or 3D grid of syndrome bits; passes through convolutional layers or graph neural network; output is distribution over logical error classes or predicted recovery operators.
+
+ Prompt: Neural network decoder schematic: input is a 2D or 3D grid of syndrome bits; passes through convolutional layers or graph neural network; output is distribution over logical error classes or predicted recovery operators.
+
+5.2 在 el-loom 中整合 ML 解碼器
+
+el-loom 並非 ML 框架，但可以方便地作為 資料產生器與評估平台。基本流程：
+
+ 使用 DecodingTask 產生大量 粗體的 s，逗號，接著大寫的 L，整個用一對小括號括起來。
+ 樣本。
+
+ 用外部 ML 框架（PyTorch, JAX, TensorFlow）訓練神經網路。
+
+ 將訓練好的模型封裝成一個 Decoder 子類。
+
+ 使用 el-loom 的 sampling/experiment API 評估該解碼器效能。
+
+資料產生示意：
+
+from loom import sampling
+
+sampler = sampling.DecodingSampler(task)
+
+dataset = []
+for _ in range(N_samples):
+ sample = sampler.sample() # returns (error, syndrome, logical_outcome)
+ s = sample.syndrome
+ L = sample.logical_outcome # e.g. (lx, lz) bits
+ dataset.append((s, L))
+
+訓練完後封裝成 Decoder：
+
+class NeuralDecoder(Decoder):
+ def __init__(self, task, model):
+ self.task = task
+ self.model = model # e.g. a PyTorch module
+
+ def decode(self, syndrome):
+ # Convert to tensor, run model
+ logits = self.model(syndrome_to_tensor(syndrome))
+ pred_L = logits.argmax(dim=-1)
+ # 再從邏輯猜測轉為 recovery 或直接回傳邏輯結果
+ return logical_to_recovery(self.task.code, pred_L)
+
+此設計讓 el-loom 在不與任一 ML framework 綁死的前提下，成為各種 ML 解碼器的共通 benchmark 平台。
+
+6. 多輪量測與 space-time 解碼
+
+6.1 syndrome history 作為三維圖形結構
+
+實際量子硬體上，穩定子量測本身 noisy，常採用多輪 syndrome 量測。每輪 syndrome 粗體的 s，下標 t。
+（t 等於一，到大寫的 T。
+）可以視為在 time-slice 上的 2D lattice。錯誤可能發生在：
+
+ data qubits：導致 syndrome 在時間上持續 flip。
+
+ measurement qubits / readout：導致 syndrome 在時間上暫時 flip 一次。
+
+結果是，一個單一錯誤不再只對某輪 syndrome 有影響，而是在 time dimension 上產生鄰接關係。這可以嵌入到一個 3D lattice（2D space + 1D time）中，並使用三維 matching 或其他 3D 解碼器。
+
+ 圖 4-6: 3D space-time lattice showing repeated stabilizer measurements over time; defects as points in the 3D lattice; edges represent potential error chains in space or time; MWPM matching in 3D.
+
+ Prompt: 3D space-time lattice showing repeated stabilizer measurements over time; defects as points in the 3D lattice; edges represent potential error chains in space or time; MWPM matching in 3D.
+
+6.2 在 el-loom 中的多輪 DecodingTask
+
+在 el-loom 中，多輪解碼通常由 n_rounds 或類似參數控制：
+
+task = tasks.DecodingTask(
+ code=code,
+ noise_model=channel,
+ n_rounds=T, # 多輪 syndrome
+ phenomenological=True # 也可表示直接在 syndrome 上加錯誤
+)
+
+此時解碼器接受的輸入是 syndrome history：
+粗體的 S 等於括號裡面放一串粗體的 s，下標一、粗體的 s 下標二，一直到粗體的 s 下標大寫 T。
+
+並應該產生對應於 3D lattice 的恢復操作（通常投影到最後一輪或整條時間軸）。
+
+MWPM 解碼器會擴展圖結構：
+
+ 節點：space-time defects（即 syndrome bit 的 time-difference flip）。
+
+ 邊：空間維度邊（space errors）、時間維度邊（measurement errors）、以及空間-時間複合段。
+
+ 邊權：從 noise model 推導出的對應 error event 負對數機率。
+
+在 el-loom 的 API 中，通常可以指定「decoder 是否 aware of time dimension」，以及 noise model 是否包含 measurement errors，以呼叫對應的 space-time decoder。
+
+7. 在 el-loom 中實作自訂解碼器：範例與數學考量
+
+7.1 一個自訂 ML-inspired heuristic 解碼器範例
+
+假設我們想建造一個簡單的 heuristic 解碼器，結合局部 syndrome pattern 與先驗雜訊 bias。例：假設 Z-error 發生機率遠大於 X-error（biased noise），則邏輯 Z-flip 機率上升，我們想優先修正 Z 相關的 syndrome。
+
+數學上，若雜訊模型為 biased Pauli：
+機率括號，E 下標 j 等於 Z，這個事件的機率是 p 下標 Z； 
+機率括號，E 下標 j 等於 X，這個事件的機率是 p 下標 X； 
+機率括號，E 下標 j 等於 Y，這個事件的機率是 p 下標 Y。
+
+且 p 下標 Z 遠遠大於 p 下標 X 跟 p 下標 Y。
+。在近似獨立假設下，給定 syndrome，對單邊錯誤的 posterior odds 比例為：
+括號，機率 Z 下標 j，條件是粗體 s，括號，除以，機率 X 下標 j，條件是粗體 s，括號，大約等於，p 下標 Z 除以 p 下標 X，乘上，ℓ 下標 Z，括號裡是粗體 s 分號 j，除以，ℓ 下標 X，括號裡是粗體 s 分號 j。
+
+其中 L 下標 Z，逗號，L 下標 X。
+ 是「錯誤類型如何解釋當地 syndrome pattern」的 likelihood。若我們設計一個局部 scoring function f 括號 s 的 local。
+ 來估計 念作：
+
+「小 L 下標 Z 除以 小 L 下標 X。」
+，便可以 heuristically 決定在 qubit j
+ 上 apply Z-recovery 還是 X-recovery。
+
+在 el-loom 內實作時：
+
+class BiasedHeuristicDecoder(Decoder):
+ def __init__(self, task, pZ, pX, window_radius=1):
+ self.task = task
+ self.pZ = pZ
+ self.pX = pX
+ self.window_radius = window_radius
+ self.neighborhoods = precompute_neighborhoods(task.code, window_radius)
+
+ def score_Z_vs_X(self, local_syndrome):
+ # 這裡可以是 hand-crafted rule 或小型 ML 模型
+ # 例如根據 syndrome 數量、形狀做一個 logistic score
+ return some_function(local_syndrome)
+
+ def decode(self, syndrome):
+ recovery = identity_pauli(self.task.code.n_qubits)
+ for q in range(self.task.code.n_qubits):
+ local_s = extract_local_syndrome(syndrome, self.neighborhoods[q])
+ log_odds = (
+ math.log(self.pZ / self.pX)
+ + self.score_Z_vs_X(local_s)
+ )
+ if log_odds > 0:
+ recovery = apply_Z(recovery, q)
+ else:
+ # maybe no correction or X-correction, depending on design
+ pass
+ return recovery
+
+這樣的解碼器並非嚴格最優，但可以在 el-loom 框架中直接與 MWPM、BP、或神經網路解碼器作性能比較。
+
+ 圖 4-3: Illustration of a local window around a data qubit showing surrounding stabilizer measurements, with different colors for X- and Z-type stabilizers; arrows showing heuristic decision rule based on local pattern and noise bias.
+
+ Prompt: Illustration of a local window around a data qubit showing surrounding stabilizer measurements, with different colors for X- and Z-type stabilizers; arrows showing heuristic decision rule based on local pattern and noise bias.
+
+7.2 多碼、多雜訊模型下的一致設計
+
+el-loom 的一大優點是可在多種碼（surface, color, quantum LDPC 等）與多種 noise model（i.i.d., biased, correlated, circuit-level）下共用相同 DecodingTask / Decoder 抽象。因此在設計自訂解碼器時，建議保持以下原則：
+
+ 與 code 結構解耦：將 code-specific 資訊封裝在建構 phase（例如 precompute_neighborhoods），而非 decode 函式中硬寫索引。
+
+ 與 noise model 解耦：若解碼器額外使用 noise parameters，透過 constructor 接收（pZ, pX, correlations），不要直接讀內部 noise object。
+
+ 與 sampling/experiment 解耦：Decoder 只關心輸入 syndrome 與輸出 decision，不關心 experiments 如何估計錯誤率。
+
+此設計使得：
+Decoder 從 syndrome space 跟 hyperparameters 映到 decision space。
+
+可以在任意 DecodingTask 上重複利用，最大化實驗比較的公平性與可重現性。
+
+8. 解碼效能評估：邏輯錯誤率、threshold 與置信區間
+
+8.1 邏輯錯誤率的定義與估計
+
+在給定碼距 這個就是一個小寫的「d」。
+、物理錯誤率 p
+、與解碼器 這個就是一個大寫的 D。
+ 下，我們通常關心邏輯錯誤率
+ 下標 的括號 等於，在給定 的條件下，發生「邏輯錯誤失敗」的機率。
+
+邏輯失敗事件可定義為：「Recovery + 原始錯誤對應於非平凡邏輯運算」。形式上，令
+E 冒號，實際錯誤，逗號，R 等於 D 作用在粗體的 s 括號 E 括號。
+
+若存在邏輯算符 L 上面加一槓不等於 I。
+ 及穩定子 大寫的 S 屬於集合 script S。
+ 使得
+R E 等於 L 上面加一橫，乘上 S。
+
+則視為 logical failure。
+
+利用 Monte Carlo 估計：獨立重複實驗 N
+ 次，失敗次數 K
+：
+P 上面加帽子再加一個下標的 L，等於 K 除以 N。
+
+由於每次實驗為 Bernoulli trial，根據二項分佈可得到估計誤差。常見的 95% 置信區間近似為
+P 帽底下標 L，加減一點九六，乘上根號，裡面是分數：分子是 P 帽底下標 L，乘上括號一減掉 P 帽底下標 L，分母是大寫的 N。整個分數再一起開根號。
+
+在極小錯誤率（如 十的負六次方。
+）時，需使用更精細的（如 Clopper–Pearson）信賴區間。
+
+8.2 在 el-loom 中進行 sampling 與統計分析
+
+el-loom 提供實驗／採樣工具，可自動處理：
+
+ 對給定 p
+ 與 這個就是一個小寫的「d」。
+ 進行大量 runs，
+
+ 記錄 logical success/failure，
+
+ 計算估計值與誤差條。
+
+示意程式碼：
+
+from loom import experiments
+
+exp = experiments.DecodingExperiment(
+ task=task,
+ decoder=decoder,
+ n_shots=10_000
+)
+
+result = exp.run()
+
+print("logical_error_rate =", result.logical_error_rate)
+print("confidence_interval =", result.confidence_interval)
+
+在內部，DecodingExperiment 大致上會：
+
+ 呼叫 task.sample() 產生 error + syndrome。
+
+ 呼叫 decoder.decode(syndrome) 產生 recovery。
+
+ 呼叫 task.logical_effect(error, recovery) 評估是否 logical failure。
+
+ 計數失敗次數，最後統計估計值與區間。
+
+ 圖 4-5: Graphs showing logical error rate vs physical error rate for different code distances and decoders, with error bars representing confidence intervals; threshold behavior visible as crossing point.
+
+ Prompt: Graphs showing logical error rate vs physical error rate for different code distances and decoders, with error bars representing confidence intervals; threshold behavior visible as crossing point.
+
+8.3 threshold 擬合與 finite-size scaling
+
+在 threshold 研究中，通常關心某解碼器 這個就是一個大寫的 D。
+ 的 threshold p 下標 t h。
+，使得：
+
+ 當 p 小於 p 下標 t h。
+ 時，隨距離增大 這個就是一個小寫的「d」。
+，邏輯錯誤率下降（exponential in 這個就是一個小寫的「d」。
+）。
+
+ 當 p 大於 p 下標 t h。
+ 時，隨 這個就是一個小寫的「d」。
+ 增大反而上升或不中。
+
+理論上，在接近 threshold 的區域，有限尺寸 scaling 可表達為
+ 下標 的函數，變數是 跟 ，大約等於一個大寫的 
+其中 F
+ 是 scaling function，nu。
+ 是臨界指數。擬合過程通常：
+
+ 對多個 這個就是一個小寫的「d」。
+ 與 p
+ 收集 P 下標 L。
+ 數據。
+
+ 假設某 parametric form，如
+ log 的 P 下標 L，大約等於 A 加上 B 乘上括號裡的，p 減掉 p 的臨界值，再乘上 d 的一除以 ν 次方。
+
+ 或其他擴展。
+
+ 使用最小平方法或 Bayesian inference 對 左括號，p 下標 t h，逗號，ν，逗號，A，逗號，B，逗號，點點點，右括號。
+ 做擬合。
+
+在 el-loom 中，可透過 Python 的 numpy/scipy 或 Bayesian toolkits（如 pymc）對 DecodingExperiment 的輸出進行後處理，即可完成 threshold 擬合。重點是：el-loom 幫你負責 data generation 與 bookkeeping，讓你專注於統計分析本身。
+
+9. 綜合實例：從建模到解碼器比較
+
+最後以一個綜合實例總結從 modeling、解碼到統計評估的完整流程：比較三種解碼器（MWPM、BP、Neural）在 surface code under biased noise 下的效能。
+
+9.1 建立碼與雜訊模型
+
+from loom import codes, noise, tasks, decoders, experiments
+
+d_list = [5, 7, 9]
+p_list = [0.01, 0.03, 0.05, 0.07]
+
+results = []
+
+for d in d_list:
+ code = codes.PlanarSurfaceCode(distance=d)
+
+ # Biased noise, e.g., pZ much larger than pX, pY
+ channel = noise.BiasedPauliNoise(
+ pX=0.001, pY=0.001, pZ=0.01
+ )
+
+ task = tasks.DecodingTask(
+ code=code,
+ noise_model=channel,
+ n_rounds=1
+ )
+
+ # Three decoders:
+ mwpm_dec = decoders.MWPMDecoder(task)
+ bp_dec = MyBPDecoder(task)
+ nn_dec = NeuralDecoder(task, pretrained_model)
+
+ for p in p_list:
+ # 這裡假設 noise model 可動態更新物理錯誤率
+ channel.set_error_rate(p)
+
+ for dec_name, dec in [
+ ("mwpm", mwpm_dec),
+ ("bp", bp_dec),
+ ("nn", nn_dec),
+ ]:
+ exp = experiments.DecodingExperiment(
+ task=task,
+ decoder=dec,
+ n_shots=20_000
+ )
+ res = exp.run()
+ results.append({
+ "d": d,
+ "p": p,
+ "decoder": dec_name,
+ "logical_error_rate": res.logical_error_rate,
+ "ci": res.confidence_interval,
+ })
+
+接著使用 pandas 與 matplotlib 繪圖比對，例如對每個 這個就是一個小寫的「d」。
+ 繪出 P 下標 L。
+ vs p
+ 的曲線，分別對三種解碼器使用不同顏色。也可做 log-log plot 以觀察 error suppression 行為。
+
+ 圖 4-11: Comparative plot with multiple curves: for each decoder type (MWPM, BP, Neural), logical error rate vs physical error rate for several code distances; legend identifying decoders; some curves crossing to indicate threshold.
+
+ Prompt: Comparative plot with multiple curves: for each decoder type (MWPM, BP, Neural), logical error rate vs physical error rate for several code distances; legend identifying decoders; some curves crossing to indicate threshold.
+
+9.2 統計推論層面上的解讀
+
+若在 biased noise 下，Neural decoder 的曲線明顯優於 MWPM，代表它在某種意義上更精準估計了後驗機率
+機率，括號裡面是事件 L，直線後面條件是粗體的 s。
+
+或 P 大寫 r，括號裡面是事件 E，直線後面條件是粗體的 s。
+，反映出：
+
+ MWPM 假設的 factorization（獨立、shortest path ~ highest probability）在 biased / correlated regime 下嚴重失真。
+
+ ML-based 模型在高維 syndrome 空間中學得了更接近真實 posteriors 的 decision boundary。
+
+而 BP 解碼可能在中等 bias 區域表現介於兩者之間，因為它部分考慮了 parity constraints 與 prior bias，但仍受限於 loopiness 與 factorization 假設。
+
+這展示了 解碼器設計 = 對雜訊與 syndrome 結構做出的統計假設 + 計算上的可行性折衷。el-loom 讓我們能在明確的實驗設定下，量化與比較不同統計假設的影響，並以數據支持更進一步的理論分析。
+
+10. 結語：以 el-loom 為平台連結理論與實作
+
+本課程從嚴謹數學定義出發，將量子糾錯中的解碼問題視為一個統計推論任務，討論了：
+
+ Bayesian 後驗與邏輯 MAP 解碼的理論形式。
+
+ i.i.d. Pauli 雜訊下 MWPM 解碼的圖論化與能量視角。
+
+ Belief propagation 與 factor graph 在量子 LDPC/CSS 碼中的應用。
+
+ 機器學習式解碼如何近似後驗分佈與實作於 el-loom 中。
+
+ space-time 解碼在多輪量測下的 3D 結構。
+
+ 如何在 el-loom 中實作自訂解碼器並進行公平且具統計顯著性的效能評估。
+
+在 PhD 與研究層級的工作中，el-loom 扮演的是一個 可重現的實驗與推論平台：你可以精準定義 code + noise + decoding task，嵌入自己提出的解碼演算法，透過系統化的 sampling 與統計分析，驗證其在各種 regime（biased, correlated, circuit-level, multi-round）下的行為，並與既有解碼器（MWPM, BP, ML-based）嚴謹比較。
+
+繼續深入時，你可以嘗試：
+
+ 為非平面碼（如 color code、hypergraph product code）撰寫專屬的 MWPM 或 BP 解碼器。
+
+ 在 correlated noise 下，設計能顯式利用相關結構的解碼器，並與 standard i.i.d.-assumed decoder 比較。
+
+ 將 Bayesian hierarchical 模型（如不確定 noise parameters）融入解碼流程，透過 online learning 更新解碼策略。
+
+在這些進階方向中，el-loom 提供的是穩定的「實驗地板」，讓你能將理論推導、演算法設計與實際數據分析緊密結合，推動量子糾錯解碼研究走向更成熟、可實驗驗證的階段。

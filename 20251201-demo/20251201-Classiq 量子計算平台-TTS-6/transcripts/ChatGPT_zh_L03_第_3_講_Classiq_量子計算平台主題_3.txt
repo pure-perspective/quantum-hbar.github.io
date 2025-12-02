@@ -1,0 +1,709 @@
+第 3 講：Classiq 量子計算平台主題 3 —— 從高階規格到最佳化量子電路的自動合成
+
+本講聚焦於 Classiq 平台最具研究價值的核心能力之一：從高階規格 (high-level specification) 自動合成最佳化量子電路，並探討其背後的數學結構與形式化模型。相較於第 1、2 講較偏向基礎介紹與平台概觀，本講將以博士研究者為對象，深入探討：
+
+ 如何以約束最佳化與圖論形式化 Classiq 的合成流程；
+
+ 如何將高階算子（如 Oracle、算術運算、線性轉換）映射至具體的 Clifford+T 電路；
+
+ 資源度量（qubit 數、深度、T-count、並行度）的數學定義與 trade-off 分析；
+
+ 如何在 Classiq 平台中以 DSL/SDK 方式具體設定與求解這些問題。
+
+ 圖 3-4: A high-level architecture diagram of the Classiq platform showing three layers: (1) high-level specification and constraints, (2) synthesis and optimization engine modeled as a constraint solver, (3) concrete quantum circuit and hardware backend. Include arrows and labels like 'specs', 'constraints', 'optimization', 'compiled circuit'.
+
+ Prompt: A high-level architecture diagram of the Classiq platform showing three layers: (1) high-level specification and constraints, (2) synthesis and optimization engine modeled as a constraint solver, (3) concrete quantum circuit and hardware backend. Include arrows and labels like 'specs', 'constraints', 'optimization', 'compiled circuit'.
+
+3.1 高階規格到電路合成的形式化模型
+
+Classiq 的核心理念是：使用者不直接設計閘級電路，而是描述「要做什麼」而非「怎麼做」。本節先用數學語言形式化這個過程。
+
+3.1.1 問題空間與設計空間
+
+設一個量子演算法的「意圖」可抽象為一族允許的量子通道集合：
+F 等於一個集合，裡面元素叫做 Phi 下標 theta， 
+從輸入的希爾伯特空間映到輸出的希爾伯特空間， 
+其中 theta 落在參數空間 Theta 裡面。
+
+其中：
+
+ H 下標 in，逗號，H 下標 out。
+ 為輸入與輸出 Hilbert 空間；
+
+ 希臘大寫 Theta。
+ 是參數空間；
+
+ 大寫的 Phi，下標是 θ。
+ 是完全正且跡保持 (CPTP) 的量子通道。
+
+實務上，Classiq 允許使用者指定的是：
+
+ 功能規格：例如一個 unitary U
+，或一個近似 unitary 的目標 唸作：「U 上面加一個波浪號」。
+，或更一般的量子管線（含測量、重置）；
+
+ 約束規格：對 qubit 數、電路深度、T 門數量、拓撲、控制流等條件的限制。
+
+我們將所有可行電路的集合記為：
+C calligraphic 等於一個集合，裡面包含所有的 C，這些 C 呢，都是在可用的硬體跟閘庫上可以實現的量子電路。
+
+每個電路 大寫的 C 是集合花體 C 裡面的一個元素。
+ 對應到一個量子通道 大寫的 phi 底下加一個 C。
+（通常是 unitary 或 CPTP 映射）。
+
+Classiq 的合成問題可表述為下列約束最佳化問題：
+給定：功能規格 Spec，約束集合 Constr，還有一個代價函數 Cost，定義在集合 C 上，把 C 映到實數。 
+
+要求：找出一個 C 星號，使得 Cost 在所有屬於 C 這個集合的 C 當中取得最小值。 
+
+使得：這個 C 要滿足功能規格 Spec，並且 C 要滿足所有約束 Constr。
+
+其中「功能規格滿足」可以形式化為：
+d，括號裡面 Phi 下標 C，逗號 Phi 下標 θ，這個距離小於等於 epsilon。
+
+對某個適當的距離或度量 這個就是一個符號「d」。
+，例如 diamond norm 距離或 operator norm 距離。對於純 unitary 情形，常用：
+d 括號 U 逗號 V，就等於，對所有 phi 在零到二 pi 之間，取最小值的，U 減掉 e 的 i phi 次方乘上 V，的 operator norm。
+
+ 圖 3-3: Mathematical diagram showing three sets: Spec (set of acceptable channels), Constr (constraints region), and C (set of all circuits). The intersection region is feasible circuits, with one point labeled C* as the optimal circuit. Arrows from Spec and Constr to the optimization problem symbol.
+
+ Prompt: Mathematical diagram showing three sets: Spec (set of acceptable channels), Constr (constraints region), and C (set of all circuits). The intersection region is feasible circuits, with one point labeled C* as the optimal circuit. Arrows from Spec and Constr to the optimization problem symbol.
+
+3.1.2 資源度量與成本函數
+
+在 NISQ 與中長期 FTQC 場景中，最常見的資源度量包括：
+
+ 總 qubit 數：n 底線 q，小括號 C。
+，包含工作 qubit 與 ancilla；
+
+ 電路深度：D 括號 C。
+，在給定的門並行模型與拓撲條件下計算；
+
+ T 門數：T 括號 C。
+，當以 Clifford+T 門集為基底時的重要資源；
+
+ 兩體閘數（如 CNOT 數）：G 二，括號 C。
+；
+
+ 邏輯錯誤率或門數放大因子：E 括號 C 括號。
+，在容錯架構下考慮。
+
+Classiq 一般允許你給出一個向量型成本函數，例如：
+Cost of C 等於 
+α 下標 q 乘上 n 下標 q 括號 C 
+加上 α 下標 D 乘上 D 括號 C 
+加上 α 下標 T 乘上 T 括號 C 
+再加上 α 下標 2 乘上 G 下標 2 括號 C。
+
+其中 唸作：「帶底標點點的 alpha」。
+ 可由使用者設定或由平台預設。亦可採取多目標最佳化的 Pareto-front 搜尋，本講暫以加權和模型為例。
+
+對於資源度量的形式化，Classiq 在實作層會將成本函數轉換為 整數線性成本（或更一般的混合整數非線性成本），這使得許多子問題可被視為：
+最小化，對所有屬於整數 k 維空間的向量 x，目標函數是 c 轉置乘上 x。
+
+條件是：A 乘上 x 小於等於 b，而且 x 要屬於集合 D。
+
+其中 x
+ 代表設計決策（例如某段子電路選擇哪種合成方案），這個寫成「花體的大寫 D」。
+ 反映離散結構，如「是否使用某種 ancilla 策略」的 0-1 變數。
+
+3.2 高階算子與量子算術的自動合成
+
+許多量子演算法（如 Shor、HHL、量子金融定價）都依賴大規模的 可逆算術 (reversible arithmetic)：加法、乘法、模運算等。Classiq library 中提供了大量這類元件的高階規格，並由合成器自動產生最佳化電路。
+
+3.2.1 可逆加法器的合成與複雜度分析
+
+考慮最簡單的 n-bit 可逆加法：
+A、d、d，下標 n，定義成：ket x tensored ket y，對應到 ket x tensored ket，x 加上 y，在模二的 n 次方之下。
+
+在 Clifford+T 門集上，經典結果表明可以藉由 ripple-carry、carry-lookahead 或 Fourier-based 技巧合成不同複雜度的電路。
+
+例如一個簡化的 ripple-carry 可逆加法器，其兩體閘數量與深度大致為：
+G 二加上括號 Add 下標 n，等於，大 O 括號 n 括號。
+
+下一行：D 加上括號 Add 下標 n，等於，大 O 括號 n 括號。
+
+若進一步實現為 Clifford+T 門集，則 T 門成本大致為：
+T 括號 Add 下標 n，等於 c 下標 T 乘上 n，加上一個 big O 的一。
+
+其中 c 下標 T
+ 取決於基本 Toffoli 的 Clifford+T 分解（例如每個 Toffoli 需要 7 個 T 門，則 c 下標 T 大約等於 7 乘上 Toffoli 數，再除以 n。
+）。
+
+Classiq 在高階 level 允許使用者僅指定「需要 n-bit 加法」，並加上對 T-count 或 ancilla 數的約束，例如：
+
+from classiq import ModelDesigner
+from classiq.builtin_functions import adder
+
+md = ModelDesigner()
+
+n = 32
+a = md.qreg("a", n)
+b = md.qreg("b", n)
+
+# 高階加法規格
+adder_block = adder(a, b)
+
+# 設定資源約束
+md.set_constraints(
+ max_qubits=100,
+ optimization_metric="T_COUNT" # 或 "DEPTH", "WIDTH" 等
+)
+
+model = md.build()
+
+在內部，這對應到選擇某一族 加法實現家族 大括號裡面是一整組的Ａ下標 i。
+，每個 唸成：「黑板粗體的 A，下標 i。」
+ 對應一種設計（例如 ripple-carry、Fourier-based、carry-lookahead），各自有：
+括號裡面依序是： 
+n 下標 q 括號 A 下標 i，逗點，D 括號 A 下標 i，逗點，T 括號 A 下標 i，逗點，G 下標二 括號 A 下標 i。然後外面是一整組大括號起來。
+
+平台則於此設計空間中選擇滿足約束且成本最小的實例。
+
+ 圖 3-1: A schematic of different adder architectures: ripple-carry, carry-lookahead, and Fourier-based. Each block is annotated with asymptotic complexity for depth, qubits, and T-count. An arrow shows Classiq choosing among them based on constraints.
+
+ Prompt: A schematic of different adder architectures: ripple-carry, carry-lookahead, and Fourier-based. Each block is annotated with asymptotic complexity for depth, qubits, and T-count. An arrow shows Classiq choosing among them based on constraints.
+
+3.2.2 可逆乘法與模運算的合成
+
+對於乘法：
+Mul 下標 n，作用在 ket x、ket y、還有 ket 零的 n 次方上，映射成 ket x、ket y、以及 ket 裡面是 x 乘上 y 再對二的 n 次方取模。
+
+其最自然的設計是將 x
+ 視為控制，重複條件加法於累積暫存器上，導致：
+G 二掛在 Mul n 等於階層在 n 平方，逗號， 
+D 掛在 Mul n 也等於階層在 n 平方。
+
+但可使用平行化和更複雜的經典乘法演算法（如 Karatsuba、Toom-Cook、FFT-based）來降低深度。
+
+形式上，若採用一種 O 波浪，n 的 alpha 次方。
+ 的經典乘法演算法（如 alpha 大約等於一點五八。
+ for Karatsuba），在可逆化時，資源複雜度滿足：
+G 二，括號裡面 Mul 下標 n，屬於漸近階為 n 的 alpha 次方，帶個波浪號的 O。
+
+D，括號裡面 Mul 下標 n，屬於漸近階為 n 的 alpha 次方，帶個波浪號的 O。
+
+n 下標 q，括號裡面 Mul 下標 n，屬於漸近階為 n 的 alpha 次方，帶個波浪號的 O。
+
+其中 O 上面加個波浪號。
+ 忽略 polylog 因子。實際常見設計會在常數與 ancilla 使用上做折衝。
+
+在 Classiq library 中，模乘與模加（特別是針對 RSA、ECC、Shor 型應用）通常以 parameterized block 的形式被定義，如：
+
+from classiq import ModelDesigner
+from classiq.builtin_functions import modular_multiplier
+
+md = ModelDesigner()
+n = 1024
+modulus = 0xD5E3... # 假設某個大質數
+
+x = md.qreg("x", n)
+y = md.qreg("y", n)
+out = md.qreg("out", n)
+
+mm = modular_multiplier(x, y, modulus, out)
+
+md.set_constraints(
+ max_qubits=5000,
+ optimization_metric="DEPTH"
+)
+
+model = md.build()
+
+在內部，可將這類元件看為一個高階 模塊化算子 這裡就是一個大寫的英文字母 M。
+，其對應若干實現 大寫的 M，下標 i。
+。合成器要解的子問題是：
+在所有的索引 i 裡面，最小化 Cost 括號 M i。 
+條件是：M i 同時滿足「模 N 的正確性」而且「資源約束」。
+
+這裡的「唸作：「模型符號，縱槓等號。」
+」可視為一種邏輯約束（在實作上當然不直接以一階邏輯求解，而是使用預分析的設計模板）。
+
+ 圖 3-5: A block diagram of a modular multiplication circuit with registers labeled x, y, ancilla, and output mod N. Below, three alternative implementations are shown as sub-blocks with different resource trade-offs (more ancilla vs. less depth, etc.).
+
+ Prompt: A block diagram of a modular multiplication circuit with registers labeled x, y, ancilla, and output mod N. Below, three alternative implementations are shown as sub-blocks with different resource trade-offs (more ancilla vs. less depth, etc.).
+
+3.3 量子線性代數與線性算子合成
+
+Classiq library 中有豐富的 線性算子與線性代數元件，例如：
+
+ 一般線性變換 A 是一個複數矩陣，大小是二的 n 次方乘上二的 n 次方。
+ 的 unitary 擴張；
+
+ 稀疏矩陣 Oracle、block-encoding 等；
+
+ 量子傅立葉轉換 (QFT)、Walsh-Hadamard 轉換等。
+
+3.3.1 一般 unitary 的分解問題
+
+對任意 這個就是一個符號「n」。
+-qubit unitary U 是二的 n 次方維度的酉群裡面的一個元素。
+，已知可以用有限多個 Clifford+T gate 精確或近似地實現。理論上，任何 U
+ 可被分解為一系列兩體閘：
+U 等於，從 k 等於一到 m 的所有 G 下標 k 相乘的乘積。 
+而且每一個 G 下標 k 都屬於那個二體閘的集合 𝒢 二。
+
+其中 唸作：「花體的 G，底下是一個二。」
+ 是兩體 gate 集合（例如 U3 on single qubit + CNOT）。而標準分解（如 CSD, QR-based）有：
+m 等於 order 四的 n 次方。
+
+這在實務上當然過大，因此 結構性 是關鍵：實際使用時，多數 U
+ 具有特殊形式（稀疏、block diagonal、tensor product 結構等）。
+
+Classiq 的策略是：不鼓勵使用者直接給一個 二 的 n 次方 乘上 二 的 n 次方。
+ 矩陣，而是使用高階元件（QFT、控制旋轉、oracle 組合）描述 U
+，讓合成器在這個高階結構上做最佳化。而在少數需要直接從矩陣合成時，則利用已知的結構性分解算法（如 CSD、KAK 分解對兩 qubit 的最簡化）。
+
+以兩 qubit 的 KAK 分解為例，任何 U 屬於 S U 四。
+ 可分解為：
+U 等於括號 k1 張量 k2 括號，乘上指數函數，裡面是 i 乘上括號， 
+c1 乘上 sigma x 張量 sigma x，加上 c2 乘上 sigma y 張量 sigma y，加上 c3 乘上 sigma z 張量 sigma z，括號， 
+再乘上括號 k3 張量 k4 括號。
+
+其中 k 下標 j 是屬於 SU 二 群。
+，c 一、一、c 二、c 三，都屬於實數集合。
+。Classiq 在兩體子電路的優化上，會運用類似的結構來最小化 CNOT 數與深度。
+
+ 圖 3-10: Illustration of KAK decomposition for a generic 2-qubit unitary: U decomposed into local SU(2) x SU(2) gates around a central e^{i (c1 XX + c2 YY + c3 ZZ)} block. Show CNOT-efficient implementation of the central block.
+
+ Prompt: Illustration of KAK decomposition for a generic 2-qubit unitary: U decomposed into local SU(2) x SU(2) gates around a central e^{i (c1 XX + c2 YY + c3 ZZ)} block. Show CNOT-efficient implementation of the central block.
+
+3.3.2 QFT 的結構性合成與近似
+
+量子傅立葉轉換 Q F T 底標 n。
+ 定義為：
+Q F T 下標 n 作用在 ket x 上，等於，二的 n 次方開根號分之一，乘上，從 y 等於零到二的 n 次方減一的總和，裡面是，e 的二派 i x y 除以二的 n 次方次方，乘上 ket y。 
+其中，x 屬於零到二的 n 次方減一這一整個集合。
+
+標準分解為：
+
+ 對每個 qubit 這個就念作：「小寫的 j」。
+ 套用 Hadamard 門；
+
+ 對不同 qubit 間施加控制相位旋轉 R 下標 k
+；
+
+ 最後反轉 qubit 順序。
+
+其門數與深度滿足：
+G 二，括號裡面 Q F T 下標 n，等於 big O 的 n 平方。
+
+D，括號裡面 Q F T 下標 n，等於 big O 的 n 平方，括號裡面註明：如果不做平行化假設。
+
+若允許一定誤差 唸作：「epsilon」。
+，則可忽略小角度的 R 下標 k
+ 門，得到近似 QFT：
+Q F T，下標 n，加上括號 epsilon，近似等於 Q F T，下標 n。
+
+其門數可降為 O 括號 n 乘上 log 括號 n 除以 epsilon 括號 括號。
+。
+
+Classiq 中，你可以用高階運算子呼叫 QFT，並指定誤差容忍度 唸作：「epsilon」。
+ 與資源偏好：
+
+from classiq import ModelDesigner
+from classiq.builtin_functions import qft
+
+md = ModelDesigner()
+n = 20
+x = md.qreg("x", n)
+
+qft_block = qft(x, approximation_error=1e-3)
+
+md.set_constraints(
+ max_qubits=40,
+ optimization_metric="DEPTH"
+)
+
+model = md.build()
+
+形式化來看，這等於在設計空間中選擇某個整數 k 下標 min。
+，只保留所有 k 小於等於 k 下標 min。
+ 的控制旋轉 R 下標 k
+，忽略 k 大於 k 的下標 min。
+，並保證：
+Q F T 下標 n，上標括號 k 最小值，跟 Q F T 下標 n 之間的範數差，小於等於 epsilon。
+
+這個誤差上界可以用 operator norm 或 diamond norm 進行分析，常見的估計方式利用截斷相位誤差的疊加上界。
+
+ 圖 3-8: Standard QFT circuit on n qubits, with a highlight showing that controlled rotations with very small angles are dropped in the approximate QFT. Annotate the asymptotic scaling O(n^2) vs O(n log n).
+
+ Prompt: Standard QFT circuit on n qubits, with a highlight showing that controlled rotations with very small angles are dropped in the approximate QFT. Annotate the asymptotic scaling O(n^2) vs O(n log n).
+
+3.4 約束最佳化與資源權衡：形式理論與 Classiq 實作
+
+本節討論如何在形式上描述資源 trade-off，並對應至 Classiq 的約束設定與內部求解機制（以抽象層次說明，不涉及專利實作細節）。
+
+3.4.1 多目標最佳化與 Pareto-front
+
+假設我們關注兩個資源：qubit 數 n 底下那個小 q。
+ 與電路深度 這裡就是一個大寫的英文字母 D。
+。任何電路 C
+ 對應一個點：
+r 向量，在括號裡面帶入 C，等於一個有序對，前面是 n 下標 q 的 C，後面是 D 的 C。這個有序對屬於自然數的平方，也就是自然數二維空間裡的元素。
+
+設整個設計空間的資源像為：
+黑體的 R 等於一個集合，裡面包含所有小寫粗體 r 括號 C，滿足 C 屬於黑體的 C，並且 C 滿足大寫的 Spec。
+
+我們說 向量 r 一，下標的一，等於括號裡面 q 一、逗號、d 一。
+ 支配 向量 r 下標二，等於括號裡面 q 二、逗號、d 二。
+（記為 向量 r 一，比向量 r 二還要小。
+），若：
+ 小於等於 ， 小於等於 ，而且至少有一個是嚴格小於。
+
+則不被任何其他點支配的點形成 Pareto-front：
+P 等於大括號裡面所有的 r 向量，這些 r 向量屬於集合 R，並且滿足：不存在任何 r 反撇，屬於同一個集合 R，而且 r 反撇在偏序關係底下比 r 還要小。
+
+理論上，一個「完美」的合成器應該枚舉或近似 大寫花體的 P。
+，但實際問題維度很高且大寫的花體 C。
+ 極巨大，因此 Classiq 採用：
+
+ 使用者給定偏好（單一 optimization metric 或權重），將多目標問題轉換為標量成本；
+
+ 在內部對關鍵子模組（如加法器、乘法器）儲存多種設計點，用類似 離散 Pareto-front 的資料表來做快速選擇。
+
+形式上可理解為：預先對重要元件 B 下標 j
+ 建立集合 花體的 P 底下標 j 是自然數的 k 次方集合裡面的一個子集合。
+（k 種資源），在合成複雜演算法時，整體資源即為這些元件選擇的和，再加上互連開銷。最佳化問題變成一個整數規劃問題：
+我要最小化，對所有 j 跟所有 ℓ 的和，x 下標 j ℓ 乘上 c 下標 j ℓ。
+
+在條件下面：
+
+第一個，對每一個 j，所有 ℓ 的 x 下標 j ℓ 加總等於一。
+
+第二個，對所有 j、所有 ℓ 的 x 下標 j ℓ 乘上 r 下標 j ℓ、括號上標 m，的總和，要小於等於大寫 R 上標 m 的最大值；這個 m 可以是 qubits、depth、T-count，等等這些資源種類。
+
+最後，x 下標 j ℓ 只能取零或一。
+
+其中：
+
+ x 的 j 逗點 ℓ 分量
+ 表示是否選擇元件 B 下標 j
+ 的第 這個就是一個手寫體的英文小寫 l，唸成「ell」。
+ 個設計點；
+
+ r 的上標 m，底下是 j 逗號 ℓ。
+ 為該設計點在第 m
+ 種資源上的消耗；
+
+ R 最大，上標 m。
+ 為使用者設定的最大可用資源。
+
+ 圖 3-2: 2D Pareto-front plot with axes 'qubits' and 'depth'. Several points representing different implementations of an adder are plotted, and non-dominated points are highlighted as the Pareto-front. Show how picking weights creates a tangent line that selects a specific design.
+
+ Prompt: 2D Pareto-front plot with axes 'qubits' and 'depth'. Several points representing different implementations of an adder are plotted, and non-dominated points are highlighted as the Pareto-front. Show how picking weights creates a tangent line that selects a specific design.
+
+3.4.2 Classiq DSL/SDK 中的約束設定
+
+在 Classiq 的 Python SDK/DSL 中，設定資源約束主要透過 Constraints 或類似物件（依版本略有差異）。典型的用法如下：
+
+from classiq import ModelDesigner, Constraints
+
+md = ModelDesigner()
+
+# ... 定義量子暫存器與高階運算子 ...
+
+constraints = Constraints(
+ max_qubits=256,
+ max_depth=10_000,
+ max_t_count=50_000,
+ # 可以選擇主優化目標
+ optimization_metric="T_COUNT", # or "DEPTH", "WIDTH", etc.
+)
+
+md.set_constraints(constraints)
+model = md.build()
+
+這在數學上對應到為 這個就念成：「大寫的 C O N S T R。
+ 增添條件：
+n 下標 q 括號 C 小於等於二五六，逗號， 
+D 括號 C 小於等於十的四次方，逗號， 
+T 括號 C 小於等於五乘上十的四次方。
+
+而 optimization_metric 對應 Cost 括號 C。
+ 中某一個主導成分。
+
+直覺上，研究者可以將 Classiq 視為：「我給出一個帶有參數的量子演算法模板，以及一組線性/非線性資源約束；平台回傳滿足這些約束的某個（近似）成本最小解。」這與許多經典硬體設計流程（如 HLS, High-Level Synthesis）類似，只是目標平台是量子電路與量子硬體。
+
+3.5 Oracle 與布林函數的量子實現
+
+許多量子演算法的核心是 Oracle：對某個布林函數 f 從零一的 n 次方，也就是所有長度為 n 的零一串，映到零一這個集合。
+ 建立可逆 oracle：
+U f 作用在 ket x、ket y 上，等於 ket x，乘上 ket y 异或 f of x。
+
+Classiq 提供從高階布林描述（甚至經典程式語言片段）自動合成 oracle 電路的能力。
+
+3.5.1 布林函數的 Toffoli 網路實現
+
+任何布林函數 這個就念成：「f」。
+ 可被表示為一個 CNF 或 DNF，或更高階的 BDD, AIG, ESOP 等結構。對於 N-bit 輸入：
+f of x 等於，對所有 i 的 m i of x 做一次大的 XOR 直和運算。
+
+其中 念作：「m 下標 i」。
+ 是單項（monomial），例如：
+咪下標 i 的函數在 x 的值，等於 x 下標 j 一，乘上 x 下標 j 二，一直到乘到 x 下標 j k。
+
+或含取反的 literal。
+
+可逆實現 U 下標 f
+ 的一種標準方法是對每個項 念作：「m 下標 i」。
+ 合成一個多控 NOT 門（generalized Toffoli）：
+
+念作：
+
+「 下標 作用在 ket 再乘上 ket ，等於 ket 乘上 ket 括號裡面是 XOR 括號 。」
+
+若有 L
+ 個 monomial，則：
+U 下標 f 等於，從 i 等於一到 L 的乘積，裡面每一項是 U 下標 m 下標 i。
+
+然而多控 NOT 的實現成本與輸入數目 k
+ 成線性或對數成長（取決於是否有 ancilla）。例如，無 ancilla 的 Barenco construction 對一個 k
+-控 NOT 的 CNOT 數量約為 大 O 括號 k 的平方 括號。
+，而若允許 k 減掉 2
+ 個 ancilla，則可做到 O 括號 k 括號。
+。
+
+Classiq 在面對布林規格時：
+
+ 首先選擇內部表示形式（例如 BDD/AIG/ESOP）；
+
+ 依據資源約束決定是否大量使用 ancilla；
+
+ 最終合成一個 Toffoli/CNOT 網路，再映射到 Clifford+T。
+
+整體資源估計（簡化版）可表示為：
+第一行念作：
+
+「G 二，小括號 U f，小於等於，從 i 等於一到 L 的總和，c 二，小括號 k i。」
+
+第二行念作：
+
+「T，小括號 U f，小於等於，從 i 等於一到 L 的總和，c 下標 T，小括號 k i。」
+
+其中 k 下標 i
+ 為每個 monomial 的控制變數數目，念作：
+
+「c 二 括號點，逗號，c 大寫 T 括號點。」
+ 受選擇的多控 NOT 實現策略影響。
+
+ 圖 3-7: Diagram of a Boolean function represented as a decision diagram (like BDD or AIG), with a mapping arrow to a reversible quantum circuit composed of multi-controlled Toffoli gates and ancilla lines. Show different ancilla strategies (no-ancilla vs many-ancilla) with trade-offs in gate count and depth.
+
+ Prompt: Diagram of a Boolean function represented as a decision diagram (like BDD or AIG), with a mapping arrow to a reversible quantum circuit composed of multi-controlled Toffoli gates and ancilla lines. Show different ancilla strategies (no-ancilla vs many-ancilla) with trade-offs in gate count and depth.
+
+3.5.2 在 Classiq 中定義高階 Oracle 規格
+
+在使用 Classiq 時，我們通常不會手寫每個 Toffoli，而是用高階語法指定 f 括號 x。
+。具體語法隨版本演進，以下採用概念性的 Pseudo-Python：
+
+from classiq import ModelDesigner
+from classiq.builtin_functions import boolean_oracle
+
+md = ModelDesigner()
+
+n = 10
+x = md.qreg("x", n)
+y = md.qbit("y")
+
+# 假設有一個以 Python lambda 定義的布林函數
+def classical_f(bitstring: str) -> int:
+ # 任意經典邏輯
+ ...
+
+oracle_block = boolean_oracle(x, y, classical_f)
+
+md.set_constraints(
+ max_qubits=128,
+ optimization_metric="T_COUNT"
+)
+
+model = md.build()
+
+直覺上，boolean_oracle 將 classical_f 編譯為一個中介形式（如電路級 IR 或 AIG），然後再經由一系列可逆邏輯合成步驟，產生 U 下標 f
+ 的 Toffoli 網路，最後再映射至硬體原生 gate set。
+
+3.6 Classiq 中的控制流、參數化與可重複使用模組
+
+Classiq 不只是一個「一次性」合成器，而是支援 模組化 (modularity) 與 參數化 (parametrization)，並在此結構上進行全域最佳化。這一點對於大規模量子演算法設計尤其重要。
+
+3.6.1 量子子程式與 call-graph 的最佳化
+
+考慮一個演算法由多個子程式組成：
+A 等於第一個子程序，上一個小括號 t 一，下標是一，然後跟第二個子程序，上一個小括號 t 二，下標是二，這樣一路用函數複合一路串下去，到第 k 個子程序，上一個小括號 t k，下標是 k。
+
+其中 唸作：「第 j 個子常式，上標括號 t 下標 j。」
+ 代表子程序第 t 下標 j
+ 次呼叫。有時，最佳化的關鍵不在單一子程式，而是如何在多次呼叫間重用 ancilla、重新安排調度等。
+
+若將每個子程式粗略規約為一個資源向量 向量 r 下標 j，等於括號裡面： 
+n 下標 q 上標 j，逗號，D 上標 j，逗號，T 上標 j，逗號，然後點點點。
+，則整體資源不是簡單的和，而取決於：
+
+ 是否允許子程式平行執行（qubit 不重疊）；
+
+ 是否可在不同呼叫間釋放並重用 ancilla；
+
+ 是否存在跨子程式的電路等價變換（如合併連續的單 qubit 旋轉）。
+
+這可以形式化為一個 排程與佈局問題：
+給定：一組子程式 ，還有各自的 qubit 使用模式。
+
+求：一個 qubit–time 的佈局，讓最大的時間軸長度，也就是電路的深度，或者 qubit 的高度，被最小化。
+
+這與經典的 resource-constrained scheduling 和 register allocation 類似。Classiq 會在 call-graph 層級做這類最佳化，使得模組化開發不犧牲全域資源效率。
+
+ 圖 3-9: A call graph of several quantum subroutines with their resource annotations. Below it, a scheduling chart (like a Gantt chart) showing how subroutines are arranged over time and qubit lines to minimize depth and qubit usage.
+
+ Prompt: A call graph of several quantum subroutines with their resource annotations. Below it, a scheduling chart (like a Gantt chart) showing how subroutines are arranged over time and qubit lines to minimize depth and qubit usage.
+
+3.6.2 參數化電路與符號運算
+
+對於變分量子演算法（VQE, QAOA 等），Classiq 支援符號參數（symbolic parameters），並在合成時保留這些參數，以便後續與經典 optimizer 一起使用。
+
+考慮一個參數化單 qubit 門：
+R 下標 z 括號 theta，等於 exp 括號負的 i 乘上 theta 乘上 Z 除以二，關括號，等於一個二乘二的矩陣，左上角是 e 的負 i theta 除以二 次方，右上角是零，左下角是零，右下角是 e 的正 i theta 除以二 次方。
+
+在 Classiq 模型中，希塔
+ 可是一個符號變數，稍後在執行時才由經典程序提供具體數值。對於整個電路 C 括號 theta 向量
+，我們可視其對應的 unitary 為：
+U 括號 θ 向量，等於 對所有 k 的 G 下標 k 括號 θ 下標 σ 括號 k 的連乘積。
+
+其中 西塔，下標 sigma 括號 k。
+ 表示第 k
+ 個 gate 的參數來源。
+
+在 VQE 中，我們通常最小化期望值：
+E 括號 theta 向量，等於 bra 零，接著是 U 括號 theta 向量 的 dagger，乘上哈密頓算符 H，再乘上 U 括號 theta 向量，最後作用在 ket 零。
+
+Classiq 允許我們只定義 H
+ 與 U，小 theta 的向量。
+ 的結構，再透過平臺與外部優化器（如 SciPy, PyTorch, JAX）整合。內部來說，這要求合成時維持 gate 參數的抽象，而非將它們「編譯到常數」。
+
+在 DSL 層次會類似：
+
+from classiq import ModelDesigner, Parameter
+from classiq.builtin_functions import ry_rotation_layer
+
+md = ModelDesigner()
+n = 8
+x = md.qreg("x", n)
+
+theta = Parameter("theta", size=n) # 長度 n 的向量參數
+layer = ry_rotation_layer(x, theta)
+
+# 其他 block，如 entangling layer 等
+# ...
+
+model = md.build()
+
+對研究者而言，這意味著可以在高階層次設計「符號電路族」，並利用 Classiq 為該電路族合成在給定拓撲與資源約束下的高效實現。
+
+3.7 拓撲與硬體映射的數學模型
+
+最後，本講簡述 Classiq 中對硬體拓撲（如線性鏈、2D lattice、heavy-hex）的處理，並與路由問題與圖論做對應。
+
+3.7.1 量子硬體拓撲與 SWAP 網路
+
+設硬體有 這個念作：「大寫的英文字母 N。」
+ 個實體 qubit，其耦合圖為：
+G 等於括號 V 逗點 E 括號，然後豎線 V 豎線等於 N。
+
+其中每個頂點 v 屬於 V。
+ 對應一個 qubit，每條邊 括號 u 逗號 v 括號，屬於大寫的 E。
+ 表示可直接實作兩體閘（如 CNOT）。
+
+合成得到的邏輯電路 C
+ 通常假設所有 qubit fully connected。為了在拓撲 G
+ 上執行，需引入 SWAP 門將要互動的邏輯 qubit 移動到相鄰物理 qubit。這對應於一個 routing problem：
+
+ 給定一系列兩體 gate CNOT，括號裡面 qi 逗號 qj。
+ 的序列；
+
+ 給定 qubit 的初始映射 pi 零，冒號，從 logical 映到 V。
+；
+
+ 透過插入 SWAP 門產生新的電路 C 撇。
+，使得每個兩體 gate 在硬體上可實作。
+
+形式上，這可以表述為尋找一條最短路徑：
+最小化，電路 C 拿來做完 SWAP 的次數，條件是：電路 C 拿來做完以後得到的 C 撇，跟原本的 C 在邏輯層上是等價的。
+
+或更進一步最小化延遲（深度）而非僅是 SWAP 數量。
+
+這是一個 NP-hard 問題（與圖上的嵌入與 VLSI routing 有關）。Classiq 在高階層即可納入拓撲資訊，例如（虛擬語法）：
+
+from classiq import ModelDesigner, HardwareTopology
+
+md = ModelDesigner()
+
+# 設定硬體拓撲 (如 'line', 'grid', 'heavy_hex', 或自訂圖)
+topology = HardwareTopology.from_ibmq_device("ibm_hanoi")
+
+md.set_topology(topology)
+
+# ... 定義高階模型 ...
+
+model = md.build()
+
+這樣合成器在設計高階運算子時就已知道拓撲限制，可以提前：
+
+ 選擇更適合拓撲的電路實現（如線性鏈上偏向 nearest-neighbor-friendly 的 QFT）；
+
+ 在大型子電路內部安插可 reuse 的 SWAP pattern；
+
+ 同時考量路由成本與本身 gate 成本，進行整體最佳化。
+
+ 圖 3-6: Example of mapping a 4-qubit logical circuit onto a 1D chain hardware topology. Show initial qubit mapping, required CNOT between non-neighbor qubits, and the inserted SWAP gates along the chain, annotated with increased depth.
+
+ Prompt: Example of mapping a 4-qubit logical circuit onto a 1D chain hardware topology. Show initial qubit mapping, required CNOT between non-neighbor qubits, and the inserted SWAP gates along the chain, annotated with increased depth.
+
+3.7.2 圖論觀點：電路映射為圖嵌入
+
+形式上，可以將邏輯電路的兩體交互關係抽象成一個「邏輯互動圖」：
+H 等於括號 Q 逗號 E 下標 H 括號。
+
+其中 大寫的英文字母 Q。
+ 是邏輯 qubit 集合，括號裡的 這一對，有聯結屬於 。
+ 若在電路中有至少一個兩體 gate 作用於 左括號，q 下標 i，逗號，q 下標 j，右括號。
+。映射到硬體圖 G 等於括號 V 逗點 E 括號。
+ 的問題，可理解為尋找一個嵌入 phi 冒號 Q 對應到 V。
+，使得：
+
+ 若 括號裡的 這一對，有聯結屬於 。
+，則 phi 括號 q 下標 i。
+ 與 phi 括號 q 下標 j
+ 在 G
+ 中「距離不太遠」，以免需要過多 SWAP；
+
+ 整體 cost，如 總和取遍所有在圖 裡面的邊 ，每一項是，圖 裡面 phi 作用在 跟 phi 作用在 這兩點之間的距離。
+ 被最小化。
+
+這類問題與 graph embedding、minimum bandwidth、quadratic assignment problem (QAP) 密切相關。Classiq 在實作中不會嘗試求全域最優，而是基於啟發式與局部重排演算法，結合高階模組化與排程資訊，得到實務上良好的映射。
+
+3.8 小結與研究展望
+
+本講深入分析了 Classiq 平台在「由高階規格自動合成最佳化量子電路」上的理論基礎與實作思路，重點包括：
+
+ 將合成問題形式化為 約束最佳化問題，以量子通道距離與資源度量為核心；
+
+ 討論了可逆加法、乘法、模運算、QFT 等線性與非線性高階元件的合成方式與複雜度；
+
+ 說明了多目標資源最佳化的 Pareto-front 視角與 Classiq 中的約束設定方法；
+
+ 介紹了布林函數 Oracle 的 Toffoli 網路實現與在 Classiq 中的高階定義；
+
+ 探討了子程式 call-graph 的全域最佳化、參數化電路、以及拓撲感知合成與路由問題。
+
+對博士生與研究者而言，Classiq 提供了一個非常有價值的研究平台，可以在下列方向展開工作：
+
+ 新型可逆算術與線性代數模組：設計在特定資源模型下最優的可逆加法器、乘法器、block-encoding 等，並將其整合為 Classiq library 元件；
+
+ 合成與最佳化演算法：研究適合量子電路的特殊 MILP/啟發式最佳化方法，分析其理論保證與實務效能；
+
+ error-aware synthesis：在容錯架構與錯誤模型下，將錯誤成本 E 括號 C 括號。
+ 納入 Cost
+ 之中，設計具有容錯感知的合成流程；
+
+ 拓撲映射與路由理論：建立更精確的圖論模型與近似演算法，以改善大規模電路在實際硬體上的可行性。
+
+在後續講次中，我們將結合本講的理論與實務，展示具體案例：例如構造 Shor 型演算法、HHL、量子金融模型等，並透過 Classiq 完成從規格到可執行電路的全流程設計與分析。

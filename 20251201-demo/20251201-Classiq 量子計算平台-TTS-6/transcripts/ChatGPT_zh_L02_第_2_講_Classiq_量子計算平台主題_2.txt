@@ -1,0 +1,550 @@
+第 2 講：Classiq 量子計算平台主題 2 —— 高階 QMod 建模與電路綜合理論
+
+本講進入 Classiq 平台的第二個核心主題：以高階建模語言 QMod 進行量子演算法規格化，並透過形式化約束導出最佳化量子電路。我們將從數學結構與語義層面分析 QMod，探討其與標準量子電路模型、受控單位算符、及最佳化問題（如整數線性規劃、convex relaxation）之間的關係，並示範如何在 Classiq SDK 中把「演算法描述」轉換為「硬體可執行電路」。
+
+ 圖 2-6: A conceptual diagram showing three layers: (1) High-level algorithm specification using pseudo-math and QMod blocks, (2) an intermediate graph representation of a quantum circuit with constraints annotated (depth, qubit count), and (3) a final low-level gate sequence mapped to a specific hardware topology. Arrows show transformation from 1 to 3 via synthesis and optimization.
+
+ Prompt: A conceptual diagram showing three layers: (1) High-level algorithm specification using pseudo-math and QMod blocks, (2) an intermediate graph representation of a quantum circuit with constraints annotated (depth, qubit count), and (3) a final low-level gate sequence mapped to a specific hardware topology. Arrows show transformation from 1 to 3 via synthesis and optimization.
+
+2.1 QMod 作為高階量子規格語言的數學語義
+
+Classiq 的核心理念是：不要直接設計 gate-level 電路，而是以高階結構描述量子運算，讓平台自動完成綜合與最佳化。為了達成這點，QMod（或等價的 Python DSL）本質上是一個量子程式的抽象語法樹（AST）與操作圖同時存在的結構。
+
+2.1.1 抽象語法樹與量子電路圖的對應
+
+從數學上可將 QMod 程式解釋為一個有向無環圖 G 等於括號 V 逗點 E 括號。
+，其中：
+
+ V
+ 為節點集合，每一節點代表一個 操作模組，例如：
+
+ 基本單位算符：如 R z 括號 theta、逗號、H、逗號、CNOT。
+。
+
+ 高階組合子：如 for 迴圈、if-else 分支、controlled 結構。
+
+ 複合模組：如 QFT、Amplitude Estimation 子例程等。
+
+ E
+ 為邊，代表「量子位或經典資訊的流向」以及「時間／拓撲依賴」關係。
+
+令 哈等於，從 i 等於一到 n 的，二維複數空間的張量積。
+ 為 這個就念成：「n」。
+ 個量子位的希爾伯特空間。若每一節點 v 是屬於大寫的 V 空間。
+ 對應一個在子空間上作用的單位算符 U 下標 v。
+，則整個 QMod 程式可解釋為：
+U 總等於，對所有在這個次序關係底下的 v 做乘積，也就是所有的 U v 相乘。
+
+其中 這個符號就是一個「左尖括號」。
+ 為某一種尊重有向邊拓撲序的排序（topological order），對應於「時間先後」或「電路深度」。
+
+重點在於：QMod 對應的 U 底標 total
+ 並不需要在程式撰寫階段完全展開成底層 gate；Classiq 會根據目標硬體與約束，選擇一種（或多種）合適的 gate 分解與排程。
+
+ 圖 2-3: A directed acyclic graph with nodes representing modules like "QFT block", "Controlled Oracle", "Phase Estimation", and edges connecting them. Below, the same graph is flattened into a time-ordered quantum circuit diagram with gates on qubit wires.
+
+ Prompt: A directed acyclic graph with nodes representing modules like "QFT block", "Controlled Oracle", "Phase Estimation", and edges connecting them. Below, the same graph is flattened into a time-ordered quantum circuit diagram with gates on qubit wires.
+
+2.1.2 QMod 的結合性與組合子語義
+
+考慮兩個 QMod 模組 M 一，逗號，M 二。
+，假設它們分別對應於量子操作：
+M 一號對應到 U 一號，逗號，M 二號對應到 U 二號。
+
+那麼在 QMod 中「串接」操作（sequential composition）：
+M 等於 M 二，合成 M 一。
+
+對應於量子算符的乘積：
+大寫的 M 對應到一個算符 ，等於 接著 相乘。
+
+同時，若兩個模組作用於不同量子位子集 S 一之一、S 二之二，是從一到 n 這個集合裡面挑出來的兩個子集合。
+，且 S 一交 S 二，等於空集合。
+，則可以視為張量組合：
+大寫的 M 一，直和 M 二，對應到大寫的 U 一，張量乘上 U 二。
+
+QMod 中的組合子（combinators）可以視為對這些結構的抽象封裝，例如：
+
+ Loop combinator：表達
+ 從 k 等於 0 一直到 K 減一，所有 U 括號 k 的乘積。
+
+ 其中 U 小括號 k 小括號。
+ 是根據迴圈索引產生的量子操作。
+
+ Conditional combinator：例如
+ U 下標 i f，等於，Π 下標 cond 張量 U 一，加上，括號 I 減掉 Π 下標 cond 括號，張量 U 零。
+
+ 其中 皮 還有一個小下標 cond。
+ 為條件成立子空間的投影算符。
+
+在 Classiq 內部，這些抽象結構最終會被展開為受控單位算符與類 Toffoli 閘的組合，但使用者不需要直接手動實作這些底層結構。
+
+2.2 QMod 控制結構與受控單位算符的數學建模
+
+控制結構是 QMod 的關鍵能力之一：允許以「語意層級」定義受控運算，而非手動構造控制線路。從理論上看，這對應於在較大希爾伯特空間上的 block-diagonal 單位算符。
+
+2.2.1 受控單位算符的一般形式
+
+令 H 下標 c。
+ 為控制量子位空間（可能多個 qubits），黑體的 H 底下加一個小 t。
+ 為目標量子位空間。我們希望定義一個受控單位算符：
+U 下標 ctrl 冒號，H 的希爾伯特空間 c，張量 H 的希爾伯特空間 t，映到 H 的希爾伯特空間 c 張量 H 的希爾伯特空間 t。
+
+其在某一控制狀態子空間 三角的希爾伯特空間，包含於連續的希爾伯特空間。
+ 觸發時對 黑體的 H 底下加一個小 t。
+ 作用 U
+，否則作用為 大寫的英文字母 I。
+。
+
+形式上，設
+皮 函數底線 trig，從希爾伯特空間 H 下標 c 對到同一個希爾伯特空間 H 下標 c。
+
+為投影到觸發子空間（例如所有控制 qubits 為 ket 一
+ 的子空間），則可寫作：
+U 下標 c t r l，等於，Pi 下標 trig 張量積 U，加上，括號 I 減掉 Pi 下標 trig，再張量積 I。
+
+這顯然是單位算符，因為：
+好，這個式子我會念成：
+
+「 控制的共軛轉置乘上 控制，等於，觸發投影算符張量 的共軛轉置乘上 ，再加上，括號裡面一減掉觸發投影算符，張量上單位算符。
+
+這個又等於，觸發投影算符張量上單位算符，加上括號裡面一減掉觸發投影算符，張量上單位算符，最後等於整體的單位算符。」
+
+在 QMod 中，我們以類似如下 pseudo-code 指定：
+
+with control(ctrl_qubits):
+ apply(U, target_qubits)
+
+Classiq 會推斷出對應 大寫的 Π，底下標註 trig。
+ 的結構（例如所有 ctrl_qubits = 1），並合成對應的多重控制閘網路。
+
+ 圖 2-2: A block diagram showing a control register and a target register. The operator U is applied only when the control register is in a specific basis state, represented by a projector Pi_trig. Next to it, show the corresponding circuit with multiple control dots connected to a unitary box on target qubits.
+
+ Prompt: A block diagram showing a control register and a target register. The operator U is applied only when the control register is in a specific basis state, represented by a projector Pi_trig. Next to it, show the corresponding circuit with multiple control dots connected to a unitary box on target qubits.
+
+2.2.2 多重控制與 Toffoli 分解的代價分析
+
+對於 m
+ 個控制量子位與目標運算 U
+（作用於 k
+ 個 qubits），若直接生成一個 m
+-控制的 U
+，在標準 Clifford+T gate set 下的實作成本通常會以 大 O 括號，m 加上 U 的 cost，括號。
+ 的 T
+-閘數量成長，甚至需要額外的 ancilla qubits。
+
+以多重控制 NOT（即一般化 Toffoli）為例，資料顯示在允許一些輔助量子位時，可達到 T
+-閘數目：
+T 下標 Toffoli 括號 m，大約等於四倍的 m 減四。
+
+而在無 ancilla 情況下代價更高。Classiq 在合成時會在下列目標之間做 trade-off：
+
+ 閘數量（尤其是高成本閘，如 T
+ 閘）
+
+ 電路深度
+
+ 使用 ancilla 數量
+
+因此，在 QMod 層級寫出簡單的控制結構：
+
+with control(ctrl_qubits):
+ complex_oracle(qubits)
+
+其實已經隱含了「在後端做控制成本最佳化」的指令。這種分離「語意」與「實現」的設計，對於大型演算法，特別是 QAOA、VQE、Grover 類演算法的 oracle 構造，具有關鍵意義。
+
+2.3 QMod 中的演算法模板與參數化電路
+
+Classiq library 中有大量「演算法模板」（algorithmic templates），例如 QAOA、VQE、量子相位估計等，這些模板在 QMod 語意上是參數化電路：
+
+令 粗體的希臘字母 θ 是屬於實數空間 R 的 p 維。
+ 為參數向量，則一個模板對應函數：
+粗體的希臘字母 θ 映到算符 U 括號 θ。
+
+而整個 QMod 模式產出的最終態為：
+psi 括號 theta 這個態，等於 U 括號 theta 作用在 ket 零 的 n 次張量積 上。
+
+2.3.1 QAOA 模板的 QMod 描述與哈密頓量分解
+
+以 QAOA 為例，目標為近似解一個組合最佳化問題，例如 MAX-CUT。問題通常可表示為一個 Ising 形式的成本哈密頓量：
+H 下標 C，等於，對所有在集合 E 裡面的邊括號 i, j，加總 w i j，乘上括號裡面，1 減掉 Z i 乘上 Z j，再除以 2。
+
+其中 
+
+唸作：
+
+「Z，下標 i。」
+ 是第 唸作「i」，就是虛數單位。
+ 個 qubit 的 Pauli-Z 算符，E
+ 為圖的邊集合，w 下標 i j
+ 為權重。
+
+QAOA 深度為 p
+ 時，其演化算符為：
+U 括號 gamma 粗體逗號 beta 粗體 括號，等於，從 l 等於一到 p 的乘積，括號裡面是，指數的負 i 乘上 beta 下標 l 乘上 H 下標 M，然後再乘上，指數的負 i 乘上 gamma 下標 l 乘上 H 下標 C。
+
+其中 H 下標 M 等於對所有 i 做總和的 X i。
+ 為 mixing Hamiltonian。這裡 粗體的 gamma 跟粗體的 beta，屬於實數的二 p 維空間。
+ 為可調參數。
+
+在 QMod 層級，我們不直接寫出每個 念作：
+
+「e 的負 i gamma 下標 l 乘上 H 下標 C 的次方。」
+ 的 gate 展開，而是指定：
+
+ 問題圖 G 等於括號 V 逗點 E 括號。
+ 與權重 w 下標 i j
+。
+
+ QAOA 層數 p
+。
+
+ 可調參數變數 伽瑪下標 l，逗號，貝塔下標 l。
+ 的 symbolic placeholder。
+
+Classiq 的 QAOA 模板會：
+
+ 自動將 H 下標 C，逗號，H 下標 M。
+ 分解為 Pauli 字串（如 Z 下標 i 乘上 Z 下標 j。
+、X 下標 i
+）。
+
+ 為每個 Pauli 字串構造相位旋轉：
+ 這一項念作：
+
+「ｅ 的負 i 乘上 γ 乘上 w i j，括號裡面是大寫的 I 減掉 Z i Z j，通通再除以二，整個當指數。」
+
+ ，並最佳化其 gate 分解。
+
+ 整合硬體拓撲與佇列順序，給出「受硬體約束的」最佳 QAOA 電路。
+
+這樣的流程可形式化為一個 mapping：
+Phi 冒號，括號裡是 G、粗體的 w、p、粗體的 gamma、還有粗體的 beta，整個這一組，對應到右邊的 U，裡面的參數是粗體的 gamma 跟粗體的 beta。
+
+其中 大寫的希臘字母 Phi。
+ 實質上就是 QMod 模板加上 Classiq 綜合器的行為。
+
+ cost Hamiltonian H_C -> decomposition into Pauli terms -> QAOA layers template with parameters gamma, beta -> synthesis engine -> final hardware-specific circuit. Each stage is shown as a box with arrows between them.">
+ 圖 2-4: A flowchart depicting: input (graph G and weights) -> cost Hamiltonian H_C -> decomposition into Pauli terms -> QAOA layers template with parameters gamma, beta -> synthesis engine -> final hardware-specific circuit. Each stage is shown as a box with arrows between them.
+
+ Prompt: A flowchart depicting: input (graph G and weights) -> cost Hamiltonian H_C -> decomposition into Pauli terms -> QAOA layers template with parameters gamma, beta -> synthesis engine -> final hardware-specific circuit. Each stage is shown as a box with arrows between them.
+
+2.3.2 參數化電路與梯度估計的結構分析
+
+對於研究者而言，關鍵問題之一是：如何對參數化電路進行梯度估計（parameter-shift rules），尤其當電路並非手寫，而是由 QMod 合成時。
+
+假設電路中每個參數只出現在形如
+R 下標 n 帽，括號裡 theta，等於 e 的負 i 乘上 theta 乘上 P 除以二 的次方。
+
+的旋轉閘中，其中 這個就是一個大寫的英文字母 P。
+ 為 Pauli 字串，且 P 的平方等於 I。
+。則對可觀察量 大寫英文字母 O。
+ 的期望值：
+f 括號 theta 粗體，等於，bra 零，接著是 U dagger 括號 theta 粗體，乘上算符 O，再乘上 U 括號 theta 粗體，ket 零，整個的期望值。
+
+對某個參數 希塔下標 j
+ 的偏導可用 parameter-shift 規則：
+偏微分 f 對 θ 下標 j，等於二分之一，乘上中括號裡面，f 括號 θ 向量加上 π 除以二 乘上 e 下標 j，減掉 f 括號 θ 向量減掉 π 除以二 乘上 e 下標 j，括號閉起來。
+
+若 QMod 模板保證所有參數閘都屬於此形式（或其簡單變體），則在演算法層級即可斷言整個模板支援高效率的梯度估計。Classiq 的做法是：
+
+ 透過 QMod 模板約束，確保參數化結構滿足 parameter-shift 前提。
+
+ 在綜合過程中保持此結構不被破壞（例如不引入不必要的 commutation 導致參數閘合併成更複雜運算）。
+
+因此，在高階層級設計時就能對優化演算法（如 gradient-based VQE）的可行性與樣本複雜度做理論推估。
+
+2.4 Classiq 綜合器：從 QMod 到 Gate-Level 的形式化觀點
+
+Classiq 的綜合器（synthesizer）可以視為從高階 QMod 規格到 gate-level 電路的映射：
+S 冒號，從大寫花體的 M 乘上大寫花體的 C，到大寫花體的 G。
+
+其中：
+
+ 大寫花體的 M。
+：所有 QMod 模組的集合。
+
+ 大寫的花體字母 C。
+：一組約束（constraints），包含：
+
+ 可用 qubit 數 n 下標 max。
+。
+
+ 容許深度 大寫的 D，加一個下標 max。
+。
+
+ 容許的 gate set（例如 Clifford+T，或特定硬體原生閘）。
+
+ 硬體拓撲圖 G，下標 h w。
+。
+
+ 大寫的花體字母 G。
+：所有可行 gate-level 電路的集合。
+
+綜合問題可形式化為一個約束最佳化問題：
+給定大寫 M 屬於集合 calligraphic M， 
+大寫 C 屬於集合 calligraphic C， 
+尋找大寫 G 屬於集合 calligraphic G。
+
+使得
+U 下標 G 減掉 U 下標 M 的範數，小於等於 epsilon。
+
+同時滿足
+cost 括號 G 分號 C 括號 等於 
+alpha 一 乘上 depth 括號 G 括號 
+加上 alpha 二 乘上 gate count 括號 G 括號 
+再加上 alpha 三 乘上 ancilla 括號 G 括號。
+
+被最小化，且符合硬體約束與錯誤模型需求。
+
+ 圖 2-5: A schematic comparing the abstract unitary U_M defined by a QMod specification and multiple possible circuits G1, G2, G3 that approximate U_M with different trade-offs in depth, ancillas, and total gate count. One is marked as "chosen" by the synthesizer.
+
+ Prompt: A schematic comparing the abstract unitary U_M defined by a QMod specification and multiple possible circuits G1, G2, G3 that approximate U_M with different trade-offs in depth, ancillas, and total gate count. One is marked as "chosen" by the synthesizer.
+
+2.4.1 綜合中的拓撲嵌入問題
+
+對於實際硬體，qubits 間連線受限於拓撲圖 G 下標 h w，等於一個括號裡面，V 下標 h w，逗點，E 下標 h w。
+。若 QMod 中的量子位邏輯關係超出硬體連接範圍，則必須插入 SWAP 閘或透過路徑路由。這對應於圖嵌入問題：
+
+令邏輯 qubit 圖為 G 的底標是 log。
+，其邊表示需要兩 qubits 之間執行雙量子位閘（如 CNOT）。綜合時需尋找嵌入
+phi 冒號，V 的 log，映到 V 的 hw。
+
+使得每條邏輯邊 括號 i 逗號 j 括號，屬於 E 下標 log。
+ 對應到硬體圖中的一條「路徑」：
+phi 括號 i 等於 v 零、v 一、一直到 v L 等於 phi 括號 j，逗點，並且每一對 v k 跟 v k 加一 之間這條邊，都屬於 E 下標 h w。
+
+在這條路徑上實現邏輯 CNOT 通常需要插入一系列 SWAP，導致深度與 gate 數量增加。這可形式化為：
+在所有的 φ 跟所有可能的 routing 當中，去最小化 total SWAPs 括號 G 逗號 φ。
+
+Classiq 綜合器在這點上的優勢是：在 QMod 層級就可重排電路結構與模組順序，以減少 biclique 大小與路由需求，而不僅僅在 gate 層做本地修補。
+
+2.4.2 形式化誤差界與近似單位算符
+
+當使用非 Clifford 群閘（如 T
+-閘）實作任意單量子位旋轉時，通常採用 Solovay-Kitaev 類演算法或更進階的最優近似方法，導致目標單位算符 U
+ 被某個 念作：「U 上面加一個小波浪號」。
+ 所近似，滿足：
+U 減掉 U 波浪號 的範數，小於等於 δ。
+
+其中 雙豎線，點，雙豎線。
+ 可以採用 operator norm 或 diamond norm。
+
+若 QMod 中描述的整體演算 大寫的 ，右下角一個 ，唸成「 下標 」。
+ 被分解為
+ 下標 等於 下標 ，一直到 下標二、 下標一，這樣依序相乘。
+
+每個 U 下標 j
+ 被近似為 唸作： 
+「U， 上面加一個小波浪號，下標 j。」
+ 並滿足
+U 下標 j 減掉 U 波浪號 下標 j 的範數，小於等於 delta 下標 j。
+
+則整體誤差可由次乘性界給出：
+左邊，范數的 下標 減掉 下標 。
+
+等於，范數的 一直到 的乘積，減掉 一直到 的乘積，的范數。
+
+小於等於，從 等於一到 的總和， 乘上，從 等於 到 的 的范數的連乘積。
+
+最後等於，從 等於一到 的總和，。
+
+因為 雙括號，U 上面有個波浪號，下標 l，這個算符的範數等於一。
+。因此，一個全域誤差門檻 epsilon
+ 可以透過局部誤差分配策略：
+從 j 等於 1 加到 k 的這一串 delta j，相加起來小於等於 epsilon。
+
+來確保。Classiq 在綜合過程中可以根據這樣的誤差預算替每個近似子模組選擇適當的精度，平衡 T
+-閘數量與整體誤差。
+
+2.5 實務：在 Classiq SDK 中描述高階 QMod 範例
+
+以下以 Python 介面示範如何在 Classiq 平台上實作一個具有多重控制、參數化旋轉與 QAOA 結構的電路，而不用手寫底層閘：
+
+2.5.1 QAOA for MAX-CUT 的高階描述
+
+假設我們有一個四節點圖 G 等於括號 V 逗點 E 括號。
+，其中 V 等於一個集合，裡面有四個元素，分別是零、一、二、三。
+，邊：
+E 等於大括號裡面四個有序對： 
+左括號零逗點一右括號、 
+左括號一逗點二右括號、 
+左括號二逗點三右括號、 
+左括號三逗點零右括號。
+
+為一個四邊形。MAX-CUT 成本哈密頓量為：
+H 下標 C，等於對所有在邊集合 E 裡面的括號 i、j 做總和，括號裡面是：一減掉 Z i 乘上 Z j，再除以二。
+
+在 Classiq 中，我們可以這樣寫（概念化程式碼）：
+
+from classiq import Model
+from classiq.builtin_functions import qaoa_maxcut
+
+# 1. 定義圖
+edges = [(0, 1), (1, 2), (2, 3), (3, 0)]
+
+# 2. QAOA 參數與層數
+p_layers = 2
+
+# 3. 建立 QMod 模型
+with Model() as m:
+ # 自動根據圖與層數建立 QAOA 模板
+ qaoa_maxcut(
+ edges=edges,
+ p=p_layers,
+ gammas=["gamma_1", "gamma_2"], # symbolic parameters
+ betas=["beta_1", "beta_2"]
+ )
+
+# 4. 編譯與綜合，指定硬體與約束
+from classiq import synthesize
+
+qpu_constraints = {
+ "max_qubits": 4,
+ "max_depth": 200,
+ # 其他硬體資訊，例如拓撲與原生閘
+}
+
+qprog = synthesize(m, constraints=qpu_constraints)
+
+print(qprog)
+
+上述程式片段中，qaoa_maxcut 即是一個高階 QMod 模板呼叫。整個 QMod 物件 m
+ 描述了
+psi，括號 gamma 粗體、beta 粗體，這個 ket，等於 U，括號 gamma 粗體、beta 粗體，乘上 ket 零 的四重張量積。
+
+而不是任何具體的 gate-level 序列。
+
+ 圖 2-7: A simple 4-node cycle graph for MAX-CUT, with nodes labeled 0,1,2,3 and edges forming a square. Next to it, a schematic QAOA layer showing alternating cost and mixer blocks, each labeled with parameters gamma_l and beta_l.
+
+ Prompt: A simple 4-node cycle graph for MAX-CUT, with nodes labeled 0,1,2,3 and edges forming a square. Next to it, a schematic QAOA layer showing alternating cost and mixer blocks, each labeled with parameters gamma_l and beta_l.
+
+2.5.2 插入受控子例程與 ancilla 管理
+
+假設在 QAOA 的 cost layer 中，我們需要一個「加強版」邊權重 oracle，其結構為：
+
+ 當某些輔助條件滿足時（例如額外寄存器 encoding 某約束），才作用該邊的 phase rotation。
+
+數學上，這是一個二階控制（control on 邊兩端 qubits + 輔助 register）的受控運算。
+
+在 QMod 中，可寫作：
+
+from classiq import qubit, control
+
+anc = qubit() # Classiq 會自動管理 ancilla 的生命週期
+
+with control([q0, q1, anc]):
+ # 只在 q0, q1 和 anc 同時為 |1> 時作用
+ rz(theta="gamma_1", target=q2)
+
+此段程式邏輯描述的是
+ 下標 c t r l，等於，派，底下寫 trig，張量， 下標 z，括號裡是 gamma 一，加上，左括號，大寫的 減掉，派底下寫 trig，右括號，張量，大寫的 。
+
+其中 大寫的 Π，底下標註 trig。
+ 投影到狀態 ket，q 零 等於一，q 一 等於一，anc 等於一，右括號。
+。在 gate-level，可能以一連串 Toffoli 和單量子位旋轉實作，但 QMod 不需要暴露這些細節。
+
+值得注意的是，ancilla 的生命週期與 uncomputation（還原） 也可以透過 QMod 結構推導。Classiq 會自動把 ancilla 的使用包在可逆計算與反運算中，保證最終 ancilla 回到 ket 零
+ 狀態，避免殘留垃圾資訊。
+
+2.6 從 QMod 到量子資源估算：複雜度與下界分析
+
+對進階研究者而言，一個重要問題是：如何從高階 QMod 描述中預估所需量子資源（qubit 數、深度、錯誤門檻等等），並與已知下界比較。
+
+2.6.1 量子資源作為 QMod 代數表達式的函數
+
+令一個 QMod 程式 M
+ 可以分解為基本操作模組集合 大括號裡面一組 下標 ，念作：「一組 下標 的集合」。
+ 的組合：
+M 等於 F，括號裡面帶入 B1、B2，一直到 Bm。
+
+其中 F
+ 是組合子運算（例如串接、控制、迴圈等）。對每個基本模組 B 下標 j
+，Classiq library 中通常會有對應的 resource model，給出：
+
+ 所需 qubit 數量：q 括號 B 下標 j 括號
+。
+
+ 電路深度：d 括號 B 下標 j 括號。
+。
+
+ 重要閘種數量（如 T
+-閘數）：t 括號 B 下標 j 括號
+。
+
+對於組合，則有類似遞迴關係：
+
+ 串接：
+ q 括弧 M 等於，對所有 j 取最大值的 q 括弧 B 下標 j。 
+d 括弧 M 等於，對所有 j 把 d 括弧 B 下標 j 全部加總。
+
+ 張量並行：
+ q 括號 M 等於，對所有 j 的總和 q 括號 B 下標 j， 
+d 括號 M 等於，所有 j 裡面 d 括號 B 下標 j 的最大值。
+
+ 受控版本：
+ q 左括號 ctrl 括號 B 下標 j 右括號，等於 q 左括號 B 下標 j 右括號，加上「控制 qubits 的數量」，再加上 a 下標 extra。
+
+ d 括號 ctrl 括號 B 下標 j 括號，約略等於 d 括號 B 下標 j 括號，加上 Δ d 下標 ctrl。
+
+ 其中 a 下標 extra
+、Delta d 下標 c t r l
+ 根據所選分解策略估算。
+
+這給出一種自動化複雜度分析框架，使得研究者可以從 QMod 層級推估整體資源用量，而不用手動數 gate。
+
+ 圖 2-1: A tree representing a QMod program decomposition into basic blocks. Each leaf node is annotated with qubit count and depth; internal nodes aggregate these metrics according to rules (sequential composition, parallel composition, controlled). At the root, total resource estimates are shown.
+
+ Prompt: A tree representing a QMod program decomposition into basic blocks. Each leaf node is annotated with qubit count and depth; internal nodes aggregate these metrics according to rules (sequential composition, parallel composition, controlled). At the root, total resource estimates are shown.
+
+2.6.2 與理論下界的比較
+
+例如，對 MAX-CUT 問題，已知在一般情況下其經典近似演算法（如 Goemans–Williamson）達到常數近似比且多項式時間。對 QAOA 的量子優勢是否存在，尚為開放問題，但我們可以從資源角度做理性比較：
+
+ 對圖大小 這個就念成：「n」。
+ 與層數 p
+，QAOA 電路的理論深度至少為
+ d 下標 min，等於一個漸進下界的歐米伽，括號裡面是 p 乘上 d 下標 max 括號 G。
+
+ 其中 d 最大 括號 G 括號
+ 為圖的最大度數，因為每層需涵蓋所有邊相關的雙量子位互動。
+
+ Classiq 產生的實際深度 唸作：「d 下標 Classiq」。
+ 應滿足
+ Classiq 的 d 大於等於 d 下標 min。
+
+ 但可透過平行化與拓撲-aware 排程接近此下界。
+
+藉由 QMod + 綜合器，我們可以實際產生給定 n、p
+ 下的電路，計算其深度與 qubit 數，並把 唸作：「d 下標 Classiq」。
+ 與理論 d 下標 min
+ 相比，量化「距離最優」的程度。這對設計新演算法或驗證量子近似優勢假說非常實用。
+
+2.7 直覺總結與未來方向
+
+本講從理論與實務兩個層面深入探討了 Classiq 的第二個核心主題：以高階 QMod 語意描述量子演算法，並透過形式化約束導出最佳化電路。要點如下：
+
+ QMod 可以被形式化為作用於希爾伯特空間的有向無環圖與抽象語法樹，其組合子對應於單位算符的乘積與張量積。
+
+ 控制結構在數學上對應於 block-diagonal 單位算符
+ 等於， 張量 ，加上，括號裡面是 減掉 ，再張量上 。
+
+ Classiq 負責把這種抽象語義映射為多重控制閘的實作。
+
+ QAOA、VQE 等模板在 QMod 層級定義參數化電路 U 括號 粗體的 θ。
+，並保留適用 parameter-shift 的結構，方便梯度估計。
+
+ 綜合器 S 冒號，括號 M 逗號 C 括號，映到 G。
+ 解決的是一個約束最佳化問題，考量誤差界、硬體拓撲嵌入與資源權衡。
+
+ 透過基本模組的 resource model 與組合子規則，可以在 QMod 層級進行自動複雜度分析，並與理論下界比較。
+
+未來研究方向包括：
+
+ 將容錯量子電路（fault-tolerant circuits）與 logical qubits 模型直接整合到 QMod 語意。
+
+ 針對特定應用（如量子機器學習、線性系統求解）設計更高階的 domain-specific QMod 模板。
+
+ 開發 QMod 層級的形式驗證工具，對 大寫的 ，右下角一個 ，唸成「 下標 」。
+ 的性質（如對稱性、不變子空間）做自動化證明。
+
+下一講將聚焦於：Classiq library 內特定演算法模組的數學結構解析（例如 QPE、Amplitude Estimation 與線性求解器），以及如何利用 QMod 精煉這些演算法的變種設計。

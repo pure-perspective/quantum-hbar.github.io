@@ -1,0 +1,1061 @@
+Custom Codes and Advanced Research Workflow: QEC Design Experiments with el-loom
+
+This lesson focuses on how to use Entropica Labs’ el-loom package to traverse the complete research workflow of “custom quantum error-correcting codes (QEC)” from theoretical design to numerical experiments. The content assumes that readers are already familiar with basic concepts such as stabilizer codes, noise channels, logical gates, and threshold analysis.
+
+This chapter is divided into the following parts:
+
+ Overview of the entire research workflow: from code conception to numerical experiments
+
+ Constructing the mathematical structure and data structures of custom codes in el-loom
+
+ Defining noise models, logical gates, and measurement procedures
+
+ Monte Carlo simulations and fault-tolerance threshold analysis
+
+ Designing scan experiments and parameter optimization (code families, decoders, scheduling)
+
+ Reproducible research and software-engineering best practices
+
+ Fig. 5-12: A high-level flowchart showing the research pipeline: "Code design" → "Noise modeling" → "Implementation in el-loom" → "Simulation & decoding" → "Data analysis & threshold estimation". Each box annotated with corresponding el-loom modules or abstractions.
+
+ Prompt: A high-level flowchart showing the research pipeline: "Code design" → "Noise modeling" → "Implementation in el-loom" → "Simulation & decoding" → "Data analysis & threshold estimation". Each box annotated with corresponding el-loom modules or abstractions.
+
+1. QEC Research Workflow and the Role of el-loom
+
+1.1 Typical QEC Research Problems
+
+Common research questions in the QEC field at the PhD and advanced-research level include:
+
+ Designing new stabilizer codes tailored to specific hardware constraints (coupling graph, decoherence mechanisms, measurement frequency).
+
+ Re-evaluating thresholds of known codes (e.g., surface code, color code) under asymmetric noise or realistic hardware noise.
+
+ Studying the performance of new types of decoders (neural decoder, tensor-network decoder, belief propagation, etc.).
+
+ Designing custom measurement schedules and gate schedules, and analyzing the impact of rounding errors and time-correlated noise.
+
+ Comparing different code families in terms of asymptotic scaling of the logical error rate.
+
+These problems share a common requirement: to rapidly and systematically turn “abstract code structure + noise model” into “reproducible numerical experiments.” The el-loom package is a Python toolkit designed exactly for this purpose, with an emphasis on:
+
+ A unified abstraction for stabilizer codes and measurement circuits.
+
+ Integration with efficient simulators such as stim for large-scale Monte Carlo simulations.
+
+ Support for multiple decoders and output formats, facilitating downstream data analysis.
+
+ Fig. 5-1: Diagram showing el-loom sitting between "Theoretical code design" (stabilizer generators, logical operators) and "Low-level simulator" (Stim). Arrows highlight that el-loom translates code abstractions into Stim circuits and back into error statistics / decoder inputs.
+
+ Prompt: Diagram showing el-loom sitting between "Theoretical code design" (stabilizer generators, logical operators) and "Low-level simulator" (Stim). Highlight arrows indicating that el-loom translates code abstractions into Stim circuits and back into error statistics / decoder inputs.
+
+2. From Mathematical Form to el-loom Data Structures: Custom Stabilizer Codes
+
+2.1 Mathematical Definition of a General Stabilizer Code
+
+A stabilizer code is defined on n
+ physical qubits, with stabilizer group Capital S.
+ an abelian subgroup of the n
+-qubit Pauli group that does not contain Minus capital I.
+. Let S equals the span of S one through S sub n minus k.
+; then its codespace is
+Calligraphic C equals the set of all kets psi in the n‑fold tensor product of C squared, such that S sub i acting on ket psi equals ket psi, for all i.
+
+If the generators of Capital S.
+ are linearly independent (in the Pauli group modulo Plus or minus one.
+), then the code encodes k equals n minus the rank of S.
+ logical qubits.
+
+Logical Pauli generators can be chosen as
+The set containing overline X one through overline X k, and overline Z one through overline Z k.
+
+such that:
+
+ Open bracket, capital X bar sub i, comma, capital Z bar sub j, close bracket, equals zero.
+ for i not equal j
+,
+
+ Curly bracket, X bar sub i, comma, Z bar sub i, curly bracket, equals zero.
+ (they anticommute),
+
+ for all i comma j
+, Open square bracket X bar sub i comma S sub j close square bracket equals open square bracket Z bar sub i comma S sub j close square bracket equals zero.
+.
+
+2.2 Pauli Vector Representation and Binary Matrix Form
+
+In implementations, we often use the binary symplectic representation to represent Paulis:
+P equals i to the kappa, times X to the bold a, times Z to the bold b, corresponding to the vector open parenthesis bold a bar bold b close parenthesis in F two to the two n.
+
+where Bold a comma bold b in script F two to the n.
+; for the j
+-th qubit, if the operator is Capital X.
+ then “a sub j equals one, comma, b sub j equals zero.”
+; if Capital Z.
+, then 
+
+“a sub j equals zero, comma, b sub j equals one.”
+; if Capital Y
+, then a sub j equals b sub j equals one
+; and if Capital italic .
+, then “a sub j equals b sub j equals zero.”
+.
+
+The (anti-)commutation relation between two Paulis Capital P comma capital Q
+ is determined by the symplectic inner product:
+P times Q equals minus one to the power of the inner product of P and Q, times Q times P.
+
+where
+Angle bracket, open parenthesis, bold a given bold b, close parenthesis, comma, open parenthesis, bold c given bold d, close parenthesis, angle bracket equals bold a dot bold d plus bold b dot bold c, which lies in the field with two elements.
+
+Thus a stabilizer code can be represented by a open parenthesis n minus k close parenthesis times two n
+ binary matrix
+H sub S equals the block matrix with A and B.
+
+where each row corresponds to the Pauli vector representation of one stabilizer generator.
+
+ Fig. 5-9: Graphic illustrating the mapping from a physical Pauli operator like XIZY to a binary symplectic vector (a|b), with highlighted positions, and showing how the symplectic inner product determines commutation.
+
+ Prompt: Graphic illustrating the mapping from a physical Pauli operator like XIZY to a binary symplectic vector (a|b) with highlighted positions, and showing the symplectic inner product determining commutation.
+
+2.3 Core Concepts for Defining Custom Codes in el-loom
+
+In el-loom, the core abstraction is not just a static Capital H sub S
+, but rather:
+
+ Geometric/topological data: qubit locations, adjacency relations, and hierarchical structure (e.g., lattice, tiling).
+
+ Pauli structure of stabilizers and logical operators: which can be viewed as the algebraic layer.
+
+ Measurement circuits and schedules: how these stabilizers are measured in time.
+
+Concretely in Python, a typical workflow (written as pseudo-code) is:
+
+from loom import codes, circuits, layouts
+
+# 1. Define qubit layout (can be 1D, 2D, graph-based)
+layout = layouts.CustomLayout(qubits=range(n), connectivity=edges)
+
+# 2. Define stabilizers and logical Pauli operators
+stabilizers = [
+ "X0 X1 X3 X4", # textual Pauli representation
+ "Z1 Z2 Z4 Z5",
+ # ...
+]
+logical_x = ["X0 X2 X4", ...]
+logical_z = ["Z1 Z3 Z5", ...]
+
+code = codes.StabilizerCode(
+ n_qubits=n,
+ stabilizers=stabilizers,
+ logical_x=logical_x,
+ logical_z=logical_z,
+ layout=layout,
+)
+
+# 3. Construct syndrome measurement circuit from the code
+meas_circuit = circuits.SyndromeMeasurementCircuit.from_code(code)
+
+Please refer to the official documentation for the actual API names; the above example only illustrates the “level of abstraction.” The core ideas are:
+
+ You should explicitly encode the mathematical specification of your custom code (stabilizers and logical operators).
+
+ The geometry (layout) is used to enforce locality constraints and construct schedules.
+
+ The circuit abstraction is used for inserting noise and running simulations subsequently.
+
+3. From Mathematical Design to a Concrete Example: A Custom Small Topological Code
+
+3.1 Example: A Small 9-Qubit Planar Surface Code
+
+For demonstration, we consider a simplified 9-qubit planar surface code patch. The physical qubits are arranged in a Three times three.
+ grid:
+
+q0 q1 q2
+q3 q4 q5
+q6 q7 q8
+
+For this simplified example, we design 4 Capital Z.
+-type plaquette stabilizers and 4 Capital X.
+-type star stabilizers (for illustration, we adopt a slightly non-standard but structurally clear version).
+
+ Capital Z.
+-type stabilizers (acting on plaquettes):
+ S one superscript Z equals Z naught, Z one, Z three, Z four; 
+S two superscript Z equals Z one, Z two, Z four, Z five.
+
+ S three superscript Z equals Z three Z four Z six Z seven, comma, 
+S four superscript Z equals Z four Z five Z seven Z eight.
+
+ Capital X.
+-type stabilizers (acting on vertex stars):
+ S one superscript X equals X naught X one X three X four; 
+S two superscript X equals X one X two X four X five.
+
+ S three superscript X equals X three, X four, X six, X seven; and S four superscript X equals X four, X five, X seven, X eight.
+
+Clearly, all Capital Z.
+-type stabilizers commute with each other, as do all Capital X.
+-type stabilizers, and any Capital X.
+-type stabilizer overlaps with any Capital Z.
+-type stabilizer on an even number (0, 2, or 4) of qubits, so they commute as well. There are 8 independent generators, but multiplicative relations among them may lead to rank is less than eight
+; assuming the rank is 8, then
+k equals n minus the rank of S, equals nine minus eight, equals one.
+
+so this is a Double bracket nine, one, d, double bracket.
+ code. The minimum distance d
+ is about 3 (corresponding to string-like logical operators crossing the patch).
+
+3.2 Binary Symplectic Check and Distance Estimation
+
+Convert the 8 stabilizers above into Pauli vectors to build Capital H sub S
+:
+H sub S equals the matrix with rows:
+
+bold a superscript X sub 1, bold b superscript X sub 1;
+
+then dots, dots;
+
+bold a superscript X sub 4, bold b superscript X sub 4;
+
+bold a superscript Z sub 1, bold b superscript Z sub 1;
+
+then dots, dots;
+
+bold a superscript Z sub 4, bold b superscript Z sub 4;
+
+and this lies in F two to the eight by eighteen.
+
+For any candidate logical Pauli L equals the column vector a sub L, given b sub L.
+, it must satisfy:
+
+ Capital L
+ commutes with all stabilizers:
+ H sub S times J times L transpose equals the zero vector modulo two.
+
+ where
+ J equals the block matrix with top row zero and , and bottom row and zero, and it lies in .
+
+ Capital L
+ is not in the stabilizer group (modulo phase), i.e., Capital L is not in the row span of H sub S.
+.
+
+The distance d
+ is the minimal Pauli weight among all non-stabilizer logical Paulis:
+d equals the minimum, over all L in the neighborhood of S but not in S, of the weight of L.
+
+where N of S
+ is the normalizer.
+
+In practice, efficient binary linear algebra (implemented in numpy or rust, for example) can be used to search all Paulis of weight less than or equal to d max
+ and check whether they are in the normalizer and are not stabilizers. el-loom typically provides functionality such as:
+
+ Given a StabilizerCode structure, automatically computing k
+, estimating the distance, etc.
+
+ Interoperability with external libraries (such as qecsim, stim).
+
+ Fig. 5-7: Matrix diagram showing Capital H sub S
+ as an Eight times eighteen.
+ binary matrix, with colored blocks for the X-part (A) and Z-part (B), and a vector Capital L
+. Arrows indicate multiplication with the symplectic form Capital J
+ and the constraint Capital H sub S times capital J times capital L transpose equals zero.
+.
+
+ Prompt: Matrix diagram showing H_S as an 8x18 binary matrix, with colored blocks for X-part (A) and Z-part (B), and a vector L. Arrows indicate multiplication with symplectic form J and the constraint H_S J L^T = 0.
+
+3.3 Defining This Custom Surface-like Code in el-loom
+
+For the example above, we can express it in el-loom as follows (conceptual example):
+
+from loom import codes, layouts
+
+# 1. Define 3x3 grid layout
+coords = {
+ 0: (0, 0), 1: (0, 1), 2: (0, 2),
+ 3: (1, 0), 4: (1, 1), 5: (1, 2),
+ 6: (2, 0), 7: (2, 1), 8: (2, 2),
+}
+layout = layouts.Grid2DLayout(coords)
+
+# 2. List of stabilizers (textual Pauli representation)
+stabilizers = [
+ "X0 X1 X3 X4",
+ "X1 X2 X4 X5",
+ "X3 X4 X6 X7",
+ "X4 X5 X7 X8",
+ "Z0 Z1 Z3 Z4",
+ "Z1 Z2 Z4 Z5",
+ "Z3 Z4 Z6 Z7",
+ "Z4 Z5 Z7 Z8",
+]
+
+# 3. Choose one set of logical Pauli operators (illustrative)
+logical_x = ["X0 X3 X6"]
+logical_z = ["Z2 Z5 Z8"]
+
+code = codes.StabilizerCode.from_pauli_strings(
+ n_qubits=9,
+ stabilizers=stabilizers,
+ logical_x=logical_x,
+ logical_z=logical_z,
+ layout=layout,
+)
+
+For such codes, el-loom usually provides methods to:
+
+ Check commutation relations (automatically verifying that it is a valid stabilizer code).
+
+ Compute or estimate Double bracket n, k, d, double bracket.
+.
+
+ Output the skeleton of the corresponding measurement circuits, onto which noise models can then be layered.
+
+4. Rigorous Modeling of Noise Models and Temporal Structure
+
+4.1 Abstraction of Noise Channels and the Local Noise Assumption
+
+In QEC theoretical analysis, we usually assume local stochastic noise. Within a single time step (time slice), every controlled physical operation (gate, measurement, idle) may be accompanied by an independent noise channel:
+Calligraphic E of rho equals one minus p times rho, plus the sum over i of p sub i times E sub i, rho, E sub i dagger.
+
+often simplified to:
+
+ Single-qubit depolarizing:
+ Script D sub p of rho equals one minus p times rho plus p over three times, open parenthesis, X rho X plus Y rho Y plus Z rho Z, close parenthesis.
+
+ Two-qubit depolarizing:
+ Calligraphic D superscript two sub p of rho equals one minus p times rho, plus p over fifteen times the sum over capital P in script P sub two excluding the identity–identity operator of P rho P dagger.
+
+ Asymmetric noise (p sub X is not equal to p sub Z.
+):
+ Calligraphic E of rho equals open parenthesis one minus p sub X minus p sub Z close parenthesis times rho, plus p sub X times X rho X, plus p sub Z times Z rho Z.
+
+In more realistic hardware scenarios, one may also consider non-Pauli noise such as amplitude damping, dephasing, and crosstalk. Under the Pauli twirling approximation, it is common to approximate such noise by a Pauli channel to interface conveniently with Pauli simulators like Stim.
+
+4.2 Specifying Noise Models in el-loom
+
+In el-loom, a “noise rule set” is typically used to describe:
+
+ Which kind of gate/measurement/idle operation it applies to.
+
+ The probabilistic parameters (a single scalar Lowercase p.
+ or multiple parameters Open parenthesis, p sub X, comma, p sub Z, comma, dot dot dot, close parenthesis.
+).
+
+ Whether it is time-correlated (correlated across cycles).
+
+Conceptual example:
+
+from loom import noise
+
+noise_model = noise.NoiseModel()
+
+# Single-qubit gate depolarizing
+noise_model.add_gate_noise(
+ gate_type="H",
+ noise="depolarizing",
+ p=1e-3,
+)
+
+# Two-qubit depolarizing noise on CNOT
+noise_model.add_gate_noise(
+ gate_type="CNOT",
+ noise="two_qubit_depolarizing",
+ p=2e-3,
+)
+
+# Measurement error
+noise_model.add_measurement_noise(
+ basis="Z",
+ p_meas=5e-3,
+)
+
+In relation to theoretical analysis, we would like to ensure that the noise channel in the model, Calligraphic E sub hardware
+, is close in diamond norm to the theoretical noise assumption calligraphic E sub theory
+:
+The diamond norm of script E sub hardware minus script E sub theory is much less than one.
+
+or at least that the approximations used (such as Pauli twirling) are clearly documented in the experimental design.
+
+ Fig. 5-2: Diagram showing circuit elements (single-qubit gate, two-qubit gate, measurement, idle), each decorated with a small noise box indicating the associated noise channels. Arrows show the mapping from abstract noise parameters p, p sub X, p sub Z.
+ into Stim or el-loom noise definitions.
+
+ Prompt: Diagram showing circuit elements (single-qubit gate, two-qubit gate, measurement, idle) each decorated with a small noise box indicating associated noise channels. Arrows show mapping from abstract noise parameters p, p_X, p_Z into Stim or el-loom noise definitions.
+
+4.3 Temporal Structure and Cycles
+
+QEC is typically organized in cycles: each cycle executes one complete syndrome measurement sequence. Starting from a logical state rho sub ell
+, after Capital T.
+ cycles we have:
+Rho sub L to the T equals the composition of script R, script M, and script N, all raised to the T, acting on rho sub L.
+
+where:
+
+ Calligraphic N.
+: the actual noise channel (including gate noise and idle noise).
+
+ Calligraphic M.
+: syndrome measurement and classical post-processing (decoder input).
+
+ Calligraphic capital R.
+: the recovery operator output by the decoder.
+
+In the design of el-loom, this is implemented via a “repeated circuit” or “cycle template”:
+
+from loom import circuits
+
+cycle_circuit = circuits.SyndromeMeasurementCircuit.from_code(code)
+
+# Add noise
+noisy_cycle = cycle_circuit.with_noise(noise_model)
+
+# Repeat T times
+T = 100
+full_circuit = noisy_cycle.repeat(T)
+
+Such time-structured circuits can be passed to low-level simulators like Stim, which then provide statistics on logical errors after long-time evolution.
+
+5. Measurement Circuit Design and Error Propagation Analysis
+
+5.1 CNOT-Based Syndrome Extraction
+
+For a stabilizer S equals the tensor product from j equals 1 to n of P sub j.
+ (where is an element of the set .
+
+Spoken: “P sub j is in the set I, X, Y, Z.”
+), a typical syndrome measurement circuit is:
+
+ Introduce an ancilla qubit a
+, initialized to Ket zero sub a.
+ (for Capital Z.
+-type) or Ket plus, subscript a.
+ (for Capital X.
+-type).
+
+ For Capital Z.
+-type:
+
+ For each physical qubit j
+ with P sub j equals Z.
+, apply C‑NOT of control qubit j targeting qubit a.
+.
+
+ Finally, measure the ancilla in the Capital Z.
+ basis to obtain the syndrome bit.
+
+ For Capital X.
+-type:
+
+ If the ancilla is in Ket plus
+, then use CNOT from qubit to qubit .
+ for each P sub j equals X.
+.
+
+ Finally, measure the ancilla in the Capital X.
+ basis.
+
+We can write the measurement operator for the Z-type case in a formal way:
+Capital M sub S equals the sum over s equals plus or minus one of s times capital Pi sub s.
+
+where
+Pi sub s equals one half times the quantity I plus s S.
+
+is the projector onto the eigenspace of Capital S.
+ with eigenvalue s
+, implemented by the ancilla’s evolution and measurement. The key to error propagation lies in the Heisenberg picture of CNOT:
+
+ Under CNOT, control c to target t.
+:
+ X sub c maps to X sub c X sub t, 
+Z sub c maps to Z sub c, 
+X sub t maps to X sub t, 
+Z sub t maps to Z sub c Z sub t.
+
+Thus an Capital X.
+ error on the ancilla can propagate through the CNOT to all target qubits, and vice versa. This is why syndrome-circuit scheduling and ancilla reuse can strongly affect the structure of correlated errors.
+
+ , followed by multiple CNOTs (data as control to ancilla as target), then measurement. Overlaid arrows indicate propagation of an X error on ancilla back along CNOTs to data qubits.">
+ Fig. 5-8: Quantum circuit illustrating a Z-type stabilizer measurement: data qubits as horizontal lines, an ancilla at the top initialized to Ket zero.
+, followed by multiple CNOTs (data as control, ancilla as target), then measurement. Overlaid arrows indicate the propagation of an Capital X.
+ error on the ancilla back along CNOTs to the data qubits.
+
+ Prompt: Quantum circuit illustrating a Z-type stabilizer measurement: data qubits as horizontal lines, an ancilla at top initialized to |0>, followed by multiple CNOTs (data as control to ancilla as target), then measurement. Overlaid arrows indicate propagation of an X error on ancilla back along CNOTs to data qubits.
+
+5.2 Custom Measurement Schedules in el-loom
+
+el-loom typically provides two strategies:
+
+ Automatically generated schedules: Based on the supports of stabilizers and the layout, it attempts to generate conflict-free circuits with minimal depth.
+
+ Manually specified schedules: Researchers can explicitly define multiple rounds of CNOTs and ancilla usage to finely control the structure of error propagation.
+
+An example of manual specification:
+
+from loom import circuits
+
+builder = circuits.CircuitBuilder(code)
+
+# Design a measurement circuit for some Z-type stabilizer S_1
+anc = builder.new_ancilla(init="0")
+
+# round 1: CNOTs on disjoint pairs
+builder.cnot(control=0, target=anc) # Z on data 0
+builder.cnot(control=3, target=anc) # Z on data 3
+
+# round 2: next layer
+builder.cnot(control=1, target=anc)
+builder.cnot(control=4, target=anc)
+
+# measure ancilla in Z
+builder.measure(anc, basis="Z")
+
+syndrome_circuit = builder.to_circuit()
+
+Using such a builder interface, you can:
+
+ Avoid multiple ancillas simultaneously interacting with neighboring qubits (reducing correlated errors).
+
+ Optimize circuit depth (taking into account T1/T2 decoherence).
+
+ Insert idle-gate noise models.
+
+This “local stabilizer measurement circuit” can then be replicated for all faces/stars to form a complete cycle.
+
+6. Decoding and Monte Carlo Simulation: From Syndromes to Logical Error Rates
+
+6.1 Mathematical Structure of Syndromes and Error Classes
+
+Given a Pauli error Capital E
+, its syndrome s of E is in F two to the n minus k.
+ is defined as
+ equals:
+
+zero, if the commutator of and is zero;
+
+one, if the anticommutator of and is zero.
+
+or equivalently
+s of E equals H sub S times J times E transpose, taking values in the vector space F two to the n minus k.
+
+where Capital E
+ is represented as a binary symplectic vector.
+
+In essence, a decoder is a map
+Calligraphic D, from F two to the n minus k, to script P sub n modulo S.
+
+which, given a syndrome, outputs an equivalence class of recovery operators Capital R
+. The logical error rate of interest is the probability that Capital R times capital E is not an element of capital S.
+ (i.e., a nontrivial logical error occurs).
+
+6.2 Monte Carlo Estimation of the Logical Error Rate
+
+Assume the noise strength per cycle is Lowercase p.
+. We are interested in
+p sub L of p, d, comma T equals the probability of a logical error after T cycles.
+
+The Monte Carlo procedure is:
+
+ Randomly sample noise instances E superscript left parenthesis t right parenthesis
+ for each cycle t
+.
+
+ Propagate them through the measurement circuit to obtain a sequence of syndromes The sequence of states with superscript .
+.
+
+ Feed The sequence of states with superscript .
+ into the decoder Calligraphic D.
+ to obtain the recovery operations Curly brace, capital R with superscript t, close curly brace.
+ for each cycle.
+
+ The final effective logical error operator L sub eff
+ is the combination of all noise and recovery operations; we check whether it acts as a nontrivial Pauli in the logical subspace.
+
+Using the law of large numbers, we estimate
+p hat sub L equals N logical error divided by N trials.
+
+and sample over different Lowercase p.
+ and d
+ to perform threshold analysis.
+
+ Fig. 5-10: Flow diagram showing the Monte Carlo process: Sample noise → Run circuit (Stim) → Obtain syndrome → Decode → Check whether a logical error occurred. Repeated many times, and then the estimated logical error rate p sub ell
+ versus physical error rate Lowercase p.
+ is plotted.
+
+ Prompt: Flow diagram showing Monte Carlo process: Sample noise → Run circuit (Stim) → Obtain syndrome → Decode → Check whether logical error occurred. Repeated many times, then estimated logical error rate p_L vs. physical p plotted.
+
+6.3 Setting Up Decoders and Simulation Workflows in el-loom
+
+el-loom supports several ways of attaching decoders, including:
+
+ Built-in minimum-weight perfect matching (MWPM) or Union-Find decoders.
+
+ Interoperability with external decoder libraries (such as the open-source PyMatching).
+
+ Custom Python decoders (for investigating new algorithms).
+
+Example setup:
+
+from loom import decoders, simulate
+
+decoder = decoders.MWPMDecoder.from_code(code)
+
+sim = simulate.Simulator(
+ code=code,
+ cycle_circuit=cycle_circuit,
+ noise_model=noise_model,
+ decoder=decoder,
+)
+
+results = sim.run(
+ p=5e-3,
+ n_trials=10_000,
+ n_cycles=100,
+)
+print(results.logical_error_rate)
+
+In advanced research, the focus is usually not on a single data point of p sub ell
+, but rather on:
+
+ Fixing d
+ and scanning over Lowercase p.
+ to plot p sub ell
+ vs. Lowercase p.
+ curves.
+
+ Repeating this for multiple d
+ and finding the crossing point for threshold estimation.
+
+ Analyzing the asymptotic slope of p sub L of p
+ (e.g., p sub L is proportional to open parenthesis p over p sub threshold close parenthesis raised to the power of open parenthesis d plus one close parenthesis over two.
+).
+
+7. Threshold and Scaling Analysis: Experimental Design Across Multiple Code Distances
+
+7.1 Rigorous Definition of Threshold and the Scaling Ansatz
+
+A QEC code family Curly brace, script C with subscript d, curly brace.
+ (for example, surface codes of distance d equals three, five, seven, and so on.
+) has a threshold p sub t h
+ under a given noise model if there exists p sub tee h greater than zero.
+ such that:
+For all little p less than p sub t h, the limit as d goes to infinity of p sub L of p comma d equals zero.
+
+Conversely, if 
+
+“p is greater than p sub t h, the threshold p.”
+, then The limit inferior as d tends to infinity of p sub L of p comma d is greater than zero.
+.
+
+In numerical experiments, it is common to assume that near the threshold the following scaling ansatz holds:
+p sub L of p comma d is approximately f of open parenthesis p minus p sub tee aitch close sub th times d to the power one over nu, close parenthesis.
+
+where Greek letter nu.
+ is the correlation-length critical exponent and f
+ is some universal scaling function. By scanning Lowercase p.
+ for fixed d
+ and then performing a scaling-collapse analysis across different d
+, one can jointly estimate p sub t h
+ and Greek letter nu.
+.
+
+ Fig. 5-5: Example plot showing logical error rate p sub ell
+ vs. physical error rate Lowercase p.
+ for multiple code distances d
+. The curves cross near a common point p sub t h
+. The inset shows a finite-size scaling collapse where plotting p sub ell
+ versus Open parenthesis, p minus p sub th, close parenthesis, d to the one over nu.
+ results in a single collapsed curve.
+
+ Prompt: Plot example showing logical error rate p_L vs physical error p for multiple code distances d. Curves cross near a common point p_th. Inset shows finite-size scaling collapse where p_L plotted vs (p-p_th)*d^{1/nu} collapses onto a single curve.
+
+7.2 Designing Multi-Distance Code Families and Batch Simulations in el-loom
+
+Planning a full threshold study typically requires:
+
+ Selecting a series of distances d is an element of the set consisting of d minimum through d maximum.
+.
+
+ Building a code instance Calligraphic C sub d.
+ for each d
+.
+
+ Choosing a grid of physical error rates p is an element of the set consisting of p one through p M.
+.
+
+ For each Open parentheses, d comma p, close parentheses.
+ pair, performing Capital .
+ Monte Carlo trials to estimate “p sub L of d comma p.”
+.
+
+ Storing all results in a unified data structure (for example, a pandas.DataFrame) for analysis.
+
+In el-loom, this can be implemented via loops and configuration files:
+
+from loom import codes, simulate, decoders
+
+distances = [3, 5, 7]
+phys_ps = [2e-3, 3e-3, 4e-3, 5e-3]
+
+records = []
+
+for d in distances:
+ code_d = codes.SurfaceCode(distance=d) # or a custom family generator
+ decoder_d = decoders.MWPMDecoder.from_code(code_d)
+ sim_d = simulate.Simulator(
+ code=code_d,
+ cycle_circuit=code_d.default_cycle_circuit(),
+ noise_model=noise_model,
+ decoder=decoder_d,
+ )
+ for p in phys_ps:
+ res = sim_d.run(
+ p=p,
+ n_trials=20_000,
+ n_cycles=round(d), # or a more complex choice of T(d)
+ )
+ records.append({
+ "distance": d,
+ "p_phys": p,
+ "p_log": res.logical_error_rate,
+ "stderr": res.stderr,
+ })
+
+To mitigate the issue that “near the threshold one needs a very large number of samples,” one often uses adaptive sampling or importance sampling. el-loom may also provide:
+
+ Automatic stopping criteria based on target confidence intervals.
+
+ Support for Stim’s efficient statistical interfaces such as --count-logical-errors / --sample.
+
+7.3 Result Analysis and Cross-Validation
+
+Once “p sub L of d comma p.”
+ data are obtained, the mathematical tasks include:
+
+ Proper error bars (standard errors):
+ Sigma sub p L equals the square root of p L times one minus p L, divided by N sub trials.
+
+ Using weighted least-squares fitting to locate the crossing point.
+
+ Checking whether p sub t h
+ is robust under different decoders or noise models.
+
+ Comparing with theoretical predictions (such as symmetries of self-dual codes, or critical points of corresponding statistical-mechanics models).
+
+ Fig. 5-11: Example data visualization with error bars showing p sub ell
+ vs. Lowercase p.
+ for multiple d
+, and a zoomed-in region around the crossing with a fitted vertical line marking p sub t h
+. Another panel shows error bars for p sub t h
+ estimated under different decoders or noise models.
+
+ Prompt: Example data visualization with error bars, showing p_L vs p for multiple d, and a zoomed-in region near the crossing with a fitted vertical line marking p_th. Another panel shows error bars for p_th estimated with different decoders or noise models.
+
+8. Custom Code Design Experiments: From Geometry to Code Optimization
+
+8.1 Problem Statement: Designing Optimal Codes for Asymmetric Noise
+
+Consider a concrete research problem:
+
+Given a hardware noise model with far more Capital Z.
+-errors than Capital X.
+-errors (e.g., dephasing-dominated noise), we aim to design a stabilizer code that minimizes the long-time logical error rate under a fixed number of qubits.
+
+Mathematically, we parametrize the noise channel as:
+Calligraphic E of rho equals open parenthesis one minus p sub Z minus p sub X close parenthesis times rho, plus p sub X times X rho X, plus p sub Z times Z rho Z.
+
+and assume 
+
+“p sub Z is much greater than p sub X.”
+. For a code Calligraphic C.
+, we can define the “X-type distance” and “Z-type distance”:
+
+ d sub X
+: the minimum weight of Z-type errors causing a logical X bar
+ error.
+
+ d sub Z
+: the minimum weight of X-type errors causing a logical Z bar
+ error.
+
+Under 
+
+“p sub Z is much greater than p sub X.”
+, we would like d sub X is much greater than d sub Z.
+; that is, we want to increase the distance in the direction of the dominating noise.
+
+8.2 Geometric Design Space and Search Strategies
+
+In el-loom, we can define a parametric code family:
+
+ Geometric parameters: for example, the aspect ratio L sub x times L sub y
+ of rectangular surface codes.
+
+ Boundary types: combinations of smooth/rough boundaries.
+
+ Choice of stabilizers: whether to introduce deformed plaquettes/stars.
+
+For instance, in a rectangular surface code:
+d sub X equals capital L sub x, and d sub Z equals capital L sub y.
+
+(depending on the specific choice of boundaries), so under 
+
+“p sub Z is much greater than p sub X.”
+ we can choose L sub x is much greater than L sub y.
+ to optimize performance.
+
+ Fig. 5-4: Illustration of rectangular surface code patches with different aspect ratios L sub x times L sub y
+. The logical Capital X.
+ and Capital Z.
+ operators are highlighted as string-like paths, with their lengths corresponding to d sub X
+ and d sub Z
+, respectively, showing that increasing one spatial dimension increases one of the logical distances.
+
+ Prompt: Illustration of rectangular surface code patches with different aspect ratios Lx x Ly. Highlight logical X and Z operators as string-like paths, indicating their lengths correspond to d_X and d_Z, respectively. Show that increasing one dimension increases one logical distance.
+
+In el-loom, such a parameterization can be written as:
+
+def make_rect_surface(Lx, Ly):
+ return codes.SurfaceCode(
+ size_x=Lx,
+ size_y=Ly,
+ boundaries=("rough", "smooth"), # example
+ )
+
+# Search for the optimal Lx, Ly under a fixed qubit budget
+budget = 100 # qubit budget
+candidates = []
+for Lx in range(3, 11, 2):
+ for Ly in range(3, 11, 2):
+ code = make_rect_surface(Lx, Ly)
+ if code.n_qubits <= budget:
+ candidates.append((code, Lx, Ly))
+
+8.3 Automated Comparative Experiments in el-loom
+
+For each candidate Open parenthesis, sub , comma, sub , close parenthesis.
+ code instance, we can:
+
+ Use the same noise model (with asymmetric “p sub Z comma p sub X.”
+).
+
+ Use a fixed decoder (such as MWPM with anisotropic weights).
+
+ Estimate p sub ell
+ under a given set of Lowercase p.
+ or Parenthesis, p sub X comma p sub Z, close parenthesis.
+ parameters.
+
+ Compare the performance under the same qubit budget.
+
+We can define a cost function, for example:
+F of calligraphic C equals p sub L of p sub X, p sub Z, comma T; semicolon calligraphic C.
+
+which we want to minimize. In el-loom’s Python environment, one could write:
+
+best = None
+
+for code, Lx, Ly in candidates:
+ decoder = decoders.MWPMDecoder.from_code(code)
+ sim = simulate.Simulator(
+ code=code,
+ cycle_circuit=code.default_cycle_circuit(),
+ noise_model=noise_model,
+ decoder=decoder,
+ )
+ res = sim.run(
+ p=None, # here p_X, p_Z can be passed directly
+ p_X=1e-4,
+ p_Z=1e-3,
+ n_trials=50_000,
+ n_cycles=200,
+ )
+ score = res.logical_error_rate
+ if (best is None) or (score < best["score"]):
+ best = {
+ "code": code,
+ "Lx": Lx,
+ "Ly": Ly,
+ "score": score,
+ }
+
+print("Best aspect ratio:", best["Lx"], best["Ly"], "with p_L=", best["score"])
+
+Such parametric-search experiments have frequently been used in the literature to:
+
+ Compare the performance of deformed surface codes / XZZX codes.
+
+ Find optimal tilings under geometric constraints (for example, constraints on the topology of available couplers).
+
+ Explore fracton-like codes or code structures embedded in a 3D layout.
+
+9. Advanced Topics: Custom Decoders and Data Export
+
+9.1 Exporting Syndrome/Error Histories to External Decoders
+
+Many newer decoders (machine-learning-based, tensor-network-based, etc.) are not natively integrated into el-loom. A typical workflow is:
+
+ Use el-loom + Stim to generate syndrome samples.
+
+ Export the syndrome time series or graph representations into files (e.g., JSON, HDF5).
+
+ Train or run the decoder in an independent environment (PyTorch, JAX).
+
+ Return the decoding results or analyze logical error rates offline.
+
+Illustration:
+
+samples = sim.sample_syndromes(
+ n_samples=100_000,
+ n_cycles=50,
+ return_errors=True, # also output the actual error operator
+)
+
+# Convert samples to NumPy/Tensor
+import numpy as np
+syndrome_array = np.array(samples["syndromes"]) # shape (N, T, n_stab)
+error_labels = np.array(samples["logical_errors"]) # 0/1 per sample
+
+# Save or feed directly into an ML model
+np.savez("qec_dataset.npz",
+ syndromes=syndrome_array,
+ labels=error_labels)
+
+ Fig. 5-3: Workflow diagram: el-loom/Stim generate syndrome samples → export them as NumPy/HDF5 → external ML-based decoder (e.g., a neural network) → return performance metrics for logical corrections. Arrows clearly indicate the data formats and the boundaries between tools.
+
+ Prompt: Workflow diagram: el-loom/Stim generating syndrome samples → exported as numpy/hdf5 → external ML-based decoder (e.g., neural network) → returned logical correction performance metrics. Arrows clearly indicate data formats and boundaries between tools.
+
+9.2 Custom Python Decoders and the el-loom Interface
+
+If you wish to implement a prototype decoder directly within el-loom, you can implement an interface class such as:
+
+from loom.decoders import BaseDecoder
+
+class MyCustomDecoder(BaseDecoder):
+ def __init__(self, code, params):
+ super().__init__(code)
+ self.params = params
+ # Build syndrome graph, precompute tables, etc. here
+
+ def decode(self, syndrome_history):
+ # syndrome_history: shape (T, n_stabilizers)
+ # Return a Pauli operator (e.g., textual or binary form)
+ # Here, as an illustration, we return the identity (no correction)
+ return "I" * self.code.n_qubits
+
+# Usage
+decoder = MyCustomDecoder(code, params={...})
+sim = simulate.Simulator(..., decoder=decoder)
+
+This interface allows you to:
+
+ Invoke decode internally from the simulator to obtain the recovery operation for each cycle.
+
+ Compare different decoder classes on the same code and noise model.
+
+ Sweep or optimize over decoder parameters Theta.
+.
+
+10. Reproducible Research and Software Engineering Practices: Structuring Experiments with el-loom
+
+10.1 Suggested Project Structure
+
+To make QEC design experiments reproducible and extensible, the following project structure is recommended (illustrative):
+
+qec-project/
+ configs/
+ base.yaml
+ noise_asym.yaml
+ code_family_rect.yaml
+ src/
+ codes/
+ rect_surface.py
+ custom_topological.py
+ experiments/
+ threshold_scan.py
+ aspect_ratio_opt.py
+ decoders/
+ my_custom_decoder.py
+ data/
+ raw/
+ processed/
+ notebooks/
+ analysis_threshold.ipynb
+ analysis_scaling.ipynb
+ reports/
+ figures/
+ draft.md
+
+ Fig. 5-6: Folder tree visualization of the suggested project structure, with folders for configs, src (codes, experiments, decoders), data (raw, processed), notebooks, and reports. Arrows indicate a typical workflow: configs + src/experiments → data/raw → notebooks → reports/figures.
+
+ Prompt: Folder tree visualization of the suggested project structure, with folders for configs, src (codes, experiments, decoders), data (raw, processed), notebooks, and reports. Arrows indicate typical workflow: configs + src/experiments → data/raw → notebooks → reports/figures.
+
+The key points are:
+
+ configs: describe experimental parameters (code distances, noise rates, number of trials) in YAML/TOML.
+
+ src: all el-loom related code (code definitions, experimental scripts, decoders).
+
+ data: raw simulation outputs and processed summaries.
+
+ notebooks: analysis and plotting.
+
+10.2 Config-Driven el-loom Experiments
+
+Example configuration file (configs/threshold_scan.yaml):
+
+experiment: threshold_scan
+code_family: rect_surface
+distances: [3, 5, 7, 9]
+noise_model: asym_dephasing
+p_values: [0.002, 0.003, 0.004, 0.005]
+n_trials: 20000
+n_cycles_factor: 1.0 # n_cycles = factor * distance
+decoder: mwpm
+
+The experiment script reads the config, assembles the el-loom components, and runs the experiment:
+
+import yaml
+from loom import codes, noise, decoders, simulate
+
+with open("configs/threshold_scan.yaml") as f:
+ cfg = yaml.safe_load(f)
+
+# Build the code family, noise model, decoder, etc. according to cfg
+# Then run looped simulations and write results to data/raw/
+
+This approach facilitates:
+
+ Sharing experimental setups: sharing the config file plus a commit hash is sufficient.
+
+ Parameter sweeps on a cluster: distribute jobs at the granularity of config files.
+
+ Rerunning the same experiment on different hardware / el-loom versions in the future.
+
+11. Summary and Directions for Further Work
+
+Starting from the rigorous mathematical definition of stabilizer codes, this lesson has explained how to map them onto el-loom’s data structures and simulation workflows, and has demonstrated a complete pipeline that advanced researchers can use for “custom code design and experimental studies”:
+
+ Design or choose a code family, and construct stabilizer and logical-operator representations.
+
+ Define the code and layout in el-loom, and generate or customize measurement circuits and schedules.
+
+ Model noise channels (including asymmetries, temporal structure, and hardware-specific effects).
+
+ Select and implement decoders, and use Monte Carlo simulations to estimate logical error rates.
+
+ Design multi-distance, multi-parameter scan experiments for threshold and scaling analysis.
+
+ Use parametric search to explore optimal code geometries or structures (such as asymmetric codes).
+
+ Export syndromes/data and interface with external ML or tensor-network decoders.
+
+ Ensure reproducibility through config-driven experiments and a well-structured project layout.
+
+As next steps, you might:
+
+ Implement a small but novel custom code (for example, a surface code with dislocations), fully define it in el-loom, and compare its performance.
+
+ Construct a realistic noise model based on concrete hardware parameters (T1/T2, gate fidelities, readout errors provided by an experimental lab) and re-evaluate the practical threshold of a given code family.
+
+ Export syndrome histories generated by el-loom, train a neural decoder, and systematically compare it with a traditional MWPM decoder.
+
+As el-loom and its surrounding ecosystem of tools continue to evolve, this workflow can be extended naturally to more complex architectures such as concatenated codes, LDPC codes, and subsystem codes, thereby building a smoother bridge between theory and practice.

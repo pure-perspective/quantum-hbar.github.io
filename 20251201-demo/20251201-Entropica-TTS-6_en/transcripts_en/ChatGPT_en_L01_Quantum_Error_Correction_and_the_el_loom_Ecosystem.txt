@@ -1,0 +1,734 @@
+Quantum Error Correction and the el-loom Ecosystem: From Abstract Codes to a Modular Software Stack
+
+ This course aims to build a complete conceptual chain from “abstract quantum error-correcting codes” to a “practically programmable software stack,”
+ focusing on how the Entropica Labs el-loom ecosystem concretizes modern theoretical quantum error correction
+ (especially the modular and composable viewpoints) into operable Python and Rust tools.
+
+ The content is organized into three layers:
+
+ Theoretical layer: The basic mathematical structure of quantum error-correcting codes, with emphasis on stabilizer codes, CSS codes, and surface codes.
+
+ Abstract software layer: How to abstract “codes, noise, measurements, and decoders” into modular components.
+
+ Implementation layer (el-loom): Introduction to the main modules and typical workflows in el-loom, and how codes, noise channels, and decoding problems are represented.
+
+ Figure 1-19: An overview diagram of three layers: (1) Mathematical QEC codes (stabilizers, lattices), (2) abstract software components (codes, channels, decoders), (3) el-loom ecosystem (Python API, Rust core, decoders). Arrows show mapping from theory to software.
+
+ Prompt: An overview diagram of three layers: (1) Mathematical QEC codes (stabilizers, lattices), (2) abstract software components (codes, channels, decoders), (3) el-loom ecosystem (Python API, Rust core, decoders). Arrows show mapping from theory to software.
+
+ 1. Theoretical Foundations: From Quantum Noise to the Stabilizer Formalism
+
+ 1.1 Mathematical Representation of Quantum Noise and Channels
+
+ In real quantum devices, a quantum state rho
+ is inevitably affected by environmental coupling and control errors.
+ This can be described by a completely positive trace-preserving (CPTP) map:
+ Calligraphic E colon rho maps to calligraphic E of rho, where calligraphic E of rho equals the sum over k of rho dagger, and the sum over k of dagger equals the identity.
+
+ Classically, errors are often viewed as discrete “bit-flip” events; in quantum systems, a common approximation is the
+ Pauli discrete error model: we assume the error set is spanned by
+ The set of all tensor products, n times, of the single-qubit operators and , and the errors are sparse and independent:
+ Calligraphic E of rho equals the sum over E in script P sub n of p of E times E rho E dagger.
+
+ where Calligraphic P sub n.
+ is the n
+-qubit Pauli group.
+ Most modern QEC decoders (including most algorithms supported in el-loom) assume
+ some form of Pauli noise approximation, so that the decoding problem can be converted into
+ a “combinatorial optimization on a graph.”
+
+ This approximation can be mathematically justified via Pauli twirling:
+ given a general channel Calligraphic E.
+, one can construct
+ Calligraphic E sub twirl of rho equals one over four to the n, times the sum over all P in calligraphic P sub n of P dagger, composed with calligraphic E of P rho P dagger, composed with P.
+
+ then Calligraphic E sub twirl
+ is a Pauli channel,
+ and for all stabilizer codes and Pauli measurements, Calligraphic E.
+ and Calligraphic E sub twirl
+ produce the same
+ syndrome distribution and error-correction performance (under certain conditions). This is the theoretical basis for abstracting
+ realistic noise models as Pauli noise, and one of the reasons frameworks such as el-loom can focus exclusively on Pauli errors
+ while still being practically useful.
+
+ Figure 1-16: Schematic comparison of a general noisy quantum channel and its Pauli-twirled version, with arrows to a syndrome extraction box showing they yield equivalent syndrome statistics for stabilizer codes.
+
+ Prompt: Schematic comparison of a general noisy quantum channel and its Pauli-twirled version, with arrows to a syndrome extraction box showing they yield equivalent syndrome statistics for stabilizer codes.
+
+ 1.2 Structure of Stabilizer Codes
+
+ Stabilizer codes are currently the most widely used family of codes for fault-tolerant quantum computation. Given the Pauli group
+ Calligraphic P sub n.
+ on n
+ qubits, its elements can be written as
+ P equals i to the kappa times X to the bold a times Z to the bold b, where bold a and bold b are in F two to the n.
+
+ A stabilizer code is defined by an Abelian subgroup
+ Calligraphic S is a subset of calligraphic P sub n, and minus the identity is not in calligraphic S.
+
+ called the stabilizer group. The code space is
+ Calligraphic C equals the set of all kets psi in the n‑fold tensor product of C two, such that S acting on ket psi equals ket psi for all S in script S.
+
+ If Calligraphic S.
+ has “n minus k”
+ independent generators, then
+ The dimension of script C equals two to the k.
+, and we call this an Double bracket n, k, d, double bracket.
+ code.
+
+ An error Capital E is an element of calligraphic P sub n.
+ can be characterized by its commutation relations with all generators.
+ If Open curly brace, S one, comma, dot dot dot, comma, S sub n minus k, close curly brace.
+ is the generating set, define
+ s sub i of E equals: 
+
+zero, if the commutator of E and S sub i is zero; 
+
+one, if the anticommutator of E and S sub i is zero.
+
+ then the syndrome vector of the error is
+ bold s of E equals the tuple s one of E, up to s sub n minus k of E, which lies in F two to the n minus k.
+
+ The code distance d
+ is defined as the minimum weight of a nontrivial logical Pauli:
+ d equals the minimum of the weight of L, over all L in the normalizer of script S but not in script S itself.
+
+ where Calligraphic N of calligraphic S.
+ is the normalizer of Calligraphic S.
+ in Calligraphic P sub n.
+.
+ Intuitively, the distance d
+ indicates that at most The floor of open parenthesis d minus one close parenthesis divided by two.
+ local independent errors can be corrected.
+
+ Figure 1-2: Illustration of a stabilizer code: a block of n qubits, arrows pointing to stabilizer generators S1..S_{n-k}, and a syndrome measurement box that outputs a binary vector s(E).
+
+ Prompt: Illustration of a stabilizer code: a block of n qubits, arrows pointing to stabilizer generators S1..S_{n-k}, and a syndrome measurement box that outputs a binary vector s(E).
+
+ 1.3 CSS Codes and the Surface Code
+
+ 1.3.1 Structure of CSS Codes
+
+ CSS codes are built from two classical linear codes C sub X comma C sub Z are subsets of F two to the n.
+
+ satisfying The dual of is contained in .
+. The stabilizer generators can be split as
+ S sub x equals the set of all x to the bold v, such that bold v is in c sub x; and 
+s sub z equals the set of all z to the bold w, such that bold w is in c sub z.
+
+ and the commutation condition Open bracket, S sub X, comma, S sub Z, close bracket, equals zero.
+ precisely leads to the necessity of
+ The dual of is contained in .
+.
+
+ Crucially, CSS codes allow “X-type errors” and “Z-type errors” to be decoded separately via two classical codes:
+ Z-type syndrome: bold s sub Z of E sub X is an element of F two to the power dimension of C sub Z perpendicular.
+
+X-type syndrome: bold s sub X of E sub Z is an element of F two to the power dimension of C sub X perpendicular.
+
+ This structure corresponds to the natural decomposition used by many decoders (such as MWPM, BP, and Union-Find),
+ and forms the theoretical basis for why el-loom’s programming interface often treats X/Z errors and check operators separately.
+
+ Figure 1-1: Diagram showing CSS structure: two classical codes C_X and C_Z with condition C_Z^⊥ ⊂ C_X, leading to separate X-type and Z-type parity check matrices, mapping to separate decoders.
+
+ Prompt: Diagram showing CSS structure: two classical codes C_X and C_Z with condition C_Z^⊥ ⊂ C_X, leading to separate X-type and Z-type parity check matrices, mapping to separate decoders.
+
+ 1.3.2 Surface Codes: Topological Structure and Distance
+
+ Surface codes are a class of topological stabilizer codes that can be viewed as CSS codes on a two-dimensional lattice. Using the “square surface code” as an example, one can construct:
+
+ Physical qubits: placed on the edges of the lattice.
+
+ Z stabilizers (star operators): located at vertices v
+, each corresponding to the four incident edges:
+ A sub v equals the product over all edges e incident on v of X sub e.
+
+ X stabilizers (plaquette operators): located on faces f
+, each corresponding to the four bounding edges:
+ B sub f equals the product over edges e in the boundary of f of Z sub e.
+
+ The corresponding CSS classical codes can be described via boundary operators that capture edge–face and edge–vertex relationships on the lattice.
+ Let Partial sub one.
+ be the boundary operator from “edges right arrow
+ vertices” and “partial two.”
+ be the boundary operator from “faces right arrow
+ edges,”
+ then
+ H sub X equals partial two, and H sub Z equals partial one transpose.
+
+ and “Partial one composed with partial two equals zero.”
+ implies
+ H sub X times H sub Z transpose equals zero.
+
+ i.e., the CSS orthogonality condition.
+
+ The code distance d
+ corresponds to the length of the shortest “non-boundary loop” (X logical) or “non-boundary dual path” (Z logical)
+ that crosses the lattice boundary, and this is directly reflected as a shortest-path problem. This is why the
+ minimum-weight perfect matching (MWPM) decoder is particularly well suited to surface codes.
+
+ Figure 1-11: Illustration of a 2D surface code lattice with qubits on edges, X stabilizers (stars) on vertices, Z stabilizers (plaquettes) on faces, and an example of a logical operator as a chain of edges crossing the lattice.
+
+ Prompt: Illustration of a 2D surface code lattice with qubits on edges, X stabilizers (stars) on vertices, Z stabilizers (plaquettes) on faces, and an example of a logical operator as a chain of edges crossing the lattice.
+
+ 2. From Abstract Codes to Decoding Problems: A Mathematical View of “Decoders”
+
+ 2.1 Formal Definition of the Decoding Problem
+
+ Given a stabilizer code Calligraphic S.
+ and a Pauli noise model Calligraphic E.
+,
+ a single “quantum error event” can be formalized as:
+
+ Sample an error from the Pauli distribution
+ Capital E is distributed according to p of E, with E in calligraphic P sub n.
+
+ Measure the stabilizer generators to obtain a syndrome
+ Bold s equals bold s of E, an element of F two to the n minus k.
+
+ The task of a decoder can be formalized as a map
+ Capital D, from F two to the n minus k, to script P sub n, sending bold s to E hat.
+
+ with the objective that “the logical state is restored as faithfully as possible.” More precisely,
+ maximum likelihood decoding (MLD) seeks
+ E hat of s equals the argument that maximizes p of E, over all E such that s of E equals s.
+
+ which is equivalent to finding, within the same syndrome class, the Pauli operator with the highest probability.
+
+ However, for general stabilizer codes, MLD is NP-hard, so in practice one typically uses approximate decoders:
+
+ Graph-theoretic algorithms (MWPM, Union-Find, etc.) for geometric codes such as surface codes.
+
+ Belief propagation (BP) based on factor graphs.
+
+ Neural-network-based or hybrid heuristic decoders.
+
+ Ultimately, all of these algorithms take some abstract representation of “code structure” and “noise model” as input.
+
+ (Syndrome s) via stabilizer measurement, then (Decoder D) maps s to correction ĤE, with a note on ML decoding objective argmax_E p(E|s).">
+ Figure 1-3: Diagram of the decoding pipeline: (Error E) -> (Syndrome s) via stabilizer measurement, then (Decoder D) maps s to correction ĤE, with a note on ML decoding objective argmax_E p(E|s).
+
+ Prompt: Diagram of the decoding pipeline: (Error E) -> (Syndrome s) via stabilizer measurement, then (Decoder D) maps s to correction ĤE, with a note on ML decoding objective argmax_E p(E|s).
+
+ 2.2 Syndrome Graphs and an Illustration of MWPM Decoding
+
+ Consider Z errors in a surface code as an example: if the error is a set of edges Capital gamma.
+ given by E sub Z equals the product over all edges e in gamma of Z sub e.
+,
+ then the affected X stabilizers (star operators) are located at the endpoints (boundary) of Partial gamma
+.
+ Syndrome measurement corresponds to
+ bold s of capital E sub Z equals partial capital Gamma.
+
+ where “Partial derivative symbol.”
+ is the boundary operator.
+
+ Viewing the syndrome as “defects” on the lattice, the MWPM decoder searches for a set of edges Gamma prime
+ such that
+ Partial gamma prime equals bold s, and gamma prime has minimum weight.
+
+ corresponding to the best-guess error E Z prime equals the product over edges e in gamma prime of Z sub e.
+.
+ The weights can be determined by the log-likelihood ratio of each edge; if the error probability on each edge is p
+,
+ then a typical edge weight is
+ w sub e equals the logarithm of open parenthesis one minus p close parenthesis divided by p.
+
+ linking the problem to overall shortest paths and minimum-weight perfect matching.
+
+ Figure 1-17: Example of a surface code with two syndrome defects (vertices), showing multiple possible paths between them with different lengths/weights, illustrating MWPM selecting the minimum-weight path as the guessed error chain.
+
+ Prompt: Example of a surface code with two syndrome defects (vertices), showing multiple possible paths between them with different lengths/weights, illustrating MWPM selecting the minimum-weight path as the guessed error chain.
+
+ 2.3 An Abstract Data-Structure View: Codes, Channels, and Decoders
+
+ To implement decoders at the software layer, we need to abstract the above mathematical structures into data structures:
+
+ Code:
+
+ The set of qubit indices Q equals the set of integers from one through n.
+.
+
+ The set of stabilizer generators
+ The set of all with running from one to minus .
+, which can be represented as a binary matrix
+ H equals the block matrix with H sub X and H sub Z, and it is an element of F two to the power of open parenthesis n minus k close parenthesis by two n.
+
+ The set of logical operators Curly brace, capital L sub j, curly brace.
+.
+
+ Channel / Noise Model:
+ Specify the error probability distribution on each qubit (or multi-qubit) error:
+ p of E equals the product over ell of p ell of E ell.
+
+ or more general correlated structures.
+
+ Decoder:
+ Takes in a syndrome bold s
+,
+ together with descriptions of the code and channel, and outputs a correction operator E hat
+.
+
+ Ideally, a modern QEC software stack keeps the description of “codes” and “channels” as abstract and generic as possible,
+ while implementing decoding algorithms as pluggable modules. el-loom follows this design philosophy:
+ it decouples the “code graph,” “noise graph,” and “decoder”
+ to make it easy for researchers to experiment with new decoding methods or new code families.
+
+ Figure 1-6: UML-style diagram of abstract classes: Code (with stabilizers, logicals), NoiseModel (with error probabilities), Decoder (with decode() method), and arrows indicating decoders consume Code+NoiseModel to process syndromes.
+
+ Prompt: UML-style diagram of abstract classes: Code (with stabilizers, logicals), NoiseModel (with error probabilities), Decoder (with decode() method), and arrows indicating decoders consume Code+NoiseModel to process syndromes.
+
+ 3. Overview of the el-loom Ecosystem: Rust Core, Python Interface, and Modular Design
+
+ 3.1 Ecosystem Overview and Design Philosophy
+
+ el-loom is an experimental platform for quantum error correction and decoding developed by Entropica Labs.
+ Its core design principles include:
+
+ High-performance core: Core routines implemented in Rust,
+ optimized for graph algorithms, linear algebra, hash structures, and more.
+
+ Python bindings: A Python API for rapid prototyping, interactive experiments, and integration into the existing scientific computing ecosystem (NumPy / SciPy / JAX, etc.).
+
+ Modularity and composability:
+ Through the loom abstraction, “codes, noise, measurement schedules, and decoders” are separated into composable components.
+
+ Optimized for geometric codes:
+ Especially surface codes and related topological codes, while also providing more general interfaces that can support other stabilizer codes.
+
+ Figure 1-14: High-level block diagram of el-loom: Rust core at the bottom, exposed via FFI to the Python package “loom.” On top sit modules for codes, noise, decoders, and simulations. Arrows show user scripts calling Python APIs, which in turn call into the Rust core for performance-critical operations.
+
+ Prompt: High-level block diagram of el-loom: Rust core at the bottom, exposed via FFI to Python package "loom". On top, modules for codes, noise, decoders, simulations. Arrows showing user scripts calling Python APIs, which call into Rust core for performance-critical operations.
+
+ 3.2 Main Components of el-loom and the Rough Structure of Its Namespaces
+
+ Based on the official documentation and library structure, we can roughly divide el-loom’s conceptual modules as follows:
+
+ loom.codes:
+
+ Constructors for geometric codes such as surface codes and rotated surface codes.
+
+ Data structures for general stabilizer codes (stabilizer matrices, logical operators).
+
+ loom.noise:
+
+ Pauli noise models (depolarizing, biased noise, phenomenological noise).
+
+ Abstractions of time-dependent noise (e.g., each round in a syndrome measurement cycle).
+
+ loom.decoders:
+
+ Implementations of MWPM, Union-Find, BP, and other decoders.
+
+ A unified decode(syndrome) interface.
+
+ loom.simulation (or a similar name):
+
+ Encapsulates the pipeline of “applying noise → measurement → decoding → success/failure determination.”
+
+ Supports Monte Carlo estimation of error rates.
+
+ Although the actual namespaces may differ slightly, conceptually they revolve around four main axes—“code / noise / decoding / simulation”—
+ each further subdivided into small composable modules. Both the Python and Rust interfaces strive to maintain this layered conceptual design.
+
+ Figure 1-18: Tree-like structure showing loom.codes, loom.noise, loom.decoders, and loom.simulation as main submodules, with some example classes and functions under each.
+
+ Prompt: Tree-like structure showing loom.codes, loom.noise, loom.decoders, loom.simulation as main submodules, with some example classes/functions nested under each.
+
+ 3.3 Why a Two-Layer Architecture in Rust + Python?
+
+ Performance differences between decoders are often heavily influenced by “implementation details”: for example, MWPM using the Hopcroft–Karp or Blossom algorithms
+ may involve millions of nodes and edges for large surface codes. Using Rust enables:
+
+ Runtime performance close to C/C++.
+
+ Safer memory management via the ownership system.
+
+ Easier packaging into dynamic libraries that can be called from other languages.
+
+ By contrast, researchers typically prefer Python for rapid prototyping and data analysis.
+ el-loom uses Rust’s FFI to expose core functions to Python:
+ Python maps, via FFI, to Rust core.
+
+ enabling users to write in Python:
+
+from loom.codes import SurfaceCode
+from loom.noise import DepolarizingNoise
+from loom.decoders import MWPMDecoder
+from loom.simulation import run_trial
+
+code = SurfaceCode(distance=5)
+noise = DepolarizingNoise(p=0.001)
+decoder = MWPMDecoder(code, noise)
+
+logical_failure = run_trial(code, noise, decoder)
+
+ while the actual heavy computations—such as constructing the syndrome graph and performing graph matching—are executed in Rust.
+ This division of labor is common in modern scientific computing (similar to JAX/XLA or a PyTorch/C++ core architecture).
+
+ Figure 1-13: Side-by-side boxes: on the left, Python user code builds the code, noise model, and decoder; on the right, the Rust core performs heavy computations such as graph construction and matching, with arrows labeled as FFI calls between them.
+
+ Prompt: Side-by-side boxes: left shows Python user code building code/noise/decoder; right shows Rust core box doing heavy computations like graph construction and matching, with arrows labelled FFI calls between them.
+
+ 4. Mapping Abstract Codes to el-loom: The Surface Code as an Example
+
+ 4.1 Converting Geometric Structures into Data Structures
+
+ Consider a square surface code of distance d
+ with lattice size roughly d times d
+ and on the order of Big O of d squared.
+ edges.
+ Internally in el-loom, this geometry can be converted into:
+
+ A set of qubit indices Capital Q equals the set of integers from zero through n minus one.
+, each corresponding to an edge on the lattice.
+
+ X stabilizers corresponding to the set of vertices Curly brace v curly brace.
+, each vertex connected to the indices of its incident edges.
+
+ Z stabilizers corresponding to the set of faces Curly bracket, f, curly bracket.
+, each face connected to the indices of its bounding edges.
+
+ Formally, this is equivalent to storing the boundary operator matrices
+ Partial one is an element of F two to the power, absolute value of V, by absolute value of E; 
+partial two is an element of F two to the power, absolute value of E, by absolute value of F.
+
+ and then composing the CSS parity-check matrices
+ H sub X equals partial two, and H sub Z equals partial one transpose.
+
+ In el-loom’s Python interface, these structures are encapsulated as class attributes, for example
+ (the exact names may differ slightly):
+
+code = SurfaceCode(distance=5)
+
+# Hypothetical interface: obtain check matrices
+HX = code.Hx # X stabilizer check matrix
+HZ = code.Hz # Z stabilizer check matrix
+
+# Geometric information
+vertices = code.vertices
+edges = code.edges
+faces = code.faces
+
+ Figure 1-8: A small 3×3 surface code lattice annotated with indices on edges, vertices, and faces, alongside a schematic binary matrix representation of Hx and Hz derived from boundary operators.
+
+ Prompt: A small 3x3 surface code lattice annotated with indices on edges, vertices, and faces, next to a schematic binary matrix representation Hx and Hz derived from boundary operators.
+
+ 4.2 Syndromes and the “Space-Time” Lattice (Space-Time Graph)
+
+ In realistic fault-tolerant operations, syndrome measurements are not performed just once; they are repeated over time.
+ Suppose we perform Capital T.
+ rounds of syndrome measurements, obtaining
+ Curly brace, bold s superscript t, sub t equals one to cap T, curly brace.
+
+ Time-correlated errors (such as readout errors and errors during gate operations) induce correlations in the syndrome along the time direction as well.
+
+ In surface code decoding, a common approach is to extend this into a “space-time lattice”:
+
+ Spatial direction: lattice vertices or faces.
+
+ Temporal direction: measurement rounds t
+.
+
+ Edges: represent possible error events during some time interval that change the syndrome between two space-time points.
+
+ MWPM decoding then searches for matchings on this space-time graph that correspond to paths of error events. Formally, if
+ G equals, open parenthesis, V sub G, comma, E sub G, close parenthesis.
+ is this space-time graph and the weights
+ w is a map from to the set of real numbers greater than or equal to zero.
+ are derived from error probabilities, the decoder solves
+ Arg min over all subsets 
+ subject to Capital M.
+ being a perfect matching induced by the set of syndrome vertices.
+
+ In el-loom, this “space-time graph” is automatically generated from the combination of “code + noise model + measurement schedule,”
+ and users typically only need to specify:
+
+code = SurfaceCode(distance=7)
+noise = PhenomenologicalNoise(p_data=0.001, p_meas=0.01)
+schedule = RepeatedSyndromeSchedule(rounds=10)
+
+decoder = MWPMDecoder(code, noise, schedule=schedule)
+
+ Then, during decoding, el-loom converts the time sequence of syndromes into “defects” on the space-time graph and solves the MWPM problem.
+
+ Figure 1-12: A 3D lattice-like diagram representing a stack of 2D surface code layers along a time axis (t), with nodes at each stabilizer–time combination and edges representing possible error events; defects in space-time and matching paths are highlighted.
+
+ Prompt: 3D lattice-like diagram representing a stack of 2D surface code layers over time (t axis), with nodes at each stabilizer-time combination and edges representing possible error events; highlighted defects in space-time and matching paths.
+
+ 4.3 From Noise Models to Edge Weights: Mapping Probabilities to Energies
+
+ A typical Pauli noise model can be written as
+ p of E equals the product over ell of p ell to the power w t ell of E, times one minus p ell to the power one minus w t ell of E.
+
+ where w t sub ell of E is in the set containing zero and one
+ indicates whether the error Capital E.
+ contains a particular elementary error event Lowercase script L.
+
+ (for example, a Z
+ error on some edge or a readout error in some round). Under the assumption that each event is independent,
+ the MLD objective
+ E-hat equals the argument that maximizes p of E over all E such that bold s of E equals bold s.
+
+ is equivalent to minimizing
+ Minus log p of E equals the sum over ell of w t sub ell of E times minus log p sub ell, plus constant.
+
+ Hence each “possible error event” Lowercase script L.
+ can be assigned a weight
+ w sub ell equals minus log of open parenthesis p sub ell divided by one minus p sub ell close parenthesis.
+
+ and the total weight is the sum of these edge weights. This is the standard mapping from “probability” to “energy / distance.”
+
+ In el-loom, noise-model classes (such as DepolarizingNoise or more complex
+ PhenomenologicalNoise) implement this mapping logic internally
+ and provide the edge weights to the decoders (especially graph-matching-based decoders).
+
+ Figure 1-9: A chart showing the mapping from error probability p
+ to edge weight w equals minus the logarithm of p divided by one minus p.
+, with a curve indicating how higher error probability corresponds to lower weight in the matching graph.
+
+ Prompt: Chart showing mapping from error probability p to edge weight w = -log(p/(1-p)), with a curve indicating how higher error probability corresponds to lower weight in matching graph.
+
+ 5. A Typical Workflow in the el-loom Software Stack: From Code Construction to Monte Carlo Simulation
+
+ 5.1 High-Level Usage Workflow: Overview
+
+ A typical el-loom usage scenario is as follows:
+
+ Define a code: For instance, a surface code of distance d
+.
+
+ Define a noise model: For example, independent depolarizing data errors plus readout errors.
+
+ Define a measurement schedule: Specify the number of repeated syndrome-measurement rounds, etc.
+
+ Select a decoder: For example, MWPM, Union-Find, or BP.
+
+ Run the simulation loop:
+
+ For each trial: apply noise, generate syndromes, decode, and check whether a logical error has occurred.
+
+ Estimate error rates / thresholds: Estimate the logical error rate for various p
+ and d
+.
+
+ "Define Noise" -> "Define Schedule" -> "Choose Decoder" -> "Run Monte Carlo Trials" -> "Estimate logical error rate vs. p and d".">
+ Figure 1-7: Flowchart from “Define Code” → “Define Noise” → “Define Schedule” → “Choose Decoder” → “Run Monte Carlo Trials” → “Estimate logical error rate vs. p and d.”
+
+ Prompt: Flowchart from "Define Code" -> "Define Noise" -> "Define Schedule" -> "Choose Decoder" -> "Run Monte Carlo Trials" -> "Estimate logical error rate vs. p and d".
+
+ 5.2 Programmatic Representation of Codes and Noise: A Concrete Example
+
+ The following illustrates how to define a surface code and a simple noise model in el-loom’s Python API
+ (the interface names are illustrative; please refer to the official documentation for actual names):
+
+from loom.codes import RotatedSurfaceCode
+from loom.noise import DepolarizingNoise
+from loom.decoders import MWPMDecoder
+from loom.simulation import MonteCarloSimulator
+
+# 1. Construct the code
+d = 5
+code = RotatedSurfaceCode(distance=d)
+
+# 2. Define the noise: each physical qubit suffers independent depolarizing noise with probability p
+p = 0.001
+noise_model = DepolarizingNoise(p=p)
+
+# 3. Define the number of syndrome measurement rounds
+rounds = 1 # Single round for a static error model
+
+# 4. Choose a decoder
+decoder = MWPMDecoder(code=code, noise_model=noise_model, rounds=rounds)
+
+# 5. Create a Monte Carlo simulator
+sim = MonteCarloSimulator(code, noise_model, decoder)
+
+# 6. Run N trials and estimate the logical error rate
+N = 10_000
+logical_failures = 0
+
+for _ in range(N):
+ result = sim.run_trial()
+ if result.logical_error_occurred:
+ logical_failures += 1
+
+logical_error_rate = logical_failures / N
+print("Logical error rate:", logical_error_rate)
+
+ At a lower level, this workflow is equivalent to repeatedly performing the following steps:
+
+ Sample an error E is distributed according to p of E.
+.
+
+ Compute the syndrome bold s of E
+.
+
+ Use the decoder to produce a correction E hat equals D of bold s of E.
+.
+
+ Check whether Capital E times E‑hat.
+ equals some nontrivial logical operator.
+
+ Formally, the event of a logical error can be expressed as
+ C of E is defined as E times D of bold s of E, and lies in calligraphic N of calligraphic S minus calligraphic S.
+
+ where C of E
+ is the final residual error. If C of E
+ lies in the logical subgroup rather than in the stabilizer group,
+ this indicates that the logical information has been flipped.
+
+ Figure 1-15: Diagram showing one Monte Carlo trial: sample an error Capital E.
+, compute the syndrome bold s
+, the decoder produces E hat
+, combine them to get C of E equals E dot E hat.
+, and check whether C of E
+ corresponds to a logical operator; repeat N times and count logical failures.
+
+ Prompt: Diagram showing one Monte Carlo trial: sample error E, compute syndrome s, decoder produces ĤE, combine to C(E)=E·ĤE, and check if C(E) corresponds to a logical operator; repeat N times and count logical failures.
+
+ 5.3 Implementation Details and Extensibility
+
+ Because el-loom adopts a modular architecture, researchers can extend it at the following levels:
+
+ Custom code families:
+
+ Implement a new Code class that provides
+ The anticommutator of and .
+ and logical operators.
+
+ For geometric codes, one can further supply geometric information to enable specialized decoders to exploit it.
+
+ Custom noise models:
+
+ Inherit from the NoiseModel interface and implement error sampling and
+ weight computation for the syndrome graph.
+
+ Support non-independent noise or time-correlated noise.
+
+ Custom decoders:
+
+ Implement new graph algorithms or heuristic methods in the Rust core.
+
+ Or prototype new algorithms rapidly at the Python layer (with potentially lower efficiency but easier experimentation).
+
+ This design makes el-loom not merely a “ready-made decoder library,” but
+ an experimental platform for conducting quantum error-correction research.
+
+ Figure 1-4: Modular architecture diagram in which new Code, NoiseModel, and Decoder modules can be plugged into an existing Simulation engine, highlighting extensibility for research.
+
+ Prompt: Modular architecture diagram where new Code, NoiseModel, and Decoder modules can be plugged into an existing Simulation engine, highlighting extensibility for research.
+
+ 6. From Abstract Mathematics to a Modular Software Stack: An Integrated View
+
+ 6.1 Summary of Correspondences Between Abstract Structures
+
+ We can match the theoretical concepts discussed above with el-loom’s software components as follows:
+
+ Theoretical concept
+ Mathematical object
+ Abstraction in el-loom
+
+ Stabilizer code
+ Script S is a subset of script P sub n.
+, H equals the block matrix with and .
+
+ Code classes (e.g., SurfaceCode)
+
+ Logical space
+ calligraphic N of calligraphic S, divided by calligraphic S
+
+ Code.logical_ops or similar fields
+
+ Noise channel
+ Calligraphic E of rho equals the sum over E of p of E times E rho E dagger.
+
+ NoiseModel classes
+
+ Syndrome function
+ bold s, from script P sub n to F two to the n minus k
+
+ Code.syndrome(E) or internal methods
+
+ Decoder
+ Capital D, from F two to the power n minus k, to script P sub n.
+
+ Decoder.decode(syndrome)
+
+ Space-time graph
+ Graph Capital G equals the ordered pair of sub G and sub G.
+ with weights w
+
+ Generated from Code + NoiseModel + Schedule
+
+ ML objective
+ E hat equals the argument that maximizes p of E given bold s.
+
+ Approximate implementations via MWPM / BP / UF, etc.
+
+ Figure 1-10: A table-like infographic matching theoretical objects (stabilizer group, logical operators, noise channel, syndrome map, decoder) to el-loom software objects (Code, logical_ops, NoiseModel, syndrome method, Decoder), with arrows connecting them.
+
+ Prompt: Table-like infographic matching theoretical objects (stabilizer group, logical operators, noise channel, syndrome map, decoder) to el-loom software objects (Code, logical_ops, NoiseModel, syndrome method, Decoder) with arrows connecting them.
+
+ 6.2 Implications for PhD Students and Researchers
+
+ For PhD students and researchers aiming to work on quantum error correction and decoding,
+ the value of el-loom lies primarily in:
+
+ Rapid implementation of theoretical ideas:
+ for example, new types of topological codes, new noise models, or new decoding algorithms.
+
+ A reproducible and comparable experimental environment:
+ through a unified interface and simulation framework, it is easy to make fair comparisons with existing decoding methods.
+
+ Scalability:
+ the Rust core supports simulations at medium and large code distances, enabling evaluation of practical feasibility and threshold behavior.
+
+ Potential for integration with the hardware layer:
+ connecting abstract codes and noise models with actual device parameters (T1/T2, gate errors, measurement errors, etc.),
+ thereby laying the groundwork for future software-hardware co-design.
+
+ From a teaching and research training perspective, mastering the mapping from mathematical models (e.g., Script S, script E, comma, D.
+)
+ to el-loom code helps students understand “how theoretical assumptions are realized as concrete experiments,”
+ and learn how to evaluate the performance of theories under realistic resource constraints and noise conditions.
+
+ Figure 1-20: Conceptual image of a researcher moving from a blackboard with equations (stabilizers, noise models) to a laptop screen showing code using el-loom, illustrating the translation from theory to implementation.
+
+ Prompt: Conceptual image of a researcher moving from a blackboard with equations (stabilizers, noise models) to a laptop screen showing code using el-loom, indicating translation from theory to implementation.
+
+ 7. Summary and Directions for Subsequent Lessons
+
+ From the theoretical perspective, this lesson has reviewed:
+
+ The mathematical structure of stabilizer codes and CSS codes.
+
+ The geometric and homological description of the surface code as a topological CSS code.
+
+ The decoding problem as a combinatorial optimization problem (especially matching on a space-time graph).
+
+ We then outlined the modular software architecture of el-loom:
+
+ A Rust core that provides high-performance decoding and graph operations.
+
+ A Python interface that provides convenient abstractions for codes, noise, and decoders.
+
+ A scalable QEC experimental platform formed by the combination of “code + noise + schedule + decoder.”
+
+ In subsequent lessons, we can further explore:
+
+ Reading el-loom’s API documentation and source code in detail to analyze the mathematical meaning of each class and function.
+
+ Implementing a simplified surface code and MWPM decoder from scratch (as a Python prototype), and then comparing it with el-loom’s Rust implementation.
+
+ Studying how higher-level fault-tolerant structures (such as lattice surgery and encoded logical gates) are expressed in el-loom.
+
+ Visualizing and analyzing experimental results such as threshold curves and plots of logical error rate vs. code distance.
+
+ Figure 1-5: Roadmap diagram showing the current lesson at the base (QEC + el-loom overview) and subsequent lessons stacked above it on API deep dives, custom decoders, fault-tolerant gates, and threshold studies.
+
+ Prompt: Roadmap diagram showing current lesson at the base (QEC + el-loom overview) and future lessons on API deep dive, custom decoders, fault-tolerant gates, and threshold studies stacked above it.
+
+ Through such in-depth training from theory to implementation, the goal is that readers will not only be able to design
+ highly abstract quantum error-correction schemes on paper, but also assess their feasibility in real hardware and software environments,
+ thereby contributing to the development of next-generation architectures for fault-tolerant quantum computation.
