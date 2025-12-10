@@ -1,0 +1,719 @@
+第 3 講：自指邏輯主題 3 —— 從塔斯基不可定義定理到自指與語意
+
+本講聚焦於自指邏輯中的語意層面，尤其是塔斯基（Tarski）的兩個核心成果：
+
+ 塔斯基真理不可定義定理（Tarski's Undefinability of Truth）
+
+ 塔斯基不可判定定理的語意版本（與演算樹、語意後果相關的不可判定性）
+
+我們將在本講中：
+
+ 給出形式語言與語意（結構、解釋）的嚴格定義。
+
+ 嚴謹陳述並證明（或幾乎完整證明）塔斯基真理不可定義定理。
+
+ 說明該定理與哥德爾不完備性定理的內在關聯，並從「自指」角度剖析。
+
+ 引介塔斯基語意後果的觀點，並說明若試圖判定一階邏輯語意有效性會遇到何種不可判定性。
+
+ 給出一些現代延伸與研究方向的簡介。
+
+ 圖 3-9: a conceptual diagram with three boxes labeled "Syntax", "Semantics (Structures)", and "Self-reference", with arrows showing interactions; especially an arrow from Syntax to Semantics labeled "definability of truth" and a loop showing self-reference at the semantic level
+
+ Prompt: a conceptual diagram with three boxes labeled "Syntax", "Semantics (Structures)", and "Self-reference", with arrows showing interactions; especially an arrow from Syntax to Semantics labeled "definability of truth" and a loop showing self-reference at the semantic level
+
+3.1 語法與語意：從公式到結構
+
+3.1.1 一階語言與公式
+
+我們先回顧一階語言的基本定義，因為塔斯基真理不可定義定理是關於「一個足夠強的一階理論之中，無法內部定義其自身的真理謂詞」的結果。
+
+定義 3.1（語言） 一個一階語言 大寫花體的 L。
+ 包含：
+
+ 一個函數符號集 calligraphic 的 F。
+，每個函數符號 f 屬於集合 script F。
+ 有給定的元數 arity 括弧 f 括弧 關係於自然數集合。
+。
+
+ 一個謂詞符號集 唸成：「花體的大寫英文字母 P。」
+，每個謂詞符號 P 屬於集合 calligraphic P。
+ 也有元數 arity 括號 P，屬於自然數集合。
+。
+
+ 可能包含常元符號（0 元函數符號）作為特例。
+
+ 可數多的變數符號集合 大括號裡面是：x 零、x 一、x 二，然後一直下去。
+。
+
+ 邏輯符號：好，這裡我會一個一個念：
+
+「邏輯且、邏輯或、邏輯非、蘊含、雙蘊含、對所有、存在、等號。」
+ 等。
+
+項（term）與公式（formula）則由歸納定義：
+
+ 每個變數與常元是項；若 t 一到 t n。
+ 是項且 f
+ 是 這個就是：小寫的 n。
+ 元函數符號，則 f 括號 t1 到 tn。
+ 是項。
+
+ 若 唸作：「t 一、t 二」。
+ 是項，則 t 一號等於 t 二號。
+ 是原子公式；若 P
+ 是 這個就是：小寫的 n。
+ 元謂詞且 t 一到 t n。
+ 是項，則 P，括號裡面是 t 一、逗號一直到 t n。
+ 是原子公式。
+
+ 若 phi，逗號，psi。
+ 是公式，則 好，我會這樣念：
+
+「非 phi，括號 phi 且 psi，括號 phi 或 psi，括號 phi 蘊涵 psi，括號 phi 若且唯若 psi。」
+ 是公式。
+
+ 若 phi。
+ 是公式且 這個念成：「x」。
+ 是變數，則 對所有的 x，phi。
+ 與 存在一個 x，使得 phi。
+ 是公式。
+
+語法的關鍵點：一切都是「符號排列」；尚未談到「真或假」，那是語意層次的事。
+
+ 圖 3-10: a tree diagram showing the inductive construction of formulas: starting from variables and constants, building terms with function symbols, then atomic formulas with predicate symbols, and then complex formulas with logical connectives and quantifiers
+
+ Prompt: a tree diagram showing the inductive construction of formulas: starting from variables and constants, building terms with function symbols, then atomic formulas with predicate symbols, and then complex formulas with logical connectives and quantifiers
+
+3.1.2 結構與詮釋：語意的設定
+
+定義 3.2（結構） 一個 大寫花體的 L。
+-結構 大寫的花體英文字母 M。
+ 包含：
+
+ 一個非空集合 M
+（稱為 domain 或 universe）。
+
+ 對每個 這個就是：小寫的 n。
+ 元函數符號 f
+，指定一個實際的函數
+ f 上標花體的 M，從 M 的 n 次方，到 M 的映射。
+
+ 對每個 這個就是：小寫的 n。
+ 元謂詞符號 P
+，指定一個關係
+ P 的上標是花體的 M，包含於 M 的 n 次方。
+
+ 對每個常元符號 c
+，指定一個元素 c 的上標是花體的大寫 M，屬於集合 M。
+。
+
+一旦有了結構，我們才談得上「公式的真值」。這需要有「變數指派」（assignment）。
+
+定義 3.3（變數指派與項的值）
+
+ 變數指派 這一項就唸成：「小寫的 s」。
+ 是從變數集合到 M
+ 的函數：s 冒號，大括號裡面 x 零、x 一、一直到後面那些點點，映到 M。
+。
+
+ 對於項 這個就是一個變數「t」。
+ ，在結構 大寫的花體英文字母 M。
+ 與指派 這一項就唸成：「小寫的 s」。
+ 下，其值（解釋） t 的 上標是 花體的大寫 M 跟 s
+ 歸納定義為：
+
+ 若 t
+ 是變數 x 下標 i
+，則 t 的上標，括號裡面是花體的 M 跟 s，等於 s 作用在 x 下標 i 上。
+。
+
+ 若 t
+ 是常元 c
+，則 t 上標花體的 M 跟逗點 s，等於 c 上標花體的 M。
+。
+
+ 若 t 等於 f，小括號裡面帶 t1 到 tn。
+，則
+ t 的上標 M 跟 s，等於 f 的上標 M，作用在括號裡面 t1 的上標 M 跟 s，一直到 tn 的上標 M 跟 s。
+
+定義 3.4（真值） 對公式 phi。
+、結構 大寫的花體英文字母 M。
+ 與指派 這一項就唸成：「小寫的 s」。
+，定義「M 逗號 s，滿足 phi。
+」歸納如下：
+
+ 若 phi。
+ 是原子公式 P，括號裡面是 t 一、逗號一直到 t n。
+，則
+ 念作：
+
+「模型 M、狀態 s 滿足謂詞 P 括號 t1 到 tn，當且僅當，在模型 M、狀態 s 底下算出來的 t1 到 tn 這個有序 n 元組，屬於模型 M 裡面的那個 P。」
+
+ 若 phi。
+ 是 t 一號等於 t 二號。
+，則
+ 在模型 𝓜、指派 s 之下滿足「t1 等於 t2」，當且僅當 t1 在模型 𝓜、指派 s 下的取值等於 t2 在模型 𝓜、指派 s 下的取值。
+
+ 布林連接詞依照真值表定義，例如：
+ 在模型 M、狀態 s 下滿足「不是 psi」，當且僅當在模型 M、狀態 s 下「psi 不成立」。
+
+ 唸作：
+
+「在模型 M、狀態 s 下滿足 psi 且 theta，當且僅當，在模型 M、狀態 s 下滿足 psi，並且在模型 M、狀態 s 下滿足 theta。」
+
+ 量詞：
+ 麥卡爾 M、狀態 s 滿足「對所有 x 的 psi」，當且僅當「對所有屬於 M 的元素 a，麥卡爾 M、在把指派 s 的 x 改成 a 之後，會滿足 psi」。
+
+ M 逗號 s 滿足「存在 x 使得 psi」，當且僅當，存在一個 a 屬於大寫的 M，使得 M 逗號、把狀態 s 裡面的 x 指派成 a 之後，滿足 psi。
+
+其中 唸作：「s 把 x 映到 a。」
+ 表示與 s
+ 相同，只是把變數 這個念成：「x」。
+ 的值改為 a
+。
+
+語意有效性（semantic validity）：一個句子（無自由變數的公式）phi。
+ 若對所有結構（或對所有同一語言的結構）皆真，則稱為語意有效，記作：
+models phi。
+
+ 圖 3-12: a diagram showing a formula phi being evaluated in a structure M with an assignment s, highlighting the path from syntax (phi) to semantics (M,s) with the satisfaction relation M,s |= phi
+
+ Prompt: a diagram showing a formula phi being evaluated in a structure M with an assignment s, highlighting the path from syntax (phi) to semantics (M,s) with the satisfaction relation M,s |= phi
+
+3.2 塔斯基「真理不可定義定理」的嚴格陳述
+
+3.2.1 語意真理與語法定義：二階視角
+
+塔斯基的基本洞見：「真理」是一個語意概念，但我們自然會想用語法結構來定義它。 他顯示，對於足夠強的一階理論（例如算術），不可能在該理論的語言中定義自身句子的真理謂詞。
+
+直觀說法：
+
+ 考慮一個理論，例如皮亞諾算術 念作：「P A」。
+。其語言 好，這個我會念成：
+
+「calligraphic L，下標 P A。」
+ 僅有 零、S、加、乘、等於。
+。
+
+ 我們試圖在同一語言中定義一個新謂詞 True 括號 x。
+，讓 念作：
+
+「大寫的 T、r、u、e，括號裡面放上一個左角括號 phi 右角括號。」
+ 正好刻畫「公式 phi。
+ 在標準自然數結構 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 中為真」。
+
+ 塔斯基定理說：這樣的 True 括號 x。
+ 在該語言中不可定義。
+
+更正式一點，需要先說明「可定義」的概念。
+
+定義 3.5（在結構中定義集合） 設 大寫花體的 M，定義成，尖括號裡面包含一個大寫的 M，逗號，還有後面一些省略的東西。
+ 是一個 大寫花體的 L。
+-結構，A 是 M 的 k 次笛卡兒積的一個子集合。
+。我們稱 A
+ 在 這個唸成：「花體的大寫 M」。
+ 中可定義（definable），若存在一個 大寫花體的 L。
+-公式 phi 括號裡面是 x1 到 xk。
+ 使得：
+A 等於所有這種 k 維的有序 k 元組，括號 a1 到 ak，屬於 M 的 k 次方，且滿足：在結構 M 底下，公式 phi 代入 a1 到 ak 之後被滿足，所形成的那個集合。
+
+若 k 等於一。
+，則稱「集合 A
+ 在 這個唸成：「花體的大寫 M」。
+ 中一階可定義」。
+
+目標：討論「真理集合」
+大寫的 T、h，加上括號 M，等於一個集合，裡面是所有公式 phi 的歌德編碼，冒號後面是，M 滿足 phi。
+
+在某個合理的編碼下，是否在某個算術結構（通常是 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+）中可定義。
+
+3.2.2 形式陳述（算術版）
+
+為了簡化並聚焦，我們討論最典型版本：在標準自然數結構 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 中，真理集合不可定義。
+
+定理 3.6（塔斯基真理不可定義定理；算術版本）
+
+設 calligraphic L 下標 PA，等於，大括號裡面包括：零、S、加號、乘號、還有等號。
+，令 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 為該語言下的標準自然數結構：
+大寫黑板粗體的 N，等於一個結構，裡面包含：N、本體的零、後繼函數 S、加法、乘法，還有等號。
+
+設 Sent 下標 L PA，這個集合是自然數集合的子集合。
+ 為所有 好，這個我會念成：
+
+「calligraphic L，下標 P A。」
+-句子的戈德爾編碼集合，並定義真理集合：
+True 下標 N，等於所有的自然數 n 的集合，使得 n 剛好是某個公式 phi 的戈德爾編碼，而且自然數結構 N 滿足這個公式 phi。
+
+則不存在任何 好，這個我會念成：
+
+「calligraphic L，下標 P A。」
+-公式 trace，小括號 x。
+ 滿足：
+對所有自然數 n，天然數模型滿足「Tr 括號上劃線的 n」，當且僅當 n 屬於天然數的 True 集合。
+
+亦即 念作：「真，底下是一個自然數集合的黑板粗體 N。」
+ 在 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 中不可一階定義。
+
+這就是：「算術真理不可在算術中定義」的精確表述。
+
+ 圖 3-8: a picture of the natural numbers as a line, with a highlighted complicated subset representing True_N, labeled "the set of codes of all true arithmetic sentences", and an arrow indicating that no first-order formula can pick out exactly this subset
+
+ Prompt: a picture of the natural numbers as a line, with a highlighted complicated subset representing True_N, labeled "the set of codes of all true arithmetic sentences", and an arrow indicating that no first-order formula can pick out exactly this subset
+
+3.3 塔斯基定理的證明：從對角化到語意自指
+
+3.3.1 證明策略概觀
+
+證明策略的結構與哥德爾不完備性定理十分相似，核心工具仍是對角化（diagonalization）與自指。主線可以概略為：
+
+ 假設存在「真理謂詞」念作：
+
+「大寫 T r，括號 x，括號。」
+ 在 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 中可定義。
+
+ 利用對角引理構造一個句子 這個是希臘字母「gamma」。
+，其含義是：
+ gamma 雙向蘊涵 「不是 Tr 括弧 gamma 的哥德爾編號 括弧」 。
+
+ 分析：若 這個是希臘字母「gamma」。
+ 在 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 中為真，則
+ 整個括號裡的東西的跡。
+ 應該為真，導致這個是希臘字母「gamma」。
+同時真且假；反之亦然。
+
+ 得到矛盾，因此最初假設「存在可定義的真理謂詞」錯誤。
+
+ use diagonal lemma to construct gamma -> derive gamma not True(code(gamma)) -> case analysis leading to contradiction -> conclude no definable truth predicate">
+ 圖 3-5: a flowchart showing the proof structure: assume definable truth predicate -> use diagonal lemma to construct gamma -> derive gamma not True(code(gamma)) -> case analysis leading to contradiction -> conclude no definable truth predicate
+
+ Prompt: a flowchart showing the proof structure: assume definable truth predicate -> use diagonal lemma to construct gamma -> derive gamma not True(code(gamma)) -> case analysis leading to contradiction -> conclude no definable truth predicate
+
+3.3.2 對角引理（Diagonal Lemma）
+
+引理 3.7（對角引理）
+
+令 phi 括號 x。
+ 為任意一個一變數公式（在語言 好，這個我會念成：
+
+「calligraphic L，下標 P A。」
+ 中）。則存在一個句子 psi。
+ 使得：
+皮亞諾算術可以證明：psi 等價於 phi，括號裡面帶上「psi 的哥德爾編碼」。
+
+換言之，對於任何性質 phi 括號 x
+，存在一個句子 psi。
+「談論自己」：它斷言「phi。
+ 對我這句話的編碼成立」。
+
+直覺解釋：
+
+ 戈德爾編碼使得「公式本身」可以當成自然數來談。
+
+ 因此，「把這個公式的戈德爾碼塞進某個參數」成為一個數學操作。
+
+ 對角引理實現了「令 psi。
+ 是這樣一個公式：psi。
+ 等價於 phi。
+ 套用在 自己的編碼 上」的構造。
+
+證明（略要技術步驟）：
+
+ 構造一個二變數公式 θ 括號 x 逗號 y 括號
+ 使得
+ theta 括號 x, y，表示：y 是公式 phi 在參數 x 之下做替換以後，那個「替換結果」的編碼。
+
+ 嚴格而言，利用「替換」的可遞歸描述即可在算術中定義。
+
+ 定義一變數公式
+ beta 括號 x 定義成：存在一個 y，使得 theta 括號 x 逗號 y，且 phi 括號 y。
+
+ 直覺上：β 小括號 x 小括號。
+ 表現「對某個公式，其自身的編碼被塞為參數後得到的結果滿足 phi。
+」。
+
+ 令 psi。
+ 為 貝塔，括號裡面是「貝塔作用在 x 上」這個東西的戈代爾編碼。拿這個整個當作參數再帶進外面那個貝塔裡。
+ 所得到的句子。即
+ psi 定義成 beta 作用在「beta 括號 x 的戈德爾編碼的複數共軛」這個東西上。
+
+ 由構造可證明：
+ 皮亞諾算術裡可以證明：psi 等價於 phi，後面這個 phi 裡面帶入的是「psi 的哥德爾編碼」。
+
+技術細節在於戈德爾式地算術化「替換」操作以及「左上角到右上角的小括號，裡面是一個點。
+」編碼，但對角引理在邏輯文獻中是標準工具。
+
+ 圖 3-1: a schematic diagram of the diagonal lemma construction: starting with a formula phi(x), building a two-variable formula theta(x,y) representing substitution, then defining beta(x) and finally psi = beta(code(beta)), with a loop indicating self-application
+
+ Prompt: a schematic diagram of the diagonal lemma construction: starting with a formula phi(x), building a two-variable formula theta(x,y) representing substitution, then defining beta(x) and finally psi = beta(code(beta)), with a loop indicating self-application
+
+3.3.3 利用對角引理構造「李爾式」句子
+
+我們現在施用對角引理到特定公式 phi 括號 x
+ 上。設想我們已經在算術中定義了真理謂詞 念作：
+
+「大寫 T r，括號 x，括號。」
+，也就是假設存在某個公式 念作：
+
+「大寫 T r，括號 x，括號。」
+ 滿足：
+對所有的 n，括號，自然數結構裡滿足公式 Tr 括號上劃線的 n，當且僅當，n 屬於自然數的真理集合，括號結束。
+
+考慮公式：
+phi 括號 x 定義為 not，後面接 T r 括號 x。
+
+根據對角引理，存在一個句子 這個是希臘字母「gamma」。
+ 使得：
+皮亞諾算術可以證明：「γ 等價於 不可被證明 γ 這個句子」。
+
+同時，由於 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 是 這個就是「大寫的 P A」。
+ 的標準模型，且 這個就是「大寫的 P A」。
+ 是可演繹可靠，於是：
+自然數結構滿足：伽瑪，當且僅當，不成立「伽瑪」是可證的。
+
+此時，我們擁有一個「李爾悖論式」的句子：這個是希臘字母「gamma」。
+ 說「我的編碼所對應的句子不真」。
+
+3.3.4 矛盾的推導
+
+我們在標準結構 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 中分析 這個是希臘字母「gamma」。
+ 的真值：
+
+ 假設 自然數系模型滿足公式 gamma。
+（這個是希臘字母「gamma」。
+ 為真）。由
+ 「自然數結構滿足 gamma，當且僅當，不滿足『gamma 這個句子的戈德爾編號是可證的』這個性質。」
+
+ 可得
+ 自然數結構滿足「不是 Tr 括號 gamma 的戈德爾碼 括號」。
+
+ 也就是
+ 自然數結構，不能滿足句子「Tr gamma」。
+
+ 但由假設 念作：
+
+「大寫 T r，括號 x，括號。」
+ 的性質，若 這個是希臘字母「gamma」。
+ 在 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 中為真，必有
+ 「自然數結構滿足，追蹤括號 gamma 括號。」
+
+ 矛盾。
+
+ 假設 自然數結構不滿足命題 gamma。
+（這個是希臘字母「gamma」。
+ 為假）。則
+ 自然數這個結構滿足「不是 gamma」。
+
+ 再由
+ 「自然數結構滿足 gamma，當且僅當，不滿足『gamma 這個句子的戈德爾編號是可證的』這個性質。」
+
+ 可得
+ 自然數結構滿足「非 gamma」，當且僅當「gamma 的哥德爾編碼是可證的」。
+
+ 因此
+ 自然數的結構滿足，Tr 裡面帶入公式 gamma 的編碼。
+
+ 按照真理謂詞假設，這表示 這個是希臘字母「gamma」。
+ 在 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 中為真，於是
+ 念作：
+
+「自然數這個結構滿足 gamma。」
+
+ 再度矛盾。
+
+兩種情況都導向矛盾，因此假設「在 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 中存在可定義的真理謂詞」必然錯誤。塔斯基真理不可定義定理得證。
+
+ 圖 3-6: a truth table-like diagram for the sentence gamma and predicate Tr(code(gamma)), showing the two cases (gamma true or gamma false) both leading to contradictions, visually emphasizing the paradoxical nature of the self-referential construction
+
+ Prompt: a truth table-like diagram for the sentence gamma and predicate Tr(code(gamma)), showing the two cases (gamma true or gamma false) both leading to contradictions, visually emphasizing the paradoxical nature of the self-referential construction
+
+3.3.5 自指的角色：與哥德爾定理的比較
+
+從技術上看，塔斯基定理與哥德爾第一不完備性定理極為相似：
+
+ 兩者都使用戈德爾編碼將語句「數學化」。
+
+ 兩者都利用對角引理構造一個「關於自己」的句子。
+
+ 哥德爾句子 G
+ 表示「我不可被此理論證明」；塔斯基句子 γ（唸作「gamma」）。
+ 表示「我不真」或「我的真值否定了真理謂詞的定義」。
+
+但兩者聚焦的層次不同：
+
+ 哥德爾定理是關於可證明性（provability）：語法層次
+
+ 塔斯基定理是關於真理（truth）：語意層次
+
+然而，自指機制——透過對角化——在兩者中是共同核心。因此，自指邏輯的研究，常同時考慮哥德爾與塔斯基的結果。
+
+3.4 塔斯基不可判定定理的語意版本
+
+3.4.1 語意後果與語意有效性
+
+在模型論中，語意後果與語意有效性扮演關鍵角色。
+
+定義 3.8（語意後果）
+
+給定一集合句子 大寫的伽瑪。
+ 與句子 phi。
+，我們說 phi。
+ 是 大寫的伽瑪。
+ 的語意後果（semantic consequence），記作
+伽瑪 符合 蕴涵 出 菲。
+
+若對所有 大寫花體的 L。
+-結構 大寫的花體英文字母 M。
+，滿足：
+如果模型 M 滿足 Γ，也就是說對所有屬於 Γ 的 psi，模型 M 都滿足 psi， 
+那麼模型 M 也滿足 phi。
+
+若 Γ 等於空集合。
+，則 念作：
+
+「滿足 φ。」或者更口語一點可以念成：「模型滿足 phi。」
+ 表示「phi。
+ 在所有結構中皆真」，稱為語意有效。
+
+顯然，「檢查語意有效性」就是問：「phi。
+ 是否在所有結構中為真？」這非常接近於「檢查真理性」的概念，只是對所有結構，而非單一結構；兩者在可判定性上有密切關聯。
+
+ 圖 3-3: a Venn-like diagram of all structures for a language L, with shaded region of structures satisfying Gamma, and a nested region of structures satisfying both Gamma and phi, illustrating Gamma |= phi
+
+ Prompt: a Venn-like diagram of all structures for a language L, with shaded region of structures satisfying Gamma, and a nested region of structures satisfying both Gamma and phi, illustrating Gamma |= phi
+
+3.4.2 一階邏輯的可判定性與不可判定性
+
+一階邏輯有一個強而有力的結果：完全性定理（Gödel Completeness Theorem）：
+Gamma 模型滿足 phi，當且僅當 Gamma 可以推導出 phi。
+
+其中「伽瑪 導出 phi
+」是語法可證明性。
+
+然而，這並不意味著「存在一個演算法可以判定任意一階公式是否語意有效」。事實上，一階語意有效性是不可判定的，這可視為某種「塔斯基不可判定定理」。
+
+定理 3.9（一階邏輯語意有效性不可判定）
+
+集合
+Val 等於，大括號裡面是，底下加兩槓的 phi，冒號，models phi。
+
+（所有語意有效的一階句子的戈德爾碼）是不可遞歸（undecidable）的；換言之，不存在演算法可以對每個一階句子決定其是否語意有效。
+
+證明思路（與圖靈機、停機問題或遞歸理論等同構）：
+
+ 由哥德爾不完備性定理知，任何遞歸可枚舉且一致的理論 T
+（包含足夠算術）都是不完備的。
+
+ 若 Val
+ 可判定，則我們可以透過以下方法構造一個完全且遞歸可枚舉的理論，與哥德爾結果矛盾：
+
+ 對每個句子 phi。
+，若演算法判定 念作：
+
+「滿足 φ。」或者更口語一點可以念成：「模型滿足 phi。」
+，就把 phi。
+ 放入理論；否則把 非 φ
+ 放入理論。
+
+ 依據完全性，該理論將是語意完備且一致。
+
+ 因此，Val
+ 不可判定。
+
+這個不可判定性與塔斯基真理不可定義定理息息相關：若我們在算術中能定義真理集合（對應於一個語意判定器），那麼就可藉由該定義構造演算法判定一階語意有效性；但這被上述定理排除。
+
+ 圖 3-13: a conceptual diagram connecting three nodes: "Definable truth in arithmetic", "Decidable set of valid first-order sentences", and "Complete recursive theory"; arrows show that definable truth would give decidable validity, which would yield a complete recursive theory, contradicting Gödel's incompleteness
+
+ Prompt: a conceptual diagram connecting three nodes: "Definable truth in arithmetic", "Decidable set of valid first-order sentences", and "Complete recursive theory"; arrows show that definable truth would give decidable validity, which would yield a complete recursive theory, contradicting Gödel's incompleteness
+
+3.4.3 塔斯基語意觀點下的不可判定性
+
+塔斯基本人在發展語意概念（真理、語意後果）時，強調以下幾點：
+
+ 真理是一個「外在的」語意概念：對象語言的真理需在詮釋語言（meta-language）中定義。
+
+ 若嘗試在對象語言中內部化真理，則會遇到李爾悖論式的自指，導致不可定義。
+
+ 同樣地，若妄想「完全機械地」判定一切語意有效性，也會與自指與不完備性產生衝突，導致不可判定性。
+
+這些觀點綜合起來，構成「塔斯基式語意觀」：語意概念必須在一個足夠強且嚴格區分層次的後設語言中處理，而不能天真地「內化」。
+
+3.5 自指、真理分層與語言的階層化
+
+3.5.1 塔斯基的語言階層（Tarski hierarchy）
+
+為了解決李爾悖論等自指問題，塔斯基提出一個著名策略：語言階層化。
+
+ 對象語言 念作：「L 零」。
+：僅談論某些基本對象（如數、集合等），不包含自身的真理謂詞。
+
+ 第一層後設語言 這裡就念成： 
+「L 的一。」
+：包含對象語言的語句，並有真理謂詞 True，下標零，括號 x。
+，談論「在 念作：「L 零」。
+ 中為真的句子」。
+
+ 第二層後設語言 這個就是「大寫英文字母 L，下面一個二」，我會念成：
+
+「L 二」。
+：包含 念作：「L 一」。
+ 的語句與真理謂詞 大寫的 T、r、u、e，底下標一，括號裡一個 x。
+，談「在 念作：「L 一」。
+ 中為真的句子」。
+
+ 如此無限上升形成塔斯基階層。
+
+這樣可以避免「在同一語言中自指自己的真理」而產生悖論。但代價是，沒有單一語言可以完整囊括「所有語言的真理」。
+
+ 圖 3-7: a vertical hierarchy diagram with layers labeled L0, L1, L2, ..., each layer having its own truth predicate True_n talking about sentences of the layer below, with no arrows looping back within the same layer
+
+ Prompt: a vertical hierarchy diagram with layers labeled L0, L1, L2, ..., each layer having its own truth predicate True_n talking about sentences of the layer below, with no arrows looping back within the same layer
+
+3.5.2 自指的再定位：為何仍然「存在」
+
+即使我們引入語言階層，形式系統中仍然會出現某種「跨層次」的自指與不完備現象：
+
+ 對象語言 念作：「L 零」。
+ 的句子可以被 這裡就念成： 
+「L 的一。」
+ 中的真理謂詞完整描述。
+
+ 但 這裡就念成： 
+「L 的一。」
+ 的真理無法由 這裡就念成： 
+「L 的一。」
+ 本身定義，只能由 這個就是「大寫英文字母 L，下面一個二」，我會念成：
+
+「L 二」。
+ 描述。
+
+ 因此，自指與不完備「被推遲到更高層」，而非徹底消失。
+
+於是，在邏輯與數學基礎研究中，人們逐漸接受一種觀點：
+
+ 沒有單一、封閉、完全自足的形式語言能內部掌握其自身真理；
+
+ 真理必然在某種意義上「超越」了任一給定的形式系統。
+
+3.6 與現代發展的連結：可定義性、內部模型與真理謂詞
+
+3.6.1 可定義性階層與算術真理
+
+塔斯基定理說：算術真理不可一階定義。但在集合論與可定義性理論中，人們進一步研究：
+
+ 算術真理集合 大寫的 True，下標是一個黑板粗體的 N。
+ 的遞歸理論地位：它是 大寫的希臘字母 Pi，右上角一個一，右下角一個一。
+-完全集合。
+
+ 透過階層化邏輯（如二階算術、解析階層），可逐步「逼近」真理集合。例如：
+ 念作：
+
+Sigma 上標零，下標 n 的真理，逗號，Pi 上標零，下標 n 的真理。
+
+ 分別可由對應的遞歸算子定義。
+
+ 然而「整體的算術真理」仍然逃脫任何有限階段的描述。
+
+ 圖 3-11: a vertical hierarchy of complexity classes: recursive, r.e., Σ^0_n, Π^0_n, ..., with a top region labeled "full arithmetic truth" above all finite levels, indicating that it's beyond any finite definability level
+
+ Prompt: a vertical hierarchy of complexity classes: recursive, r.e., Σ^0_n, Π^0_n, ..., with a top region labeled "full arithmetic truth" above all finite levels, indicating that it's beyond any finite definability level
+
+3.6.2 集合論中的真理謂詞與內部模型
+
+在 ZFC 集合論中，我們也可以問類似問題：是否能在 V
+（整個集合宇宙）中定義「集合論真理」？
+
+答案與算術情況類似：不行——這可由將自然數嵌入集合論宇宙並利用塔斯基定理推出。於是，在集合論中，人們常考慮：
+
+ 在某個內部模型（如 L
+、H O D。
+）中定義真理謂詞。
+
+ 這些內部模型的真理可以相對地被外部世界（上層的後設語言）描述。
+
+ 但整個 V
+ 的真理謂詞仍然只能在更高的後設層面上處理。
+
+這導致一個非常深刻的哲學與技術問題：集合論真理是「客觀」的嗎？或只是相對於某個模型？ 塔斯基定理提供了形式上的約束：不論怎麼回答，真理都不能完全壓縮在單一一階定義之中。
+
+3.6.3 內部真理謂詞的「局部」版本
+
+儘管整體真理不可定義，我們仍可以考慮「局部化」的真理謂詞，例如：
+
+ 對於語言中某一有限深度的片段，或僅限於某一類型的公式（如 Delta 下標零。
+-公式），定義真理謂詞。
+
+ 例如在算術中，Delta 下標零。
+-真理（界限量詞公式的真理）是可遞歸的，因此可在算術中定義一個「Delta 下標零。
+-真理謂詞」。
+
+這種做法可以被視為「分層的真理」——與塔斯基的語言階層觀念互補：不是在語言層次上區分，而是在「公式複雜度」上分層。
+
+ 圖 3-4: a chart with formulas grouped by complexity (Δ0, Σ1, Π1, ..., full FO), showing checkmarks where truth is definable/decidable (Δ0) and crosses where it's not (full FO), labeled "local vs global truth definability"
+
+ Prompt: a chart with formulas grouped by complexity (Δ0, Σ1, Π1, ..., full FO), showing checkmarks where truth is definable/decidable (Δ0) and crosses where it's not (full FO), labeled "local vs global truth definability"
+
+3.7 小結與展望：塔斯基定理在自指邏輯中的位置
+
+3.7.1 核心結論整理
+
+ 塔斯基真理不可定義定理：在標準算術結構 這個念作：「黑板粗體的大寫 N，自然數的集合」。
+ 中，無法用一階公式定義「所有真算術句子的集合」。
+
+ 其證明核心是對角引理與自指：構造一個句子 這個是希臘字母「gamma」。
+，使其斷言「我不真」。
+
+ 語意有效性不可判定：一階語言中，不存在演算法可判定任意句子是否在所有結構中為真。
+
+ 兩個結果均反映：語意概念（真理、有效性）無法被完全「內化」成單純的語法或可計算程序。
+
+3.7.2 與自指邏輯系列課程的關聯
+
+在本系列前後幾講中，我們已看到或將看到：
+
+ 哥德爾不完備性定理：以可證明性為核心的語法自指。
+
+ 塔斯基真理不可定義定理：以真理為核心的語意自指。
+
+ 圖靈不可計算性、停機問題：以計算程序為核心的演算法自指。
+
+ 馮紐曼自複製機：以物理機制與資訊結構為核心的工程自指。
+
+這些結果共同勾勒出一幅統一圖像：
+
+ 一旦一個系統足夠表達自身結構與推理規則，便無可避免地面對
+
+ 某種形式的自指與不完備／不可定義／不可判定現象。
+
+ 圖 3-2: a unified diagram with four quadrants labeled "Syntax/Provability", "Semantics/Truth", "Computation/Algorithms", "Physical Systems/Self-replication", with arrows connecting them and a central label "Self-reference and Incompleteness"
+
+ Prompt: a unified diagram with four quadrants labeled "Syntax/Provability", "Semantics/Truth", "Computation/Algorithms", "Physical Systems/Self-replication", with arrows connecting them and a central label "Self-reference and Incompleteness"
+
+3.7.3 後續研究方向建議
+
+對博士生與研究者而言，若希望進一步在「自指邏輯」方向展開研究，可考慮以下主題：
+
+ 可定義性理論與解析階層：研究語言中各種階層的可定義集合與真理集合的複雜度。
+
+ 集合論真理與內部模型：探討 V
+ 的真理與 L
+、H O D。
+、強大基數假設等之間的關係。
+
+ 真理理論（truth theories）：如 Kripke 的固定點真理理論、Feferman–Smith 的可容許真理系統等，研究如何在保留某種自指能力的同時避免悖論。
+
+ 自指與程式驗證：例如 Hoare 邏輯、程式邏輯中如何處理「程式談論自己的性質」（反射式程式）所引發的邏輯問題。
+
+在後續講次中，我們將繼續把這些邏輯層次的自指現象，與計算理論、物理系統（如馮紐曼自複製機）與當代量子資訊中的自指結構連結起來，形成一個跨學科的自指理論框架。

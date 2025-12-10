@@ -1,0 +1,707 @@
+第 1 講：自指邏輯主題 1 —— 從語言與形式系統到自指的問題
+
+本講作為整個「深入講解自指邏輯」教程的起點，目標是扎實建立之後討論 Gödel 不完備性定理、Tarski 不可定義性定理與不可判定性、以及 von Neumann 自複製機器所必須的「形式化背景」。 
+我們會先說明：
+
+ 什麼是「自指」與「語言中的自指結構」；
+
+ 如何用嚴謹的數學方式描述「語句談論自身」；
+
+ 什麼是形式理論、語法、語意、證明系統；
+
+ 初步介紹「編碼」與「算術化」的概念，為 Gödel 編碼鋪路。
+
+本講目標不直接證明 Gödel 或 Tarski 的定理，而是讓你在邏輯與數學結構上對「自指」有深刻直覺，並做好形式技術準備。
+
+1. 自指現象的數學化：從語言遊戲到形式結構
+
+1.1 日常語言中的自指與悖論
+
+在日常語言中，自指 (self-reference) 是指一句話直接或間接地「談論自己」。最經典的例子是「說謊者悖論」：
+
+這句話是假的。
+
+若這句話為真，則它所陳述「這句話是假的」也必須成立，因此它是假的； 
+若這句話為假，則「這句話是假的」不成立，故它應該為真。 
+於是我們得到一個似乎無法一致賦予真值的句子。這顯示：
+
+ 語言可以表述對自身的描述；
+
+ 不受限制的自指與真值概念結合會產生悖論。
+
+在形式邏輯中，我們不滿足於非形式的悖論陳述，而想問：
+
+ 能否在嚴格定義的語言與證明系統中「構造」類似自指語句？
+
+ 這種自指形式是否必然導致矛盾，或者只導致「不完備」？
+
+Gödel 與 Tarski 的工作就是在這裡展開：利用算術化的語言與形式系統，構造能夠「談論自身可證性／真值」的語句，並分析其邏輯後果。
+
+ 圖 1-6: A conceptual illustration showing a sentence in a speech bubble pointing an arrow back to itself, labeled "self-reference", next to another diagram that shows a formal system as a box, and arrows from formulas inside the box referring back to the box itself. Minimalistic, black-and-white, mathematical style.
+
+ Prompt: A conceptual illustration showing a sentence in a speech bubble pointing an arrow back to itself, labeled "self-reference", next to another diagram that shows a formal system as a box, and arrows from formulas inside the box referring back to the box itself. Minimalistic, black-and-white, mathematical style.
+
+1.2 從自然語言到形式語言
+
+為了避免自然語言的模糊，我們使用形式語言 (formal language)。一個形式語言通常包括：
+
+ 符號集 西格瑪。
+：變數、常數、函數符號、謂詞符號、邏輯連接詞、量詞、括號等。
+
+ 語法規則：哪些符號串是「合法的公式」、「項」、「句子」。
+
+例：一階算術語言 calligraphic 的大寫 L，下面帶一個下標 A。
+ 通常包含：
+
+ 變數符號：x、y、z、x 零、x 一，依此類推。
+
+ 常數：零。
+
+ 函數符號：單一後繼函數 S 括號點 括號。
+、二元加法 就是一個加號：「加」。
+、二元乘法 就是一個「點」符號。
+
+ 謂詞符號：等號 等號。
+
+ 邏輯符號：念成：
+
+「邏輯非，接著是邏輯且，邏輯或，邏輯蘊含，然後是全稱量詞、存在量詞，最後是一對括號：左括號、右括號。」
+
+每個形式語言只處理符號與其合法組合；在純粹語法層次，並沒有「真或假」的概念。 
+為了談論真值，我們需要：
+
+ 一個結構 (structure) 或模型 (model) 花體的大寫英文字母 M。
+，對語言中符號賦予解釋；
+
+ 一個為每個句子 phi（φ）。
+ 指定「在 花體的大寫英文字母 M。
+ 中是否為真」的語意定義。
+
+這樣我們就能將自然語言的「這句話為真」轉化為形式語言中「句子 phi（φ）。
+ 在結構 花體的大寫英文字母 M。
+ 中為真」的形式敘述。
+
+2. 語法與語意：證明與真理的分離
+
+2.1 語法：可證性與形式推理
+
+在數學邏輯中，一個形式理論 T
+ 是由：
+
+ 一個語言 黑體花體的 L。
+，
+
+ 一組公理 A、x 下標 T 的這個集合，包含於語言 L 的句子集合裡。
+，
+
+ 推理規則，例如 Modus Ponens 等，
+
+所構成的系統，用來產生「可證的公式」。 
+我們寫
+
+T 可證出 phi。
+
+表示：在理論 T
+ 中，存在有限長度的證明序列，自公理與推理規則可導出公式 phi（φ）。
+。 
+這一切都是語法的：只是關於符號列與有限操作的組合。
+
+形式上，可以定義「證明」為一串公式
+π 等於括號裡面 phi 零、phi 一，一直到 phi n。
+
+其中每個 phi 下標 i
+ 要嘛是公理，要嘛由前面公式經推理規則推得，而最後一個 phi 下標 n 等於 phi。
+；於是我們說 π（唸作「派」）。
+ 是 phi（φ）。
+ 在 T
+ 中的證明。
+
+語法層面的核心觀點：
+
+ 是否「可證」是一個純機械 (mechanical) 的性質；
+
+ 可證性的概念可以在計算理論與遞歸理論下精確刻畫；
+
+ 哥德爾的關鍵創意在於：把「可證性」這個語法概念編碼進算術語句中，使算術能「談論自身的可證性」。
+
+ 圖 1-7: Diagram showing the syntactic world: axioms, proof rules, and proofs as sequences of formulas, with arrows indicating derivations; labeled "Syntax / Provability". No semantics yet.
+
+ Prompt: Diagram showing the syntactic world: axioms, proof rules, and proofs as sequences of formulas, with arrows indicating derivations; labeled "Syntax / Provability". No semantics yet.
+
+2.2 語意：模型與真理
+
+相對於「可證」的語法概念，我們有「為真」的語意概念。給定一個結構 花體的大寫英文字母 M。
+（例如自然數結構 念作：「黑板粗體的大寫 N，代表自然數集合。」
+）以及一個語句 phi（φ）。
+，我們寫：
+
+大寫花體的 M 滿足公式 phi。
+
+表示「phi（φ）。
+ 在模型 花體的大寫英文字母 M。
+ 中為真」。 
+真值的定義是遞迴地給出的：對原子公式（如 t 一號等於 t 二號。
+）、複合公式（如 phi 且 psi
+）與量詞（如 對所有的 x，phi。
+）分別定義。
+
+以一階語言為例，對原子公式
+R 括號 t 一到 t n。
+
+其在模型 花體的大寫英文字母 M。
+ 下的真值取決於：
+
+ 花體的大寫英文字母 M。
+ 的宇宙集 這裡就是一個大寫的英文字母 M。
+；
+
+ 語言中每個符號在 花體的大寫英文字母 M。
+ 的解釋，例如常數符號 c
+ 對應某個元素 c 的上標書寫一個花體的 M，屬於集合 M。
+，函數符號 f
+ 對應某個實際的函數 f 上標 calligraphic M，從 M 的 k 次笛卡兒積映到 M。
+，
+
+ 謂詞符號 R
+ 對應某個關係 大寫的 R 上標一個花體的 M，包含於大寫的 M 的 n 次笛卡兒積。
+。
+
+量詞的語意則基於「賦值」函數 s 從變數這個集合，映到 M。
+，例如
+
+這一行我們會念成：
+
+「在模型 M、指派 s 之下，滿足對所有 x 的 phi，當且僅當，對所有屬於大 M 的元素 a，模型 M、指派把 x 指派成 a 之後，也就是 s 把 x 映到 a，會滿足公式 phi。」
+
+之後 Tarski 的工作將顯示：在足夠強的算術系統內，「真值」這樣的語意概念無法被該系統自己以一個一階謂詞完全刻畫。這正是 Tarski 不可定義性定理的核心。
+
+ 圖 1-2: Two-column diagram: left column "Syntax / Provability", right column "Semantics / Truth". Arrows from formulas to "provable" on the left, and from formulas plus a model N to "true in N" on the right, emphasizing their distinction.
+
+ Prompt: Two-column diagram: left column "Syntax / Provability", right column "Semantics / Truth". Arrows from formulas to "provable" on the left, and from formulas plus a model N to "true in N" on the right, emphasizing their distinction.
+
+2.3 語法 vs. 語意的張力：完全性與不完備性
+
+Gödel 在 1930 年證明了一階邏輯的完全性定理：
+
+對任意一個一階句子 phi， 
+如果所有模型都滿足 phi，也就是說，模型括號等於 phi， 
+那麼就可以在證明系統裡推出 phi。
+
+也就是說，一階邏輯本身的證明系統在語義上是完整的。 
+然而，Gödel 於 1931 年接著證明的算術不完備性定理則表明：
+
+ 對任何足夠表達自然數算術的遞歸可列理論 T
+ 而言，都存在某個句子 G 下標 T。
+ 使得：
+ 如果 T 是一致的，則 T 推不出命題 ，而且 T 也推不出它的否定，不推得非 。
+
+關鍵在於： 
+不完備性定理並不是關於一階邏輯本身，而是關於以一階邏輯為語言的特定理論（如 Peano 算術）。 
+該定理的證明核心技術之一，就是把「自指」具體形式化：構造一個在算術中「談論自己不可證」的句子。
+
+3. 自指的形式基礎：編碼與算術化
+
+3.1 初步直覺：如何讓數學談論自身？
+
+為了在算術中談論「某個公式」、「某個證明」、「某個推理」等純符號對象，Gödel 採取策略：
+
+ 將每個符號、公式、證明序列等「語法對象」都編碼為自然數；
+
+ 用算術公式來描述這些自然數之間的性質；
+
+ 讓算術句子能夠描述「這個數字編碼了一個證明」、「這個數字編碼的公式滿足某性質」等。
+
+如此一來，算術系統內部就可以「談論自己的語法」，進而構造一個語句 G 下標 T。
+ 表示：
+
+括號引號裡面念成：「此語句在理論 T 當中不可證。」
+
+要實現這一步，我們需要兩個手段：
+
+ 一個有效的編碼 井字號這個函數，從語法對象映到自然數。
+；
+
+ 一個能夠在算術中定義「編碼關係」的謂詞。
+
+ 圖 1-1: Illustration showing formulas and proofs on the left being mapped via a function "#" to natural numbers on the right. Arrows labeled "Gödel numbering", with examples like "φ ↦ 12345".
+
+ Prompt: Illustration showing formulas and proofs on the left being mapped via a function "#" to natural numbers on the right. Arrows labeled "Gödel numbering", with examples like "φ ↦ 12345".
+
+3.2 一個典型的 Gödel 編碼架構
+
+我們不在此固定唯一的編碼方式，而是展示一個典型範型，重點在於「可遞歸性」與「可在算術中定義」。 
+令語言中的基本符號為一個有限或可數集合：
+
+大寫希格瑪等於一組集合，裡面包含元素：s 零、s 一、s 二，一直到無限多個點點點。
+
+為每個符號 念作：「s，下標 i」。
+ 指定一個自然數編碼 n 下標 i，大於等於 1。
+。 
+例如（簡化示意）：
+
+ s 零 等於 零。
+ 編碼為 一。
+，
+
+ s 一底標一，等於，大寫的 S。
+ 編碼為 二。
+，
+
+ 這個式子念作： 
+「s 二 等於 正號。」
+ 編碼為 三。
+，
+
+ 這個式子本身是不完整的，右邊只有一個點，沒有實際的數學內容，所以沒辦法用自然語句「念」成有意義的中文。
+
+如果你的本意是「s 三 等於點乘」之類的，請補上完整的右邊表達式，我才能幫你轉成口語。
+ 編碼為 四。
+，
+
+ 這裡就念成：
+
+「s 四 等於 等於。」
+ 編碼為 五。
+，
+
+ 這裡是「s 下標 5 等於左括號」。
+ 編碼為 六。
+，
+
+ 這裡的式子不完整，沒有辦法口語化地正確念出。 
+目前能看到的只有一個右括號，所以沒辦法判斷原本要表達的是什麼。
+ 編碼為 念成：「七」。
+，
+
+ 這個式子可以念成：
+
+「s 下標 7 等於 否定號。」
+ 編碼為 這一個就念成：「八」。
+，等等。
+
+對一個有限的符號列 s，下標 i 零、乘上 s 下標 i 一、一路乘到 s 下標 i k 減一。
+，例如一個公式，我們可以定義其 Gödel 數為：
+
+井號，括號裡面是 
+小 s，底下 i 零，接著小 s，底下 i 一，一直到小 s，底下 i 的 k 減一，括號關起來， 
+定義為，二 的 n 底下 i 零 次方，乘上，三 的 n 底下 i 一 次方，乘上，五 的 n 底下 i 二 次方， 
+一直乘到，第 k 個質數 的 n 底下 i 的 k 減一 次方。
+
+其中 p 下標 j
+ 是第 j
+ 個質數（p 下標零等於二，p 下標一等於三，p 下標二等於五，後面依此類推。
+）。 
+由於算術基本定理（每個 n 大於等於 2。
+ 可唯一分解為質數冪的乘積），我們知道這個編碼是單射：不同的符號列具有不同的 Gödel 數。
+
+更重要的是，這種編碼是遞歸的，意味著：
+
+ 從一個符號列可有效計算其 Gödel 數；
+
+ 反之，從一個自然數（在知道它是某符號列的 Gödel 數）也可以有效取回原始符號列，藉由質因數分解與指數讀取。
+
+因此，我們可以在算術中引入一個二元謂詞 念作：「大寫的 S e q，小括號裡面 x 逗號 y。」
+，意指「x
+ 是符號列 y
+ 的 Gödel 數」；進一步也可以有謂詞 普夫底線 T 括號 p 逗點 phi 括號
+ 表示「p
+ 編碼了一個在理論 T
+ 中以證明結束於公式 phi（φ）。
+ 的證明序列」。
+
+當然，真正嚴格的做法是要證明這些謂詞都是遞歸的（或更精確地，原始遞歸）並且在適當的算術理論（例如 Robinson 算術 大寫的 Q。
+ 或 Peano 算術 這個念成：P A。
+）內可表示。 
+這就導向下一個主題：「可表示性」。
+
+ 圖 1-4: A picture of the prime factorization representation of a Gödel number, e.g., N = 2^3 3^5 5^2 ..., with annotations showing how exponents correspond to symbol codes in a formula. Clear arrows indicating sequence ↔ number.
+
+ Prompt: A picture of the prime factorization representation of a Gödel number, e.g., N = 2^3 3^5 5^2 ..., with annotations showing how exponents correspond to symbol codes in a formula. Clear arrows indicating sequence ↔ number.
+
+3.3 可表示性與算術中的語法謂詞
+
+讓算術「談論自身」的關鍵技術語言是：在算術內可表示的關係。 
+形式定義如下。
+
+定義 3.1（關係的表示性） 
+令 R 是 N 的 k 次方裡面的一個子集合。
+ 為一個 k
+-元關係。若存在一個 k
+-元算術公式 phi 下標 R，括號裡面是 x1 到 xk。
+ 使得：
+
+一，如果 R 在括號裡面帶進 n1 到 nk 這個關係是成立的，那麼自然數結構，也就是那個黑板粗體的大寫 N，滿足 ϕ 下標 R，裡面帶進帶橫線的 n1 到帶橫線的 nk。 
+
+二，如果 R 在括號裡面帶進 n1 到 nk 這個關係是不成立的，那麼自然數結構 N 就滿足「非」 ϕ 下標 R，裡面一樣是帶進帶橫線的 n1 到帶橫線的 nk。
+
+其中 n 上面畫一橫 的這個符號。
+ 是表示自然數 這個就直接念成：「n」。
+ 的標準項（例如 S 作用在 S 作用在一直這樣疊上去，最後作用在 0 上。
+）。 
+則稱 phi 的右下標 R。
+ 在自然數結構 念作：「黑板粗體的大寫 N，代表自然數集合。」
+ 中定義（表示）了關係 R
+。
+
+更進一步，若我們考慮某理論 T
+（如 這個念成：P A。
+），則可以要求：
+
+括號一撇：如果，關係 R 在括號 n 一到 n k 上面成立， 那麼理論 T 可以證出，公式 φ 下標 R，帶入上劃線的 n 一到上劃線的 n k。 
+
+括號二撇：如果，關係 R 在括號 n 一到 n k 上面不成立， 那麼理論 T 可以證出，否定的 φ 下標 R，帶入上劃線的 n 一到上劃線的 n k。
+
+若一個遞歸（可計算）關係都在 T
+ 中可這樣表示，我們說 T
+ 對遞歸關係具有良好的表示性。 
+Gödel 的重要技術結論是：對於足夠強的算術理論，所有原始遞歸關係都可在理論中被表示。
+
+特別是，我們可以得到：
+
+ 一個公式 普夫底線 T 括號 p 逗點 phi 括號
+ 表示「p
+ 編碼為 T
+ 中的一個以 phi（φ）。
+ 結束的證明」；
+
+ 一個公式 P 里頭上標一個 T，括號裡面一個 x。
+（一元）表示「存在 p
+ 使得 p
+ 是某個證明，結尾公式的 Gödel 數是 x
+」。
+
+形式上：
+
+Prov 下標 T 括號 x，定義為：存在一個 p，使得 Proof 下標 T 括號 p 逗號 x。
+
+一旦這個語法性質被算術公式捕捉，我們就可以在算術語言中構造「談論自己是否可證」的句子。這正邁向 Gödel 不完備性定理的核心「自指句」構造。
+
+4. 自指的核心工具：對角化與固定點定理
+
+4.1 康托對角化的邏輯變形
+
+自指技術與「對角化」有深刻關係。 
+康托 (Cantor) 的對角化原本用來證明實數不可數，但在邏輯中我們常以「對角論證」來產生無法被某類列表完全捕捉的對象。
+
+邏輯版本的對角化大致精神為： 
+給定一個將公式（或語句）映到性質的編碼方式，我們構造一個「在第 這個就直接念成：「n」。
+ 個位置與第 這個就直接念成：「n」。
+ 個公式不同」的對象，使之「逃避」任何試圖完整列舉的機制。
+
+在自指邏輯裡，我們有一個更精準的版本：對角引理（也稱固定點引理）。 
+它說明：只要可以進行 Gödel 編碼與可表示性，就可以為任意謂詞 phi 括號 x。
+ 構造一個句子 psi
+ 使得：
+
+在自然數系，或者在一個適當的理論 T 裡面，有：psi 雙向推出 phi，裡面的參數是「左括號 psi 右括號」這個編碼。
+
+其中 左上角的括號，包住 psi。
+ 是 psi
+ 的 Gödel 數，而 phi 括號裡面代的是 psi 的戈德爾編碼。
+ 是將該數字代入 phi（φ）。
+ 中作為參數形成的新句子。
+
+ 圖 1-3: Diagram of diagonalization: a table with formulas along the rows and their images under a function, and a diagonal highlighted. Next to it, a schematic of a sentence ψ with an arrow to its own Gödel number ⟦ψ⟧, which is plugged into a formula φ(x).
+
+ Prompt: Diagram of diagonalization: a table with formulas along the rows and their images under a function, and a diagonal highlighted. Next to it, a schematic of a sentence ψ with an arrow to its own Gödel number ⟦ψ⟧, which is plugged into a formula φ(x).
+
+4.2 對角引理（固定點引理）的形式敘述
+
+定理 4.1（對角引理 / 固定點引理） 
+設 T
+ 為一個遞歸可列且足夠強的算術理論（例如包含 Robinson 算術 大寫的 Q。
+），並假設：
+
+ 我們有一個 Gödel 編碼 這個就是一個井字號。
+，
+
+ 以及一個在 T
+ 中可表示的替換函數 Sub，小括號裡面 x 跟 y。
+，滿足：「Sub 小括號 x, y 小括號，等於 z。
+ 表示從編碼為 x
+ 的公式中，把其自由變數 v
+ 都替換為編碼為 y
+ 的數字，得到公式的 Gödel 數為 這個就是「z」。
+」。
+
+那麼，對任何一元公式 phi 括號 x。
+，存在一個句子 psi
+（無自由變數）使得：
+
+T 證出來，psi 等價於 phi，裡面代入「psi 的哥德爾編碼」。
+
+這個 psi
+ 被稱為 phi（φ）。
+ 的一個固定點（或自指句）。
+
+這一定理是自指邏輯的核心。Gödel 的「此句不可證」句就是取
+phi 括號 x 等於 not，後面是 Prov 底線 T 括號 x。
+
+的固定點。 
+而 Tarski 在談論真理不可定義時，也使用類似的結構，只是將 phi 括號 x。
+ 解釋為「編碼為 x
+ 的句子為假」之類的語意性陳述。 
+因此，對角引理是後續多個深刻結果的共同基礎。
+
+4.3 對角引理的構造性證明（概要）
+
+我們給出 T
+ 內對角引理的一個簡要證明。 
+技術細節（例如精確定義 這個就念成：「Sub」。
+ 的表示性）可在後續講次或參考文獻中細查。
+
+證明思路：
+
+ 定義一個二元公式 beta，小括號 y，逗號，z，小括號。
+，直觀上表示：「這個就是「z」。
+ 是將編碼為 y
+ 的一元公式 \emph{對自身代入} 所得到的句子的 Gödel 數」。
+
+ 形式上：
+ β 的 y 逗號 z，定義成：存在一個 x，使得 x 等於 y，且 Sub 括號 x 逗號 y 括號 等於 z。
+
+ 在實務中，我們選擇一個更合適的公式使語意等價即可。
+
+ 接著，給定一元公式 phi 括號 x。
+，我們想要句子 psi
+ 滿足：
+ psi 對應到 phi，括號裡面帶上 psi 這個敘述的哥德爾編號。
+
+ 換句話說，令 θ，小括號裡面一個 y。
+ 為：
+ theta 括號 y，定義為，存在一個 z，使得，beta 括號 y 逗號 z，且 phi 括號 z。
+
+ 我們希望某個句子 psi
+ 滿足 psi 對應到 theta，裡面帶入 psi 的歌德編碼。
+。
+
+ 注意 西塔
+ 是一元公式，因此可以考慮其 Gödel 編號函數型的「自用」：
+ chi 定義成 theta 作用在「theta 的哥德爾編碼」這個東西上。
+
+ 這是一個明確的句子（無自由變數），因為 左上角括號，括住希臘字母 theta。
+ 是一個具體自然數，其標準表示 上橫線、左上角有個小角的那個希臘字母 θ。
+ 可以直接代入 θ，小括號裡面一個 y。
+ 得到句子。
+
+ 現在，根據 beta
+ 的語意，我們有：
+ T 可以證出，χ 等價於 φ 作用在「χ 的哥德爾編號」。
+
+ 此處要利用 beta
+ 的定義以及 這個就念成：「Sub」。
+ 的性質，證明 theta，括號裡面是「theta 的哥德爾編號」。
+ 正是將 phi（φ）。
+ 套用於 chi。
+ 的編號後所得。 
+ 這一步是技術核心，但原理上是：西塔
+ 的定義就是要保證此「自用」行為等價於「將自身代入」。
+
+ 令 psi 定義成 chi。
+，就得到了所需的固定點：
+ T 可以推出，psi 等價於 phi 作用在括號 psi 括號上。
+
+這個證明中最技術的部分，實際上在於證明「存在可表示的 這個就念成：「Sub」。
+」，以及把「自用」型的構造精確對應到「代入自身 Gödel 數」的操作。 
+不過哲學層面的直覺相當清楚： 
+我們構造一個句子，它在內部「把自己當作參數餵進某個謂詞」，於是得到一個真正意義上的「談論自身」的句子。
+
+ 圖 1-8: Flowchart showing the construction in the diagonal lemma: start from φ(x), construct θ(y), then form χ = θ(⟦θ⟧), finally identify ψ := χ and conclude ψ ↔ φ(⟦ψ⟧). Emphasize substitution and fixed point.
+
+ Prompt: Flowchart showing the construction in the diagonal lemma: start from φ(x), construct θ(y), then form χ = θ(⟦θ⟧), finally identify ψ := χ and conclude ψ ↔ φ(⟦ψ⟧). Emphasize substitution and fixed point.
+
+5. 自指的不同層級：語法自指 vs 語意自指
+
+5.1 「此句不可證」與「此句為假」的差別
+
+Gödel 與 Tarski 的自指都源自對角引理，但他們談論的是不同的對象：
+
+ Gödel 自指：「此句在理論 T
+ 中不可證。」 
+
+ 這是一個語法性質——是否存在證明。用的是 P 里頭上標一個 T，括號裡面一個 x。
+ 這樣算術內可表示的謂詞。
+
+ Tarski 自指：「此句在結構 念作：「黑板粗體的大寫 N，代表自然數集合。」
+ 中為假。」 
+
+ 這是一個語意性質——真值在模型中的評價。嘗試用一個算術謂詞 大寫的 T r u e，括號裡面一個小寫的 x。
+ 來表示「編號為 x
+ 的句子在 念作：「黑板粗體的大寫 N，代表自然數集合。」
+ 中為真」會導致不可定義性。
+
+兩者都用到「把句子的 Gödel 數餵進某個謂詞」，其相似之處是明顯的；差別在於：
+
+ 「可證性」是遞歸可枚舉的關係，可以被算術定義；
+
+ 「真值」不是這樣一個簡單的遞歸關係，嘗試把它內含進同一階語言會產生矛盾（Tarski 定理）。
+
+理解這個區別，是後續了解為何 Gödel 只導致「不完備」而非直接矛盾、為何 Tarski 要分層語言（對像語言 vs. 描述其真值的元語言）的關鍵。
+
+5.2 語法自指：在系統內談論「證明」
+
+如前述，我們有：
+
+「在理論 T 之下，Prov 函數作用在 x 上，定義成：存在一個 p，使得在理論 T 之下，Proof 函數作用在 p 和 x 上成立。」
+
+並在 T
+ 內可以證明一系列性質（Hilbert–Bernays–Löb 條件）例如：
+
+ T 輸出可證「phi」之後，推出可證「可證 phi」。
+
+ 在理論 T 之下可以證明：「phi 蕴涵 psi」這個命題是可證的，蕴涵於：如果「phi 是可證的」，那麼「psi 也是可證的」。
+
+ 在理論 T 之下可以證明「phi 在 T 裡是可證的」，就會推出 phi。
+（此性質在不同版本下有細節差異，需要假定 T
+ 的「歐米伽。
+-一致」或反映性質）。
+
+對角引理保證，我們能對 phi 括號 x 等於「不是」 T 的 prov 括號 x。
+ 構造固定點 G 下標 T。
+ 滿足：
+
+T 可以證出，G 下標 T，等價於「不是 T 可證 G 下標 T 這個句子本身」。
+
+在假設 T
+ 一致性之下，可以推導：
+
+ T 不證得 G 下標 T。
+（否則 T
+ 也能證明 prov 下標 T，裡面帶上括號的 G 下標 T 的哥德爾碼。
+，與 雙向推出 「不是 Prov 下標 T，括號裡面是 的哥德爾編碼」。
+ 衝突）；
+
+ 在自然數結構 念作：「黑板粗體的大寫 N，代表自然數集合。」
+ 中，實際上 G 下標 T。
+ 為真（這需要更多細節，後續講解）。
+
+此時 G 下標 T。
+ 就是「此句在 T
+ 中不可證」的正式化版本，是語法自指的典範。
+
+ 圖 1-9: Schematic formula G_T with a text "This sentence is not provable in T", arrows from G_T to Prov_T(⟦G_T⟧) showing the equivalence G_T ↔ ¬Prov_T(⟦G_T⟧).
+
+ Prompt: Schematic formula G_T with a text "This sentence is not provable in T", arrows from G_T to Prov_T(⟦G_T⟧) showing the equivalence G_T ↔ ¬Prov_T(⟦G_T⟧).
+
+5.3 語意自指：在系統內談論「真值」
+
+若我們嘗試在算術語言中加上一個一元謂詞 T 括號 x。
+ 意圖表示「x
+ 是某個在 念作：「黑板粗體的大寫 N，代表自然數集合。」
+ 中為真的算術句的 Gödel 數」，並期望在理論 S。
+ 中滿足 Tarski 條件：
+
+S 證明，T 作用在「phi」的哥德爾編碼上，等價於 phi 本身。
+
+對所有算術句 phi（φ）。
+ 成立，那麼藉由對角引理，我們可以令
+phi 括號 x 定義為 not T 括號 x。
+
+得到一個固定點 psi
+ 符合：
+
+S 可以推出：psi 等價於「不是 T 作用在 psi 這個句子的編碼上」。
+
+若 T
+ 真的是「在 念作：「黑板粗體的大寫 N，代表自然數集合。」
+ 中的真值謂詞」，那麼
+自然數結構滿足，「Ｔ 作用在括號 psi 括號」當且僅當 psi。
+
+從而在 念作：「黑板粗體的大寫 N，代表自然數集合。」
+ 中也得到：
+自然數結構滿足，psi 等價於非 psi。
+
+這顯然矛盾。 
+這就是為何不存在一個算術一階公式 大寫的 T r u e，括號裡面一個小寫的 x。
+ 可以為所有算術句提供正確的真值判定；這會導致語意自指引發直接矛盾。 
+Tarski 不可定義性定理由此而來，我們將在後續講次深入證明。
+
+6. 自指與計算：從邏輯語句到程式與機器
+
+6.1 自指在計算理論中的對應：自我應用與固定點
+
+在計算理論中，Kleene 的第二遞歸定理與不動點定理提供了與對角引理極為相似的結構： 
+給定任一可計算轉換 f
+（將程式編號映到程式編號），存在一個程式 e
+ 使得：
+
+phi 下標 e 等於 phi 下標 f 括號 e。
+
+也就是說，程式 e
+ 的行為正好與「把 e
+ 的編號交給 f
+ 所得到的程式」一致。 
+抽象上，這就是「程式讀取與使用自身程式碼」的能力——一種計算版的自指。
+
+這與 Gödel 式對角化的平行關係非常緊密。稍後在討論 von Neumann 自複製機器時，我們會看到類似觀念如何在自動機與工程系統中具體實現： 
+讓一個機器能夠「讀取自身描述」並建造一個副本。
+
+ 圖 1-5: Parallel diagram: on the left, logical diagonal lemma constructing ψ with ψ ↔ φ(⟦ψ⟧); on the right, a computability diagram showing a program e feeding its own code into a transformation f to yield an equivalent program, illustrating Kleene’s recursion theorem.
+
+ Prompt: Parallel diagram: on the left, logical diagonal lemma constructing ψ with ψ ↔ φ(⟦ψ⟧); on the right, a computability diagram showing a program e feeding its own code into a transformation f to yield an equivalent program, illustrating Kleene’s recursion theorem.
+
+6.2 自指與 Halting Problem、不可判定性
+
+自指結構在計算理論中最著名的應用之一是 Halting Problem 的不可判定性。 
+以對角論證方式，我們假設存在一個決定任意程式是否停機的程式 H
+，然後構造一個程式 大寫的英文字母 D。
+：
+
+D(e): 
+ 若 H(e,e) 認為「e 在輸入 e 上會停機」，則 D(e) 進入無窮迴圈； 
+ 否則 D(e) 立刻停機。
+
+接著問 D 括號 d
+（這個就是一個小寫的字母 d。
+ 為 大寫的英文字母 D。
+ 的程式編號）是否停機，就得到與說謊者悖論極為類似的結構。 
+核心在於： 
+程式 大寫的英文字母 D。
+ 利用 H
+「談論自身在某輸入上的行為」，進而製造矛盾或不可能的情況。 
+整個結構與「此句不可證」或「此句為假」的自指形式具有明顯對應。
+
+從邏輯到計算，自指與對角化構成了「不可判定性」、「不完備性」的一條貫穿線索。 
+von Neumann 自複製機器、現代程式語言中的 Quine 程式（輸出自身原始碼的程式）也都可視為這條線上的工程與實作面展開。
+
+7. 本講小結與後續展望
+
+7.1 本講重點回顧
+
+ 我們從自然語言中的自指與悖論（如說謊者悖論）出發，動機是想了解：在嚴格的數學邏輯中，自指如何形式化？
+
+ 我們區分了語法（符號、公式、證明、可證性）與語意（模型、真值）這兩個層次，並說明 Gödel 與 Tarski 分別在不同層次上刻畫自指結構。
+
+ 透過 Gödel 編碼，我們可以將「公式」「證明」等語法對象編碼為自然數，進而在算術語言裡定義「編碼關係」與「證明關係」。
+
+ 「可表示性」概念使我們可以在算術中以公式描述可計算關係，特別是證明關係 這個符號念作：「Proof，下標 T」。
+ 與可證性謂詞 唸作：「大寫 P、r、o、v，下標大寫 T。」
+。
+
+ 對角引理（固定點引理）是自指邏輯的技術核心：對任何一元公式 phi 括號 x。
+，我們都可以在足夠強的理論中構造一個句子 psi
+ 滿足 psi 對應到 phi，括號裡面是「psi 的哥德爾編號」。
+。
+
+ 語法自指（「此句不可證」）導向 Gödel 不完備性定理；語意自指（「此句為假」）則導向 Tarski 的真理不可定義性。兩者皆以對角化與自用機制為共同基礎。
+
+ 在計算理論中，Kleene 遞歸定理、Halting Problem 等也展現了高度類似的自指結構，為我們連結後續 von Neumann 自複製機器的主題鋪路。
+
+7.2 下一講預告：走向 Gödel 不完備性定理
+
+在第 2 講中，我們將專注於 Gödel 第一不完備性定理的完整證明。 
+具體來說，我們會：
+
+ 精確定義「遞歸可列理論」、「算術可表達性」；
+
+ 在 Peano 算術或其子系統中建構完整的 Gödel 編碼與 普夫底線 T 括號 p 逗點 phi 括號
+ 表示性；
+
+ 運用對角引理構造自指句 G 下標 T。
+，並詳細推導：
+ 若 T 是一致的，則 T 推不出 ，而且在適當條件之下，自然數結構滿足 。
+
+ 進一步討論第二不完備性定理，即「T
+ 無法證明自身的一致性」。
+
+這將讓我們從「自指的語言層面」正式進入「不完備性定理」的細緻技術與哲學含義。
