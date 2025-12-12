@@ -1,0 +1,639 @@
+第 3 講：Holonomic Quantum Computation 主題 3：非阿貝爾幾何相位與通用量子門構造
+
+本講承接前兩講，聚焦於 非阿貝爾幾何相位（Wilczek–Zee 相位） 在 Holonomic Quantum Computation（HQC）中的實作與通用量子計算能力。我們將：
+
+ 系統性地從 退相（degenerate）能譜 出發推導非阿貝爾幾何相位。
+
+ 說明 非阿貝爾接續（non-Abelian connection） 與 曲率（curvature） 如何決定可實作的量子門。
+
+ 給出具體範例：三能級 Lambda 系統、四能級 tripod 系統 等，展示如何在退化態空間中實現 單量子位 holonomic gate。
+
+ 討論 holonomy 群與通用性條件，說明何時一組幾何門可以產生整個 **S U 括號 2 的 n 次方**
+。
+
+本講目標是讓讀者能夠：
+
+ 從頭推導非阿貝爾幾何相位的數學結構。
+
+ 理解 HQC 中「控制參數空間上的路徑」如何對應到「Hilbert 空間上的量子門」。
+
+ 掌握設計 Holonomic 量子邏輯閘的基本原則與技術。
+
+3.1 非阿貝爾幾何相位的數學結構
+
+3.1.1 退化能譜與瞬時本徵子空間
+
+考慮一族依賴於控制參數 lambda 屬於集合 M 裡面。
+ 的哈密頓量：
+H 括號 lambda，逗號。 
+lambda 等於括號裡面，lambda 一、lambda 二，一直到 lambda d。
+
+其中 大寫花體的 M。
+ 為控制參數流形（manifold）。假設在某一能階 E 括號 lambda 括號
+ 上存在 有限維退化子空間：
+H 括號 lambda 作用在 ket phi 下標 a 括號 lambda，上面這個等於 E 括號 lambda 乘上 ket phi 下標 a 括號 lambda，逗點，a 從一到 K。
+
+並且對每一個 念作：「lambda」。
+，大括號，phi 下標 a、依賴 lambda 的 ket，從 a 等於一一路到 K。
+ 形成一組規範化正交基底：
+內積，左邊是 φ 下標 a、參數 λ，右邊是 φ 下標 b、參數 λ，等於 δ 下標 a b。
+
+這個 K
+ 維的退化本徵空間在參數空間上形成一個向量叢（vector bundle）：
+大寫花體的 E 對應到大寫花體的 M， 
+ 對應到希塔 lambda 的希爾伯特空間 ，等於 ket phi 下標 a、參數 lambda，所張成的線性空間。
+
+若我們在參數空間中沿著一條閉合路徑
+伽瑪，從區間零到大寫的 T 映到流形大寫的 M， 
+把變數 t 映到 λ 括號 t， 
+而且滿足 λ 零等於 λ 大寫的 T。
+
+做 絕熱演化，初始位於該退化子空間的量子態便會在此子空間內做一個 單位ary變換，該變換恰為「幾何起源」的非阿貝爾 holonomy。
+
+ 圖 3-2: A schematic of a parameter manifold M with a closed loop gamma, and at several points along the loop small vector spaces (degenerate eigenspaces) attached as fibers, illustrating a vector bundle over M and the parallel transport of a basis around the loop, returning rotated by a non-Abelian holonomy.
+
+ Prompt: A schematic of a parameter manifold M with a closed loop gamma, and at several points along the loop small vector spaces (degenerate eigenspaces) attached as fibers, illustrating a vector bundle over M and the parallel transport of a basis around the loop, returning rotated by a non-Abelian holonomy.
+
+3.1.2 絕熱演化與態向量在退化子空間的展開
+
+令系統哈密頓量沿著路徑 lambda 括號 t 括號。
+ 緩慢變化，滿足絕熱條件，使得態始終停留在該退化能階上。將量子態 ket psi 左括號 t 右括號
+ 展開在瞬時退化本徵基底上：
+psi 括號 t 這個態，等於從 a 等於一到 K 的總和，c 下標 a 括號 t，乘上指數的負 i 除以 ħ，乘上從零到 t 的積分，E 括號 lambda 括號 t 逼近 這個函數、對 t 逼近 做積分，全部放在指數裡面，然後再乘上 phi 下標 a 括號 lambda 括號 t 這個 ket。
+
+將此展開帶入時間依賴 Schrödinger 方程：
+i 乘上 ħ，再乘上 d psi t 對 t 的微分，等於 H 括號裡是 lambda t，作用在 ket psi t 上。
+
+得到
+i 乘上 ħ，對 a 做總和，點 c 下標 a 括號 t，乘上指數的負 i 除以 ħ，乘上從零到 t 的 E 對 t 撇積分，然後乘上 ket φ 下標 a，
+
+加上 i 乘上 ħ，對 a 做總和，c 下標 a 括號 t，乘上同樣那個指數，然後乘上對 t 微分的 ket φ 下標 a，
+
+等於 E 括號 λ 括號 t，乘上對 a 的總和，c 下標 a 括號 t，乘上同樣那個指數，再乘上 ket φ 下標 a。
+
+將 E，小括號裡面是 lambda 括號 t。
+ 對應的動力學相位因子約掉，投影到退化子空間上，利用 phi 下標 b 和 phi 下標 a 的內積，等於 delta 下標 b a。
+，可得：
+i 乘上 h bar，乘上 c 下標 b 對時間的導數，加上 i 乘上 h bar，乘上對 a 的總和，c 下標 a 括號 t，乘上內積，phi 下標 b 括號 lambda 括號 t 裡面，豎線，phi 下標 a 上面加個點，括號 lambda 括號 t，右邊等於零。
+
+或
+c 下標 b 的時間導數，等於負的，對所有 a 做總和，把 c 下標 a 的 t，相乘內積括號裡面這一項：phi 下標 b、在 lambda of t 的函數值，這個 bra，乘上 phi 下標 a、在 lambda of t 的函數值的時間導數，這個 ket。
+
+定義非阿貝爾「連接」（connection）矩陣：
+左邊是大 A，下標 μ，括號裡是 λ，把整個這個矩陣的 b a 元素拿出來， 
+等於右邊的 i，乘上內積，bra φ 下標 b，括號 λ，夾著偏微分 μ 作用在 ket φ 下標 a，括號 λ。
+
+然後偏微分 μ 被定義成，對 λ 上標 μ 的偏微分，也就是偏除以偏 λ 上標 μ。
+
+則
+內積 phi 下標 b 和 phi 下標 a 上方加點， 
+等於對 mu 求和，lambda 上標 mu 加點，乘上內積 phi 下標 b 和對 mu 偏微的 phi 下標 a， 
+等於負的 i，乘上對 mu 的總和，lambda 上標 mu 加點，乘上 A 下標 mu 的 b a 分量。
+
+於是演化方程變成
+c 底標 b 的時間導數，等於 i 乘上，對 a 跟 μ 做求和，點 λ 上標 μ 的時間函數，乘上 A μ 在 λ 的函數括號裡的 b a 分量，再乘上 c 底標 a 的時間函數。
+
+以矩陣記號寫成
+c 對時間的導數，等於 i 乘上，對所有 μ 的總和，λ 上標 μ 對時間的導數，乘上 A 下標 μ，在 λ 的函數上評估，再乘上 c。
+
+其中 粗體的 c 括號 t 括號。
+ 為 K
+ 維向量，A 下標 μ。
+ 是 K 乘上 K
+ 反 Hermitian 矩陣（因為 connection 是 u 括號 K
+ Lie 代數值）。
+
+3.1.3 非阿貝爾 holonomy 與 path-ordered exponential
+
+對上述微分方程積分，可得在時間 這個就是一個大寫的英文字母 T。
+ 的係數向量：
+粗體的 c 在時間大寫 T 的時候，等於路徑排序的指數運算子，作用在括號裡面是：i 乘上從零到大寫 T 的時間積分，積分變數是 t，裡面是 lambda 的上標 mu 對 t 的時間微分，再乘上 A 下標 mu，在參數 lambda 依賴 t 的這條路徑上評估，整個指數算完之後再去作用在粗體的 c 在時間零。
+
+其中 這個就是花體的大寫 P。
+ 表示路徑排序（path ordering）。令
+Gamma 中括號 gamma，等於 calligraphic P，乘上 exp，括號裡面是 i 乘上沿著路徑 gamma 的積分，A 下標 μ 的函數，變數是 lambda，乘上 d lambda 上標 μ。
+
+則 Gamma 左中括號 gamma 右中括號 屬於 U 括號 K。
+ 即為非阿貝爾幾何相位（holonomy），其作用於退化子空間上的量子態：
+ket psi 括號 T 等於，指數函數裡面是負的 i 除以 ħ，乘上從零到 T 的積分，積分的被積函數是 E 括號 lambda 括號 t，然後 dt。這一整個指數因子，乘上 gamma 中括號 gamma 這個算符，再作用在 ket psi 括號零 上。
+
+因此，在絕熱極限下，退化本徵子空間的動力學演化由動力學相位與幾何 holonomy 的乘積構成。
+
+若可以設計參數空間上的閉合路徑 好，這個就念成：
+
+「伽瑪」。
+，使得 伽瑪中括號伽瑪。
+ 等於我們希望實作的量子邏輯閘 U gate
+，則在該退化子空間上即可實現 純幾何性的量子門。
+
+ 圖 3-9: Diagram showing a closed loop gamma on parameter space, a gauge potential A_mu, and the resulting holonomy Gamma[gamma] acting as a unitary rotation in a K-dimensional degenerate subspace.
+
+ Prompt: Diagram showing a closed loop gamma on parameter space, a gauge potential A_mu, and the resulting holonomy Gamma[gamma] acting as a unitary rotation in a K-dimensional degenerate subspace.
+
+3.1.4 規範轉換、Berry connection 與曲率
+
+基底 一整組的 ket phi 下標 a，括號裡是 lambda。
+ 並非唯一，我們可以在每一點 念作：「lambda」。
+ 對退化子空間做一個單位ary變換：
+phi 下標 a、參數 lambda 的 ket，映到 phi prime 下標 a、參數 lambda 的 ket，等於對所有 b 做總和，把 phi 下標 b、參數 lambda 的 ket，乘上 U 下標 b a、參數 lambda。 
+其中 U 括號 lambda 是屬於 U K 這個群。
+
+在此規範轉換（gauge transformation）下，connection 轉換為
+A 撇下標 μ 等於 U 的反元素乘上 A 下標 μ 再乘上 U，加上 i 乘上 U 的反元素，再乘上對 μ 的偏微分作用在 U 上。
+
+這與 Yang–Mills 規範場的變換律完全相同。曲率張量（field strength）定義為
+F 下標 μ ν，等於偏導數對 μ 作用在 A ν，減掉偏導數對 ν 作用在 A μ，再減掉 i 乘上 A μ 跟 A ν 的對易子。
+
+在規範轉換下
+F 撇，下標 μ ν，等於 U 的反元素，乘上 F 下標 μ ν，再乘上 U。
+
+因此，曲率的譜（例如跡或不變量）是規範不變的物理量。
+
+當 K 等於一。
+ 時，connection 與曲率皆退化為 U(1) Berry 連接與 Berry 曲率，此時 holonomy 變成一道乘法相位：
+Gamma 括號 gamma 等於 exp 括號裡面是 i 乘上，沿著迴圈 gamma 的閉合線積分，積分裡面是 script A 下標 μ，乘上 d lambda 上標 μ，括號關起來。逗號，接著 script A 下標 μ 等於 i，乘上，bra phi 接上 partial 下標 μ 的 ket phi。
+
+當 K 大於 1。
+ 時，holonomy 成為一個一般的 U(K) 矩陣，稱為 非阿貝爾 Berry phase 或 Wilczek–Zee phase。
+
+3.2 Holonomic Quantum Computation 的基本原理回顧
+
+3.2.1 Holonomic gate 之定義
+
+在 HQC 中，我們選定一個 K
+ 維退化子空間 黑板粗體的 H，下標寫一個 code。
+ 作為邏輯量子位的編碼空間，例如
+這個等號念成：
+
+「 的 code 空間，同構於維度二的 n 次方的複數向量空間。」
+
+對於 n
+ 個邏輯 qubit。令 念作：「lambda」。
+ 表示一組「可控制的外參」：例如雷射場的 Rabi 頻率、磁場方向、超導量子比特間的耦合強度等。透過緩慢（絕熱）地改變 lambda 括號 t 括號。
+，使其在參數空間 大寫花體的 M。
+ 上描出一條閉合路徑 好，這個就念成：
+
+「伽瑪」。
+：
+lambda 括號零 等於 lambda 括號大寫 T 等於 lambda 零 下標零。
+
+由此產生的 holonomy
+伽瑪中括號蓋瑪，從 code 希爾伯特空間，映到 code 希爾伯特空間。
+
+即為一個量子邏輯閘。此閘的形式完全由幾何資訊決定：
+Γ 右括號 gamma 左括號，等於，路徑排序算符 P，作用在指數上，指數是：i 乘上，沿著路徑 gamma 的閉合路徑積分，A 下標 μ 括號 λ 括號，乘上 d λ 上標 μ。
+
+因此，HQC 的設計問題可表述為：
+
+ 給定一個可控哈密頓量族 H 括號 lambda 括號
+ 以及編碼空間 黑板粗體的 H，下標寫一個 code。
+。
+
+ 選擇一組可實作的閉合路徑族 大括號 gamma。
+ 在 大寫花體的 M。
+ 上，使其對應的 holonomy 伽瑪中括號伽瑪。
+ 生成一個足夠大的子群，理想情況下為整個 **S U 括號 2 的 n 次方**
+。
+
+這個子群稱為 holonomy 群 或 holonomy group，記為 Hol 括號 calligraphic E。
+。
+
+ 圖 3-10: Illustration of a degenerate code subspace H_code encoded in a physical Hilbert space, and several closed loops in parameter space each labeled with the corresponding gate U1, U2, U3 acting on H_code.
+
+ Prompt: Illustration of a degenerate code subspace H_code encoded in a physical Hilbert space, and several closed loops in parameter space each labeled with the corresponding gate U1, U2, U3 acting on H_code.
+
+3.2.2 Holonomy 群與通用量子計算條件
+
+數學上，給定一個具有 connection A
+ 的向量叢 花體的 E 映射到花體的 M。
+，holonomy 群 霍尔下標 lambda，括號裡面是 calligraphic E 跟 A。
+ 定義為：所有以基點 念作：「lambda」。
+ 為起點與終點的閉合路徑所產生的 holonomy 的集合：
+Hol 下標 λ，括弧 E 跟 A，等於大括號裡面所有的 Γ 中括號 γ，這些 γ 是從區間零到一映到流形 M 的路徑，而且滿足起點 γ 零 等於 終點 γ 一 都是 λ。這一整個集合是包含在 U 括弧 K 裡面。
+
+若在我們選取的基底下，此群在 H 子空間的 code，會同構於二的 n 次方維的複向量空間。
+ 上的作用包含整個 **S U 括號 2 的 n 次方**
+（或至少是一組能生成 **S U 括號 2 的 n 次方**
+ 的門集合），則 HQC 是 通用 的。
+
+有一個關鍵幾何事實（Ambrose–Singer 定理的一個物理直觀版本）：
+
+ 在某些正則條件下，holonomy 群由 connection 的曲率 F 下標 μ ν
+ 在參數空間 大寫花體的 M。
+ 上的值所生成。粗略地說，若在 大寫花體的 M。
+ 上的某些區域，曲率張量在 Lie 代數 u 括號 K
+ 中張成一個「足夠大」的子空間，則 holonomy 群會相應地「大到」能逼近整個 U 括號 K
+。
+
+因此，HQC 的設計可轉化為：在可控哈密頓量族下，使退化子空間的 Berry 曲率足以生成一個通用的 holonomy 群。
+
+3.3 非阿貝爾幾何相位的具體範例：三能級 Lambda 系統
+
+3.3.1 Lambda 系統與暗態子空間
+
+考慮一個標準的三能級 Lambda 型原子系統，具有兩個穩定基態 ket 零，逗號，ket 一。
+ 以及一個激發態 ket e
+。兩束雷射場分別耦合 ket 零 對應到 ket e。
+ 與 ket 一 雙向對應 ket e。
+，有效哈密頓量在旋轉框架與旋波近似下可寫為（忽略總能量平移）：
+H 等於 ħ 除以二，乘上括號裡面， 
+Omega 零 乘上 ket e bra 零，加上 Omega 一 乘上 ket e bra 一，再加上它的厄米共軛，括號閉起來。
+
+其中 歐米伽零，逗號，歐米伽一。
+ 為複數 Rabi 頻率。
+
+ , |1>, and |e>, with two laser fields coupling |0>-|e> and |1>-|e>, labeled by complex Rabi frequencies Omega_0 and Omega_1.">
+ 圖 3-8: Level diagram of a three-level lambda system with states |0>, |1>, and |e>, with two laser fields coupling |0>-|e> and |1>-|e>, labeled by complex Rabi frequencies Omega_0 and Omega_1.
+
+ Prompt: Level diagram of a three-level lambda system with states |0>, |1>, and |e>, with two laser fields coupling |0>-|e> and |1>-|e>, labeled by complex Rabi frequencies Omega_0 and Omega_1.
+
+定義二維「邏輯空間」：
+H 邏輯，等於，由 ket 零 跟 ket 一 所張成的線性空間。
+
+以及一個「暗態」與「亮態」的線性組合：
+ket D 等於，二分之一個歐米伽的倒數，乘上，歐米伽一的共軛，乘上 ket 零，減掉，歐米伽零的共軛，乘上 ket 一。
+
+ket B 等於，二分之一個歐米伽的倒數，乘上，歐米伽零乘上 ket 零，加上，歐米伽一乘上 ket 一。
+
+其中
+歐米伽等於，絕對值歐米伽零的平方，加上絕對值歐米伽一的平方，整個再開根號。
+
+容易驗證：
+內積 D B 等於零，然後內積 D D 等於一，內積 B B 也等於一。
+
+在 左大括號，ket D、逗號、ket B、逗號、ket e，右大括號。
+ 基底下，哈密頓量變為
+H 等於 ħ 除以二，乘上大 Omega，再乘上，ket e bra B 加上 ket B bra e。
+
+而 ket D
+ 完全解耦合自 ket e
+；因此 ket D
+ 是一個 暗態，對應本徵值為 0。另一方面，ket 大寫 B
+ 與 ket e
+ 形成一個兩層子系統，其能階分裂為 正負，二分之一 乘上 ħ 歐米伽。
+。
+
+若我們選擇 工作子空間 為 H code 等於由 ket D 跟 ket e prime 所張成的線性空間。
+，其中 ket e 撇
+ 是某個適當的激發組合（或進一步嵌入到更大多能級結構中），則可以透過控制 歐米伽零，逗號，歐米伽一。
+ 的相對幅度與相位，在參數空間中描出閉合路徑，從而產生非阿貝爾幾何相位。為了示範幾何結構，我們先專注在 ket D
+ 的 Berry 連接。
+
+3.3.2 參數化 Rabi 頻率與幾何結構
+
+令
+歐米伽零，等於歐米伽乘上 cos 的括號 theta 除以二，再乘上指數函數 e 的 i 乘上 phi 零 次方。
+
+逗號。
+
+歐米伽一，等於歐米伽乘上 sin 的括號 theta 除以二，再乘上指數函數 e 的 i 乘上 phi 一 次方。
+
+其中 θ 介於 0 到 π 之間。
+，phi 零跟 phi 一都屬於從零到二 pi 的這個區間，注意是包含零但不包含二 pi。
+。暗態可寫為
+ket D 括號 theta 跟 phi 
+等於 
+sin 括號 theta 除以二 括號 結束 
+乘上 e 的負 i 乘上 phi 除以二 次方 乘上 ket 零 
+減掉 
+cos 括號 theta 除以二 括號 結束 
+乘上 e 的正 i 乘上 phi 除以二 次方 乘上 ket 一。
+
+其中 phi 等於 phi 一 減掉 phi 零。
+ 為相對相位。可以看出，Ket，大 D，括號裡面是 theta 跟 phi。
+ 實際上是邏輯 qubit 的一個 Bloch 球參數化：
+ket D 括號 theta 跟 phi，定義為，cos 括號 theta 波浪 上面那個 theta 除以二 括號，乘上 ket 零 的 L 邏輯態，
+
+加上，指數 i 乘上 phi 波浪 的相位因子，再乘上 sin 括號 theta 波浪 除以二 括號，然後乘上 ket 一 的 L 邏輯態。
+
+只是對應角度做了重標定。這表示：控制 西塔、逢。
+ 即是在 Bloch 球上移動暗態。
+
+ , with parameters theta and phi labeling a point on the sphere, and a path drawn on the sphere corresponding to varying Rabi amplitude ratio and phase.">
+ 圖 3-7: Bloch sphere representing the dark state |D(theta,phi)>, with parameters theta and phi labeling a point on the sphere, and a path drawn on the sphere corresponding to varying Rabi amplitude ratio and phase.
+
+ Prompt: Bloch sphere representing the dark state |D(theta,phi)>, with parameters theta and phi labeling a point on the sphere, and a path drawn on the sphere corresponding to varying Rabi amplitude ratio and phase.
+
+計算暗態的 Berry connection：
+A 下標 μ，等於 i 乘上內積，bra D ket偏 μ 的 D，逗號，μ 屬於大括號 θ 跟 φ。
+
+直接計算可得
+A 下標 θ 等於零，逗號， 
+A 下標 φ 等於二分之一乘上括號，一減掉 cos θ，括號。
+
+因此，Berry 曲率
+F 下標 θφ，等於 對 θ 的偏微分作用在 A 下標 φ，減掉 對 φ 的偏微分作用在 A 下標 θ，等於二分之一乘上 sine θ。
+
+這與 spin-二分之一。
+ 粒子在磁場中的 Berry 曲率完全同構。對閉合路徑 好，這個就念成：
+
+「伽瑪」。
+ 產生的幾何相位為
+幾何伽瑪，等於沿著路徑 gamma 的線積分，積分 A 下標 μ，乘上 d lambda 上標 μ， 
+等於二分之一，對曲面西格瑪做二重積分，積分 sin theta，d theta，d phi， 
+等於二分之一，乘上曲面西格瑪所對應的立體角歐米伽。
+
+其中 大寫的歐米伽，下標西格瑪。
+ 為路徑 好，這個就念成：
+
+「伽瑪」。
+ 在 Bloch 球上所包圍的立體角。這是 阿貝爾 Berry 相位 的經典結果。
+
+若僅使用暗態一維子空間，所得到的是一個 U(1) 幾何相位，尚不足以形成非阿貝爾 holonomy。欲得到真正的非阿貝爾結構，我們需要至少兩維的退化子空間。這可藉由擴展至四能級 tripod 系統或多 Lambda 結構來達成。
+
+3.4 Tripod 四能級系統中的非阿貝爾 holonomy
+
+3.4.1 Tripod 模型與兩維暗態子空間
+
+考慮一個四能級系統：三個「基態」 kets 0、1、2。
+ 與一個激發態 ket e
+，三束雷射場分別耦合
+Ket 零 對應到 Ket e， 
+Ket 一 對應到 Ket e， 
+Ket 二 也對應到 Ket e。
+
+組成一個「tripod」結構。哈密頓量可寫為
+H 等於 ħ 除以二，乘上括號裡面： 
+大歐米伽零，乘上 ket e bra 零， 
+加上大歐米伽一，乘上 ket e bra 一， 
+加上大歐米伽二，乘上 ket e bra 二， 
+再加上它的厄米共軛。
+
+其中 大寫歐米伽，下標 j。
+ 為複數 Rabi 頻率。
+
+ , |1>, |2> coupled to a common excited state |e> by three lasers with Rabi frequencies Omega_0, Omega_1, Omega_2.">
+ 圖 3-6: Energy level diagram of a tripod system with three ground states |0>, |1>, |2> coupled to a common excited state |e> by three lasers with Rabi frequencies Omega_0, Omega_1, Omega_2.
+
+ Prompt: Energy level diagram of a tripod system with three ground states |0>, |1>, |2> coupled to a common excited state |e> by three lasers with Rabi frequencies Omega_0, Omega_1, Omega_2.
+
+類似 Lambda 系統，我們可以定義一個「亮態」
+ket B 等於，括號一除以大歐米伽，乘上，裡面是：歐米伽零乘上 ket 零，加上歐米伽一乘上 ket 一，加上歐米伽二乘上 ket 二。 
+其中，大歐米伽等於，絕對值歐米伽零的平方，加上絕對值歐米伽一的平方，加上絕對值歐米伽二的平方，的平方根。
+
+以及兩個相互正交、且與 ket 大寫 B
+ 正交的「暗態」 kets D 一，逗號，kets D 二。
+，滿足
+內積 D 下標 alpha 直線 D 下標 beta，等於 delta 下標 alpha beta。 
+內積 D 下標 alpha 直線 B，等於零。 
+其中 alpha 跟 beta 都是一跟二。
+
+在 大括號裡面依序是：ket D1、ket D2、ket B、還有 ket e。
+ 基底中，哈密頓量可寫成
+H 等於 ħ 除以二，乘上大歐米伽，再乘上，ket e bra B 加上 ket B bra e。
+
+而兩個暗態 kett D 一，逗號，kett D 二。
+ 對應本徵值皆為 0，形成一個 二維退化子空間：
+黑態希爾伯特空間，等於由 ket D 一、跟 ket D 二 張成的線性空間。
+
+這個暗態子空間自然被用作一個 邏輯 qubit（或邏輯 qutrit 子空間的一部分），其上可以形成非阿貝爾幾何相位。
+
+3.4.2 參數空間與非阿貝爾 Berry connection
+
+為簡化分析，令 唸作：「大寫的歐米伽。」
+ 固定，控制僅來自於 方向：
+歐米伽帽，等於，二分之一個大歐米伽，乘上括號裡面是歐米伽零、歐米伽一、歐米伽二，這個向量屬於五維球面，包含在複數三維空間裡。
+
+實際上，我們可透過適當的相位選擇，將有效參數空間簡化為 複射影二維空間 C P 二。
+ 的子流形，或以兩個角度與兩個相位來參數化。最關鍵的是：歐米伽算符，帽歐米伽。
+ 的變化決定了 黑體的 H，下標寫一個 dark。
+ 的「嵌入方式」，從而決定 Berry connection A 下標 μ。
+。
+
+若我們選擇某一點 念作：「lambda」。
+ 上的暗態正交基底 大括號裡面是： 
+ket D 一 括號 lambda，逗號，還有 ket D 二 括號 lambda。
+，則在參數空間中移動時，Berry connection 由
+括號 A 下標 μ，括號裡是 λ，右下角 αβ，等於 i 乘上，bra D 下標 α、括號裡是 λ，ket 是偏微分 μ 作用在 D 下標 β、括號裡是 λ。 
+其中 α、β 等於一跟二。
+
+定義，並構成一個 二 乘以 二。
+ 反 Hermitian 矩陣，對應 Lie 代數 u 括號二
+。其分解為
+A 下標 μ 等於 a 下標 μ 上標零 乘上二維單位矩陣，加上從 k 等於一到三的總和，a 下標 μ 上標 k 乘上 σ k。
+
+其中 σ 下標 k
+ 為 Pauli 矩陣，a 下標 μ，然後右上角一個零。
+ 為 U(1) 成分，小 a、下標 μ，上面畫一個箭頭，等於括號裡面三個分量： 
+第一個是 a、下標 μ、上標 1， 
+第二個是 a、下標 μ、上標 2， 
+第三個是 a、下標 μ、上標 3。
+ 對應 SU(2) 部分。
+
+曲率張量為
+F 下標 μν，等於偏 μ 的 A ν，減掉偏 ν 的 A μ，再減掉 i 乘上中括號 A μ 跟 A ν 的交換子。
+
+對小迴圈 好，這個就念成：
+
+「伽瑪」。
+ 圍繞一個無窮小面元 d S 上標 μ ν
+ 的 holonomy 為
+伽瑪中括號 gamma，大約等於，指數函數的 i 乘上 
+若對所有方向上的 F 下標 μ ν
+ 在 唸作：**s u 括號二括號**，也就是「s u，二」。
+ 中張成三維 Lie 代數，則 holonomy 群將包含整個 SU(2)，進而在 黑體的 H，下標寫一個 dark。
+ 上生成所有單 qubit 門。
+
+ 圖 3-3: Geometric representation of the dark-state subspace as a two-dimensional fiber, and an infinitesimal plaquette in parameter space with curvature F_{mu nu} generating an infinitesimal SU(2) rotation of the dark states.
+
+ Prompt: Geometric representation of the dark-state subspace as a two-dimensional fiber, and an infinitesimal plaquette in parameter space with curvature F_{mu nu} generating an infinitesimal SU(2) rotation of the dark states.
+
+3.4.3 一個具體的路徑與單 qubit holonomic gate
+
+為了得到更具體的例子，我們可採用以下參數化（簡化版本，只保留實數 Rabi 頻率與一個相對相位）：
+Omega 零 等於 Omega 乘上 sin θ 乘上 cos φ， 
+Omega 一 等於 Omega 乘上 sin θ 再乘上 sin φ， 
+Omega 二 等於 Omega 乘上 cos θ 再乘上指數 i χ 的 e。
+
+其中 西塔屬於從零到二分之π這個區間。
+, phi 屬於從零到二 pi 的區間，包含零、不包含二 pi。
+, chi 屬於從零到二 pi 的區間，左閉右開。
+。藉由計算暗態基底
+Ket D 一，括號裡面是 theta、phi、chi；逗點，接著是 ket D 二，括號裡面一樣是 theta、phi、chi。
+
+對這三個參數的偏微分，我們可以得到 Berry connection A 下標 μ。
+。雖然顯式表達式較為繁瑣，但其結構可解釋為：
+
+ 希臘字母 θ，也就是「西塔」。
+ 與 phi
+ 控制亮態在 ket 零、ket 一、ket 二。
+ 之間的投影方向。
+
+ chi。
+ 控制 ket 二
+ 的相位，對暗態子空間施加非平庸的 SU(2) 旋轉。
+
+若我們考慮一條閉合路徑，其只在 左括號，θ，逗號，χ，右括號。
+ 平面中變化，phi
+ 固定，例如：
+
+ t 從 0 到 T 的四分之一。
+ 時，希臘字母 θ，也就是「西塔」。
+ 從 西塔，下標零。
+ 緩慢變到 唸作：theta 一。
+，chi。
+ 固定為 0。
+
+ t 從時間 T 的四分之一，跑到時間 T 的二分之一。
+ 時，chi。
+ 從 0 緩慢變到 chi 下標一
+，希臘字母 θ，也就是「西塔」。
+ 固定為 唸作：theta 一。
+。
+
+ t 從大寫的 T 除以二，映到三倍的 T 除以四。
+ 時，希臘字母 θ，也就是「西塔」。
+ 從 唸作：theta 一。
+ 緩慢變回 西塔，下標零。
+，chi。
+ 固定為 chi 下標一
+。
+
+ t 冒號，從三個四分之一 T 的這個時間區間，映到大寫 T。
+ 時，chi。
+ 從 chi 下標一
+ 緩慢變回 0，希臘字母 θ，也就是「西塔」。
+ 固定為 西塔，下標零。
+。
+
+這樣在 左括號，θ，逗號，χ，右括號。
+ 平面中畫出一個矩形迴圈。對此路徑的 holonomy 近似可由曲率積分決定：
+Gamma 括號 gamma，大約等於 exp，裡面是 i 乘上，對矩形這個區域做二重積分，積分的被積函數是 F 下標 θ χ，然後乘上 dθ 再乘上 dχ。
+
+而 F 下標 θχ
+ 是一個 二 乘以 二。
+ 矩陣，可分解為
+F 下標 θχ，等於 f 零，括號裡是 θ 跟 χ，乘上二維單位矩陣 I，再加上，向量 f，括號裡一樣是 θ 跟 χ，點乘上 Pauli 矩陣向量 σ。
+
+由於 U(1) 部分只貢獻一個全域相位（對量子運算無物理意義），真正的量子邏輯閘來自 SU(2) 部分
+Γ 括號 gamma，大約等於 exponent 的 exp，裡面是 i 乘上粗體 n 跟粗體 sigma 的內積，再乘上有效的 Omega 除以二。
+
+其中 粗體的 n 上面加一個箭頭。
+ 與 歐米伽底下標 eff。
+ 由曲率在整個矩形上的平均決定。藉由選擇矩形的形狀與位置（即 西塔零、西塔一，跟卡伊一。
+），可以在暗態子空間上實作任意軸向的 SU(2) 旋轉。
+
+ 圖 3-1: Parameter space plot with axes theta and chi, showing a rectangular loop. An inset shows the corresponding SU(2) rotation on the Bloch sphere of the dark-state qubit generated by this holonomic loop.
+
+ Prompt: Parameter space plot with axes theta and chi, showing a rectangular loop. An inset shows the corresponding SU(2) rotation on the Bloch sphere of the dark-state qubit generated by this holonomic loop.
+
+直觀上，HQC 中的「幾何門設計」就是：
+
+ 先求出暗態子空間的 Berry 曲率 F 下標 μ ν
+。
+
+ 在參數空間上設計一條閉合曲線，使得曲率在路徑所包圍的面上積分，得到我們想要的 SU(2) 旋轉角與旋轉軸。
+
+3.5 非阿貝爾幾何相位的直覺解釋與對雜訊的幾何穩健性
+
+3.5.1 幾何 vs 動力學：為何 holonomic gate 可能較「穩健」？
+
+對於一般的動力學門（如傳統 gate model 量子電腦），演化算符
+U of t 等於時間排序算符 T 作用在指數上，指數是負的 i 除以 h bar，乘上從零到 t 對 H 括號 t prime 做積分。
+
+通常高度依賴時間序列與哈密頓量的精確形式，對控制誤差（如脈衝幅度、持續時間錯誤）敏感。而在 HQC 中，理想情況下：
+
+ holonomy 只與 路徑的幾何形狀 有關（例如在參數流形上所包圍的「面積」或「立體角」），
+
+ 而 對時間參數化不敏感：只要絕熱條件滿足，速度快慢改變不改變最終幾何相位。
+
+因此，某些種類的誤差（例如整體縮放時間 t 映射到 alpha 乘上 t。
+）不會改變 holonomy。這是所謂的「幾何穩健性」（geometric robustness）。然而，實際系統仍受限於：
+
+ 絕熱條件需要足夠長的演化時間，與退相干時間競爭。
+
+ 如路徑的「形狀」本身受到控制誤差影響（例如參數空間中未正確閉合成同一迴圈），則幾何相位仍會偏移。
+
+因此，HQC 並非自動解決所有容錯問題，但在某些雜訊模式下，確實可提供一定的優勢。
+
+ 圖 3-5: Conceptual plot comparing a dynamic gate sensitive to timing errors versus a holonomic gate where different time parameterizations of the same path yield identical final unitaries, emphasizing geometric dependence.
+
+ Prompt: Conceptual plot comparing a dynamic gate sensitive to timing errors versus a holonomic gate where different time parameterizations of the same path yield identical final unitaries, emphasizing geometric dependence.
+
+3.5.2 非阿貝爾性與「內部空間的平行移動」
+
+在阿貝爾情況下，幾何相位是一個數值（相位）。在非阿貝爾情況下，可以想像在每一個參數點 念作：「lambda」。
+ 上有一個「退化子空間上的基底選擇」，類似於一個「局部參考系」。當沿著路徑移動時，「平行移動」（parallel transport）規定了如何在不同位置比較這些基底。
+
+由於平行移動的結果依路徑而異，不同路徑對應不同的基底變換，這些變換是矩陣形式，且不同路徑的對應變換之間不一定可交換，這就是「非阿貝爾性」的直觀來源。具體地，若兩條閉合路徑 伽瑪一，逗號，伽瑪二。
+ 都從同一點出發，那麼
+大寫的 Gamma 作用在軌跡 gamma 二 合成 gamma 一，等於大寫的 Gamma 作用在軌跡 gamma 二 再乘上 大寫的 Gamma 作用在軌跡 gamma 一。
+
+一般不等於 Gamma 左中括號 gamma 一 右中括號，乘上 Gamma 左中括號 gamma 二 右中括號。
+，這就使得 路徑排列順序 成為一個可用來構造不同量子邏輯閘的自由度。
+
+3.6 Holonomic Quantum Computation 的通用性條件與兩量子位門
+
+3.6.1 通用性：單 qubit + 一個非平凡兩 qubit 門
+
+與傳統 gate model 相同，HQC 要達到通用量子計算，需要：
+
+ 在每個邏輯 qubit 上有完整的 SU(2) 單 qubit holonomic gate。
+
+ 至少一種非平凡的兩 qubit holonomic gate，例如 controlled-phase 或 CNOT 等。
+
+前面 tripod 模型示範了單 qubit holonomic gate 的實現方式。要實現兩 qubit 門，可以：
+
+ 將兩個 tripod 系統之間加入可控耦合，使其退化子空間產生參數相關的交互作用。
+
+ 在參數空間中引入對兩粒子耦合強度的控制，將這些控制參數也納入 念作：「lambda」。
+ 中。
+
+例如，考慮兩個 qutrit（每個對應一個 tripod 結構的三個基態），其哈密頓量含有一項：
+H 下標 i n t，括號裡是 λ，等於 J 括號 λ，乘上 O 帽一，張量積 O 帽二。
+
+其中 J 括號 lambda 括號。
+ 是可控的交互強度，而 O 一帽逗點 O 二帽
+ 是投影到各自 dark-subspace 邏輯 qubit 的某種算符。調變 J 括號 lambda 括號。
+ 的大小與相位，同時保持整個系統的退化結構，便可以在兩 qubit 邏輯空間上產生非阿貝爾 holonomy。
+
+ 圖 3-4: Two tripod systems representing two logical qubits, with a tunable interaction J(lambda) between them. A parameter space including J is shown, with a closed loop that generates a two-qubit holonomic entangling gate.
+
+ Prompt: Two tripod systems representing two logical qubits, with a tunable interaction J(lambda) between them. A parameter space including J is shown, with a closed loop that generates a two-qubit holonomic entangling gate.
+
+3.6.2 Holonomy 群的結構與 Lie 代數生成
+
+對於 n
+ 個邏輯 qubit 的 HQC，編碼空間維度為 K 等於 2 的 n 次方。
+，holonomy group Hol 是 U 括號二的 n 次方 的子集合。
+。若其能生成所有的局域與非局域操作，則可達到通用性。判斷通用性的常見方法包括：
+
+ 計算 Berry 曲率 F 下標 μ ν
+ 在參數空間不同點上的值，並考慮所有這些 F
+ 及其反覆交換子所生成的 Lie 代數 g 是 u 的二的 n 次方維裡面的一個子李代數。
+。
+
+ 若 這個就是「哥特體的小寫 g」。
+ 為 唸作：「小寫的 s u，括號裡二的 n 次方。」
+（或包含一個與之同構的子代數，其在編碼空間作用為忠實表現），則 holonomy 群在連通分支上為整個 **S U 括號 2 的 n 次方**
+。
+
+ 實務上，直接計算整個 這個就是「哥特體的小寫 g」。
+ 往往困難，但可以透過結構性分析（例如系統對稱性、局域性、可控參數個數）推論出通用性或缺乏通用性。
+
+從幾何觀點來看，「通用性」意味著：我們可以在參數空間中找到足夠多樣化的迴圈，使得這些迴圈的 holonomy 生成一個稠密子群，逼近任意目標量子門。
+
+3.7 小結與展望
+
+本講深入探討了 Holonomic Quantum Computation 中 非阿貝爾幾何相位 的數學結構與實作範例，主要內容包括：
+
+ 從退化能譜與絕熱演化推導 Wilczek–Zee 非阿貝爾幾何相位：
+ Gamma 作用在這條路徑 gamma 上，等於路徑排序算符 P 作用在指數上，指數裡面是：i 乘上沿著路徑 gamma 的閉合線積分，積分裡是規範場 A 下標 mu，在參數 lambda 的函數，乘上微分 d lambda 上標 mu。
+
+ 說明 connection A 下標 μ。
+ 與曲率 F 下標 μ ν
+ 如何決定 holonomy 群，以及為何其結構與 Yang–Mills 規範理論類似。
+
+ 以三能級 Lambda 系統與四能級 tripod 系統為例，展示暗態子空間中阿貝爾與非阿貝爾 Berry 相位的具體形式。
+
+ 解釋幾何相位的直覺圖像與 HQC 對某些控制誤差的幾何穩健性。
+
+ 討論 HQC 通用性條件與兩 qubit holonomic gate 的基本構造思路。
+
+接下來的講次將進一步探討：
+
+ Non-adiabatic Holonomic Quantum Computation：如何在有限時間內、非絕熱條件下實現幾何量子門，以縮短門時間並減少退相干的影響。
+
+ Holonomic Quantum Annealing：將幾何 holonomy 的概念引入量子退火與 adiabatic quantum computation，分析其與 gate model 的等價性以及在組合最佳化問題上的應用。
+
+ 實驗實現現況：在離子阱、超導 qubit、NV 中心等不同平台上的 HQC 實作，與實際面臨的技術挑戰。
