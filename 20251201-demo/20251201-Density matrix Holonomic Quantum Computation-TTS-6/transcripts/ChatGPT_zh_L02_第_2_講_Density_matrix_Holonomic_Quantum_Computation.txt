@@ -1,0 +1,559 @@
+第 2 講：Density Matrix Holonomic Quantum Computation 主題 2 
+—— 混態幾何相位與非阿貝爾全純操控
+
+本講延續第 1 講對密度矩陣與幾何結構的介紹，聚焦於：
+
+ 如何在 密度矩陣（混態） 層次嚴謹定義 Berry phase 與其非阿貝爾推廣。
+
+ 如何在 開放系統 或 熱態/退相干背景 下，仍然實作 Holonomic Quantum Computation（HQC）。
+
+ 從幾何 / 聯絡（connection）的觀點，建立 密度矩陣幾何操作 → 量子門 的對應。
+
+本講主題重點會放在：
+
+ 混態幾何相位的數學結構（Uhlmann phase、Sjöqvist phase 等）
+
+ 非阿貝爾混態幾何相位與 糾纏/子空間退簡併 的關係
+
+ 用密度矩陣方式重寫 Holonomic gate 的條件與設計原則
+
+ 實例：二能階混態系統中的簡單 Holonomic 操作
+
+2.1 從純態 Berry phase 到混態幾何相位
+
+2.1.1 回顧：純態 Berry phase 與密度矩陣表示
+
+給定一族參數化的哈密頓量 H 括號 lambda 括號。
+，這個是希臘字母「lambda」。
+ 屬於某個參數流形 大寫花體的 M。
+，設
+H 括號 lambda 作用在 ket n 括號 lambda，等於 E 下標 n 括號 lambda 乘上 ket n 括號 lambda。
+
+且在某個能階 這裡就是一個小寫的英文字母「n」。
+ 上是非簡併（或在某一退簡併子空間上投影）。假設系統以絕熱方式沿著一條閉路徑 唸作：「大寫花體 C 冒號，lambda 括號 t。」
+ 演化，起點 lambda 括號零 等於 lambda 括號大寫 T。
+，若初態為
+psi 在零的時候，等於 lambda 在零時對應的 n 這個 ket。
+
+則絕熱演化下，終態近似為
+psi 在時間 T 的 ket，等於， 
+指數函數裡面是 i 乘上 gamma 下標 n，中括號裡面是路徑 C， 
+再乘上一個指數函數，裡面是負的 i，乘上從零到大 T 的積分， 
+被積分的是能量本徵值 E 下標 n，括號裡面是 lambda 括號 t，對 t 做積分， 
+最後再乘上本徵態 ket n，括號裡面是 lambda 括號零。
+
+其中 伽瑪下標 n，左右中括號裡面是一個大寫花體的 C。
+ 是 Berry 相位：
+γ 下標 n 括號 C，等於 i 乘上沿著路徑 C 的封閉路徑積分，裡面是內積，左邊是 ket n 括號 λ，右邊是 nabla 對 λ 作用在 ket n 括號 λ，上面這個內積再跟 dλ 做點積。
+
+若用密度矩陣 rho 括號 t 等於 ket psi 括號 t，乘上 bra psi 括號 t。
+ 表示，則演化後
+rho 在時間 T 的時候，等於 ket psi 括號 T，乘上 bra psi 括號 T， 
+等於 ket n 括號 lambda 零，乘上 bra n 括號 lambda 零。
+
+所以密度矩陣本身 不包含 Berry 相位（整體相位被消去）。但是如果考慮包含多個能階或子空間
+rho 在零的時候，等於對所有 n 做總和，p 下標 n，乘上 ket，n 在參數 lambda 零 的態，再乘上對應的 bra，n 在參數 lambda 零 的態。
+
+且在絕熱演化中允許 退簡併子空間內的非阿貝爾幾何相位，那麼最終 rho 括號 T。
+ 會包含 非平凡的基底轉換：
+rho 括號 T 等於 U 下標 hol，乘上 rho 括號零，再乘上 U 下標 hol 的 dagger。
+
+其中 U 下標 hol。
+ 是 霍洛諾米（holonomy），可用來實作量子邏輯閘。
+
+這提示：若只考慮整體相位，密度矩陣會看不見 Berry phase；但若考慮子空間幾何結構，密度矩陣可以捕捉非阿貝爾的 holonomy。 混態幾何相位的關鍵在於如何在 機率分佈 + 子空間結構 上定義幾何物件。
+
+ , Berry phase on rays, and a density matrix diagonal in eigenbasis; emphasize that overall phase cancels in ρ but subspace rotations affect ρ">
+ 圖 2-2: Diagram showing a parameter space loop C, with eigenstates |n(λ)>, Berry phase on rays, and a density matrix diagonal in eigenbasis; emphasize that overall phase cancels in ρ but subspace rotations affect ρ
+
+ Prompt: Diagram showing a parameter space loop C, with eigenstates |n(λ)>, Berry phase on rays, and a density matrix diagonal in eigenbasis; emphasize that overall phase cancels in ρ but subspace rotations affect ρ
+
+2.1.2 Uhlmann 幾何相位：密度矩陣的平行輸運
+
+對於混態 rho。
+，Uhlmann 提出一個幾何相位的自然推廣。想法是：
+
+ 任何滿秩密度矩陣 rho。
+ 都可寫成
+ rho 等於 W 乘上 W dagger。
+
+ 其中 W
+ 稱為 amplitude 或 purification operator。
+
+ 在 Hilbert-Schmidt 空間上定義內積
+ 內積括號裡面 一、逗點 二，下標寫 H S，等於，跡，括號裡面 一的 dagger 乘上 二。
+
+ 對一條光滑路徑 rho 括號 t
+ 選取對應的一族 大寫的 W，小括號裡面一個 t。
+，並定義一種「平行輸運條件」來最大化鄰近 amplitude 的「重疊」。
+
+具體地，令 rho 括號 t
+ 是一條滿秩的密度矩陣軌跡，對任意 t
+，選擇一個分解
+rho 括號 t 等於 W 括號 t 乘上 W 括號 t 的 dagger 共軛轉置。
+
+Uhlmann 定義平行輸運條件為：對任意 t
+，使得 大寫的 W，小括號裡面一個 t。
+ 和 W 括號 t 加上 dt 括號。
+ 的內積實部最大化：
+最大化，在時間 t 加上 dt 時刻的算符 W，使得實部的 trace，括號裡是 W 在時間 t 的 dagger 乘上 W 在時間 t 加 dt 的這個東西，達到最大。
+
+這相當於在 amplitude 空間上定義一個聯絡（connection），從而可定義 Uhlmann holonomy。
+
+更具體的運算式可以寫成（略過嚴格性，給出形式結果）：
+若將 rho 括號 t
+ 對角化：
+rho 括號 t，等於對所有 k 做總和，p 下標 k 括號 t，乘上 ket k 括號 t，再乘上 bra k 括號 t。
+
+則 amplitude 可以選成
+W 括號 t 等於 根號裡面的 rho 括號 t，乘上 V 括號 t。
+
+其中 V 括號 t
+ 是某個單位算符。平行輸運條件導致
+V 上面一點，括號 t，等於，負的，rho 括號 t 開根號的反矩陣，乘上，rho 括號 t 開根號 對時間微分，取它的反厄米部分，外面再乘上一個 rho 括號 t 開根號的反矩陣，最後再乘上 V 括號 t。
+
+其中 中括號裡面加上一個點，然後右下角標註一個 anti H。
+ 表示反 Hermitian 部分。解出 V 括號 t
+ 之後，對一個閉路 rho 括號零 等於 rho 括號大寫 T。
+，定義 Uhlmann 幾何相位對應的 holonomy：
+U 下標 Uhl，等於 V 括號 T，乘上 V 括號零 的 dagger。
+
+Uhlmann 相位的直覺解釋：
+
+ 把 密度矩陣當成一個「純態 + 熵」的等價類，而 W
+ 或 purification 則像是挑出這個等價類的一個代表。
+
+ 在 等價類 之中選擇一個「最平滑」的代表（即最大化鄰近疊合）作為平行輸運的規則。
+
+ 對閉路徑，代表經歷一個 Uhlmann holonomy，其非平凡部份即為幾何相位／非阿貝爾幾何變換。
+
+ 圖 2-1: Geometric illustration of Uhlmann bundle: base manifold as space of full-rank density matrices, fiber as unitaries V; parallel transport condition shown along a path ρ(t); holonomy U_Uhl at the end of a loop
+
+ Prompt: Geometric illustration of Uhlmann bundle: base manifold as space of full-rank density matrices, fiber as unitaries V; parallel transport condition shown along a path ρ(t); holonomy U_Uhl at the end of a loop
+
+然而 Uhlmann 相位與實際干涉實驗間的直接關聯較間接，故後續亦出現以 干涉可測量性 為導向之混態幾何相位定義（例如 Sjöqvist 等人）。
+
+2.1.3 Sjöqvist 等人的干涉式混態幾何相位
+
+另一個較具實驗意義的混態幾何相位定義是由 Sjöqvist et al. 提出，針對 平行輸運演化 的混態考慮其可觀測干涉相位。
+
+考慮系統初態密度矩陣
+rho 零，等於對 k 做總和，p k 乘上 ket k 零 再乘上 bra k 零。
+
+在單位演化 U 括號 t。
+ 下演化為
+rho 括號 t 等於 U 括號 t，乘上 rho 括號零，再乘上 U dagger 括號 t。
+
+若要求演化滿足 平行輸運條件（對每一個本徵向量 ket k 括號 t，等於 U 括號 t，作用在 ket k 括號零。
+ 都滿足
+內積，左邊是 k 括號 t，右邊是 k 點 上面括號 t，這個內積等於零。
+
+使其動力學相位被剝除），那麼 Sjöqvist 等人定義混態幾何相位為
+gamma 下標 Sjö，等於，右邊是 argument，括號裡面是，對 k 做總和，p k 乘上，bra k 零 ket，接上 ket k 大 T。
+
+若演化路徑構成循環（rho 在零的時候等於 rho 在大寫的 T 的時候。
+），則 ket，k 括號 T。
+ 可能與 k 括號零 的 ket。
+ 相差一個幾何相位，因此上述定義等效於 對各本徵成分的幾何相位以機率加權 再取總相位。
+
+此定義與 Uhlmann 相位在結構上不同，且一般不相同，但在某些極限（如近純態、或特定模型）會有一致性。對 Holonomic Quantum Computation 而言，真正重要的是：我們可以在密度矩陣層次定義一個可實驗觀測的幾何效應，並藉此設計幾何量子閘。
+
+2.2 混態密度矩陣的非阿貝爾幾何結構
+
+2.2.1 退簡併子空間與非阿貝爾霍洛諾米
+
+在 Holonomic Quantum Computation 中，我們不只關心相位 U 一 群。
+，而是關心 退簡併子空間中的非阿貝爾幾何變換。在純態情況，若某能階 E 括號 lambda 括號
+ 有 這個就是一個小寫的希臘字母「delta」，我們就念成「d」。
+-重退簡併，對應本徵空間
+H 下標 d、括號裡 lambda，等於，Span，裡面是一組 ket，n 下標 a、括號裡 lambda，從 a 等於一到 d。
+
+作為「計算子空間」（code subspace）。絕熱演化沿參數空間閉路 這個是花體的大寫 C。
+ 導致在該子空間上實作一個非阿貝爾霍洛諾米：
+U 下標 hol，中括號 C，等於路徑排序算符 P，作用在指數函數上，指數裡面是負的，對路徑 C 做一個閉合路徑積分，被積的是數學黑板體 A，依賴參數 lambda，跟微小位移 d lambda 做內積。
+
+其中 calligraphic 的 A 括號裡面一個 lambda。
+ 是 Berry 連接矩陣，
+A 下標 a b，作 lambda 的函數，等於 i 乘上，n a 的 lambda 態，內積，對 lambda 的梯度作用在 n b 的 lambda 態。
+
+在密度矩陣層次，我們考慮初態在該退簡併子空間上為某個（可能是混態）密度矩陣
+rho 下標 code 括號零，等於，從 a 等於一到 d，跟從 b 等於一到 d 的雙重求和，rho 下標 a b 括號零，乘上 ket，n 下標 a，括號 lambda 括號零，然後再乘上對應的 bra，n 下標 b，括號 lambda 括號零。
+
+在 adiabatic 演化與適當的幾何條件下，若能忽略動力學相位或把它補償掉，最終
+rho 下標 code 括號 T，等於 
+U 下標 hol 括號路徑 C，乘上 rho 下標 code 括號零，再乘上 U 下標 hol 括號路徑 C 的 dagger（也就是共軛轉置）。
+
+此處 Holonomic gate 的關鍵是 子空間保持不與其它能階混合，即 adiabatic 條件保證投影 P 括號 lambda 括號
+ 隨 這個是希臘字母「lambda」。
+ 改變但子空間維度與能隙結構維持。
+
+對混態而言，最重要的差別不在幾何連接的形式，而是：
+
+ rho 下標 c o d e
+ 是該子空間上的 任意正定迹一算符，表示可能的統計混合（例如熱噪聲、制備不完全等）。
+
+ 但 維持單位演化與 adiabatic 條件時，子空間上的演化仍為共軛作用：
+ rho 下標 code，括號裡面帶一個 T，等於 U 下標 hol，乘上 rho 下標 code，括號裡面是零，再乘上 U 下標 hol 的 dagger。
+
+ 即：混態不破壞 holonomic structure，只是把純態向量推廣成算符。
+
+ 圖 2-7: Depiction of degenerate subspace H_d(λ) moving over parameter manifold; density matrix ρ_code represented as an ellipsoid in that subspace; holonomic evolution is a rigid unitary rotation of the ellipsoid
+
+ Prompt: Depiction of degenerate subspace H_d(λ) moving over parameter manifold; density matrix ρ_code represented as an ellipsoid in that subspace; holonomic evolution is a rigid unitary rotation of the ellipsoid
+
+2.2.2 密度矩陣束（bundle）與聯絡
+
+對 Holonomic QC 的幾何定式，可以在 投影算符流形 上建立束結構。考慮一個固定維度 這個就是一個小寫的希臘字母「delta」，我們就念成「d」。
+ 的投影算符集合：
+P 下標 d 等於所有的算符 P 的集合，滿足 P 平方等於 P，本身也等於它的埃米特共軛 P dagger，而且 P 的跡等於 d。
+
+此流形等價於 Grassmann 流形 G、r、括號 d 逗號 N 括號。
+，如果底層希爾伯特空間維度為 這個就念成：「大寫英文字母 N」。
+。每一個 P 括號 lambda 括號
+ 對應一個 這個就是一個小寫的希臘字母「delta」，我們就念成「d」。
+-維子空間 黑體的 H，下標 d，括號裡一個 λ。
+。在這子空間上，我們允許任意密度矩陣
+rho 下標 code，括號 lambda，屬於 script D 括號，P 括號 lambda 乘上希爾伯特空間 H。
+
+然後，rho 下標 code 括號 lambda 的 support，包含在投影算符 P 括號 lambda 的像空間裡面。
+
+可以形式上定義一個「bundle」：
+
+ 底空間（base space）：參數空間 大寫花體的 M。
+ 或其像 P 括號 lambda 括號，屬於 calligraphic P 度 的這個集合。
+。
+
+ 纖維（fiber）：在給定 這個是希臘字母「lambda」。
+ 上的密度矩陣空間
+ F 下標 lambda 等於 D 作用在括號裡的 P 括號 lambda 再乘上 H，等於所有 rho 的集合，滿足 rho 大於等於零，跡 rho 等於一，而且 rho 等於 P 括號 lambda 乘上 rho 再乘上 P 括號 lambda。
+
+ 結構群：在各纖維之間，允許的變換為
+ rho 映到變成 U 括號 λ，乘上 rho，再乘上 U dagger 括號 λ。
+
+ 其中 U 括號 lambda 括號。
+ 是作用於該子空間（或全空間但與其它能階塊對角分離）的單位算符。
+
+在這個觀點，Holonomic gate 相當於在 大寫花體的 M。
+ 上循環一次，使得纖維之間的 平行輸運 導致一個非平凡的 holonomy U 下標 hol。
+。而密度矩陣作為纖維內容，跟著此 holonomy 演化。
+
+要把這個 picture 具體化，需要引入 投影算符的聯絡。定義
+P 括號 lambda 等於，從 a 等於一到 d 的總和，k e t，n 下標 a 括號 lambda，b r a，n 下標 a 括號 lambda。
+
+對任一 ket φ 括號 λ 這個態，屬於 P 括號 λ 這個投影算符的像空間。
+，其平行輸運條件可寫成
+P 括號 λ，乘上對 λ 的梯度作用在 ket phi 括號 λ，等於零。
+
+此條件等效於在該子空間上定義一個聯絡 1-形式 calligraphic 的 A 括號裡面一個 lambda。
+，
+nabla 下標 lambda 作用在 ket phi，等於括號裡面，偏微分對 lambda，加上 i 乘上 A 的函數、裡面帶 lambda，這一整個括號再作用在 ket phi。
+
+對密度矩陣 rho 下標 code，括號裡面 lambda。
+，若以局部基底 ket，n 下標 a，括號裡是 λ。
+ 展開，其 平行輸運 可寫成
+nabla lambda 作用在 rho code，等於偏導數偏 lambda 的 rho code，加上 i 乘上 A 括號 lambda 和 rho code 的交換子，等於零。
+
+整個絕熱循環之後，解出
+rho 下標 code 括號 T，等於，路徑排序算符 P 作用在指數上，指數是負的 i，乘上從零到大寫 T 的積分，變數是 t，裡面是 lambda 對 t 的時間微分，跟大 A 在 lambda 括號 t 這個地方做內積，整個都在指數裡面，然後作用在右邊的 rho 下標 code 括號零。
+
+再乘上另一個路徑排序算符 P 作用在指數上，這次指數是正的 i，乘上從零到大寫 T 的積分，變數一樣是 t，裡面同樣是 lambda 對 t 的時間微分，跟大 A 在 lambda 括號 t 這個地方做內積。
+
+其中 exponent 內的矩陣即為 U 下標 hol。
+。這整個描述 完全在密度矩陣算符層次成立，不依賴純態向量。
+
+ 圖 2-3: Schematic of a fiber bundle over parameter space with fibers being density matrices supported on subspace P(λ), with a connection specifying parallel transport; show ρ transported along a loop resulting in conjugation by U_hol
+
+ Prompt: Schematic of a fiber bundle over parameter space with fibers being density matrices supported on subspace P(λ), with a connection specifying parallel transport; show ρ transported along a loop resulting in conjugation by U_hol
+
+2.3 密度矩陣視角的 Holonomic Gate 條件
+
+2.3.1 Holonomic gate 的三個基本條件（密度矩陣形式）
+
+在純態文獻中，實作一個幾何量子閘（holonomic gate）通常需滿足三個條件：
+
+ 退簡併子空間：存在一個能階 E 括號 lambda 括號
+ 對應的退簡併子空間 黑體的 H，下標 d，括號裡一個 λ。
+，用來承載量子資訊。
+
+ 絕熱演化：參數變化緩慢，使得狀態始終停留在該子空間內，不與其他能階混合。
+
+ 動力學相位抵消／純幾何：藉由設計 H 括號 lambda 括號 t 括號。
+ 或加入控制場，使得演化在該子空間中不產生淨動力學相位，僅剩幾何貢獻。
+
+在密度矩陣描述下可以等價重寫為：
+
+ (子空間支持條件) 
+ 存在投影 P 括號 lambda 括號
+ 使
+ 中括號，H 括號 lambda，逗點，P 括號 lambda，中括號等於零，逗點。
+
+接著，H 括號 lambda 乘上 P 括號 lambda，等於 E 括號 lambda 乘上 P 括號 lambda。
+
+ 並且初態密度矩陣滿足
+ rho 在零的時候，等於 P 作用在 lambda 在零的時候，乘上 rho 在零的時候，再乘上一個 P 作用在 lambda 在零的時候。
+
+ (絕熱不洩漏條件) 
+ 對整個演化過程，若
+ i 乘上 rho 在 t 的時間微分，等於哈密頓量 H，裡面帶參數 lambda of t，跟 rho of t 的交換子。
+
+ 則
+ rho 括號 t 等於 P 括號 lambda 括號 t 括號 關起來 乘上 rho 括號 t 再乘上 P 括號 lambda 括號 t 括號 關起來，對所有 t 都成立，其中 t 落在從 0 到大寫 T 的這個區間裡。
+
+ 即狀態支撐始終在子空間上。
+
+ (幾何化條件) 
+ 存在一個 gauge 選擇或額外控制使得
+ 有效哈密頓量 H 下標 eff，括號裡是 λ 的 t 時間相依，等於 i 乘上 λ 對時間的導數，再點乘上幾何勢 A，A 的參數也是 λ 的 t 時間相依。
+
+ 在子空間上（或等價地，其動力學相位與幾何相位可分離，並將動力學相位抵消或吸收）。最終在子空間上的演化為
+ rho 下標 code，在時間 T 的時候，等於 U 下標 hol，中括號裡面一條路徑 C，乘上 rho 下標 code，在時間零的時候，再乘上 U 下標 hol 的 dagger，也是中括號路徑 C。
+
+ 其中 U 下標 hol。
+ 完全由路徑 這個是花體的大寫 C。
+ 決定，而與演化速率無關（在絕熱極限）。
+
+這個條件組合展示：holonomic gate 對純態與混態的幾何結構是一致的，差別只在於我們把狀態空間改成算符空間，而且所有幾何信息都以「共軛作用」形式出現。
+
+2.3.2 密度矩陣的 gauge 變換與物理不變量
+
+在定義 Berry 連接與 holonomy 時，需處理 gauge 變換 問題：對退簡併子空間，基底選取 一組 ket，寫成 ket，n 下標 a，括號裡是 lambda。
+ 並不唯一，任意
+ket，n a prime，掛 lambda，等於，對所有的 b 做總和，把 ket，n b，掛 lambda，乘上 V b a，掛 lambda。 
+其中 V，掛 lambda，是一個屬於 U d 的酉矩陣。
+
+導致
+A 撇等於 V 的反元素乘上 A 再乘上 V，加上 i 乘上 V 的反元素乘上 nabla 再乘上 V。
+
+U hol 撇，中括號 C，等於，V 的負一次方，括號裡是 lambda 零，乘上 U hol，中括號 C，再乘上 V，括號裡是 lambda 零。
+
+在密度矩陣的觀點，物理解是 gauge 不變的，因為：
+
+ 若初態 rho 下標 code 括號零
+ 隨 gauge 變換為
+ rho code 的括號零，前面加一個撇，等於 V 的負一次方、裡面的參數是 lambda 的零，先作用在 rho code 的括號零右邊，再乘上 V，裡面的參數一樣是 lambda 的零。
+
+ 則終態
+ rho code 撇，在時間 T，等於 
+U hol 撇，乘上 rho code 撇，在時間零，再乘上 U hol 撇的 dagger， 
+也等於 V 的反元素，帶入參數 lambda 零，乘上 rho code 在時間 T，再乘上 V，帶入參數 lambda 零。
+
+ 任何物理可測量量（例如在實驗中固定測量算符的期望值）經適當轉換後皆不變。
+
+這點也反映在混態幾何相位的不同定義上：Uhlmann phase 與 Sjöqvist phase 本質上都是在 等價類代表之間選擇一種「規範」，以定義平行輸運條件，而最終幾何相位或 holonomy 僅依賴路徑與物理可觀測結構，不依賴特定表示。
+
+2.4 開放系統中的 Holonomic 控制：Lindblad + 幾何結構
+
+2.4.1 Lindblad 主方程與子空間保持
+
+實際物理系統往往是開放的，演化遵守 Lindblad 主方程：
+rho 在時間 t 的導數，等於負的 i，乘上哈密頓量 H，裡面的參數是 lambda 在時間 t，跟密度矩陣 rho 在時間 t 的對易算符，
+
+再加上一個對 alpha 求和，括號裡面是： 
+L 下標 alpha，裡面的參數是 lambda 在時間 t，乘上 rho 在時間 t，再乘上 L 下標 alpha 的達格，裡面的參數也是 lambda 在時間 t，
+
+減掉二分之一，乘上反對易算符的大括號，裡面是 
+L 下標 alpha 的達格，參數是 lambda 在時間 t，乘上 L 下標 alpha，參數是 lambda 在時間 t，跟 rho 在時間 t 的反對易算符。
+
+若要在此情境下保持 Holonomic 結構，我們需要條件來保證「碼空間」的封閉性。考慮投影 P 括號 lambda 括號 t 括號。
+ 做為欲維持的子空間，則理想情況下要求：
+rho 在時間零的時候，等於 P 作用在 lambda 零 上，乘上 rho 零，再乘上 P 作用在 lambda 零 上；因此 rho 在時間 t 的時候，等於 P 作用在 lambda t 上，乘上 rho t，再乘上 P 作用在 lambda t 上，對所有的 t 都成立。
+
+這意味著：Lindblad 演化的 non-unitary 部分 不能將狀態洩漏到子空間之外。充分條件之一是
+
+ 中括號裡面，H 括號 lambda，逗號 P 括號 lambda，等於零。
+，
+
+ L 下標 α 的括號 lambda，乘上 P 的括號 lambda，等於 P 的括號 lambda，再乘上 L 下標 α 的括號 lambda，再乘上 P 的括號 lambda。
+，即 Lindblad 跳躍算符在子空間上封閉。
+
+在這種情形下，對子空間限制的演化可寫為
+rho code 上面一個點，等於負的 i 乘上，H eff 括號 lambda 括號 t 括號，跟 rho code 的對易算符，
+
+再加上對所有 alpha 的總和，裡面是：L 波浪 alpha 括號 lambda 括號 t 括號，乘上 rho code，再乘上 L 波浪 alpha 的 dagger，括號 lambda 括號 t 括號，
+
+減掉二分之一，乘上大括號裡面，L 波浪 alpha dagger 括號 lambda 括號 t 括號，乘上 L 波浪 alpha 括號 lambda 括號 t 括號，跟 rho code 的反對易算符，然後大括號關起來。
+
+其中 H 下標 eff，等於 P H P。
+，L 波浪加一個底標 alpha，等於 P 乘上 L 底標 alpha 再乘上 P。
+。
+
+關鍵問題：在這樣的非單位演化中，是否仍可定義「holonomic gate」？答案是可以，但結構變成 完全正（CPTP）映射的幾何 holonomy，而不再是單純的單位算符。
+
+2.4.2 CPTP 映射的幾何結構與 holonomy
+
+考慮一族隨參數變化的 CPTP 映射 大寫花體的 E 底下標一個 lambda。
+，在時間演化中產生
+rho 括號 t 等於大寫的 T，後面接一個指數算符，指數裡面是從零到 t 對 t 撇做積分，積分裡面是帶參數 lambda 的李維爾算符，再把這個整個指數算符作用在 rho 括號零 上面。
+
+其中 大寫花體的 L，下標一個 lambda。
+ 是 Lindbladian 超算符。若對每一 這個是希臘字母「lambda」。
+ 存在一個 穩態子空間（decoherence-free subspace 或 noiseless subsystem）
+L 拉姆達 作用在 ρ 的「DFS」上面，等於零。
+
+且該子空間隨 這個是希臘字母「lambda」。
+ 變化而形成一個「參數化的穩態子空間束」，則在絕熱極限下，系統可以 被限制在穩態流形上，並在該流形內經歷幾何 holonomy。
+
+這樣的結構在文獻中常被稱為 非單位 Holonomic QC 或 開放系統幾何運算。數學上可以視為在「穩態密度矩陣流形」上定義一個聯絡，並對參數循環取 holonomy。
+
+以密度矩陣表述，假設對每一 這個是希臘字母「lambda」。
+ 有一個 這個就是一個小寫的希臘字母「delta」，我們就念成「d」。
+-維穩態子空間（其狀態空間為 大寫花體的 D，下標 lambda，右上角標註 s、s。
+），且 Lindbladian 在這子空間上為零或只給出全體相同的衰減因子。則對一個閉路徑 這個是花體的大寫 C。
+ 上的 adiabatic 變化，可得到一個在穩態空間上的 CPTP holonomy 唸作：「花體的 U，下標是 hol。」
+：
+rho 下標 s s，在溫度 T，等於大寫花體的 U 下標 h o l，中括號裡面是一條路徑 C，作用在 rho 下標 s s，在溫度零。
+
+在特殊情況下，唸作：「花體的 U，下標是 hol。」
+ 可簡化為單位共軛作用；更一般地，它是一個非單位的 CPTP 映射，依然由路徑 這個是花體的大寫 C。
+ 的幾何結構所決定。
+
+ 圖 2-8: Illustration of a manifold of steady states of a Lindbladian, with a subspace forming a decoherence-free subspace that is transported along a parameter loop, resulting in a CPTP holonomy on density matrices
+
+ Prompt: Illustration of a manifold of steady states of a Lindbladian, with a subspace forming a decoherence-free subspace that is transported along a parameter loop, resulting in a CPTP holonomy on density matrices
+
+2.5 具體例子：二能階混態中的 holonomic 旋轉
+
+2.5.1 模型設定：雙能階系統與退簡併子空間
+
+雖然真正的非阿貝爾 holonomy 至少需要三能階（或兩量子位元）退簡併子空間，但作為直覺例子，先看一個簡化版，說明混態在 Bloch 球上如何受幾何演化影響。
+
+考慮一個單量子位元，哈密頓量
+H 括號 n 向量，等於 負的 Δ 除以二，乘上 n 向量 跟 σ 向量 的內積。
+
+其中 粗體的 n 屬於二維球面 S 二。
+ 為控制參數，粗體的 sigma 等於括號裡面 sigma x、sigma y、sigma z。
+。此哈密頓量有兩個能階 E 上標加減，等於 正負 的 Δ 除以二。
+，分別對應本徵態 Ket 正負，括號 n。
+，並形成二維希爾伯特空間。
+
+假設我們關注的是 下能階 對應的本徵態 ket 減的 n。
+，但現在我們不把它當作純態，而是考慮一個以 左大括號，ket 加號 括號 n 向量，逗號，ket 減號 括號 n 向量，右大括號。
+ 為基底的混態：
+rho 括號 n 等於二分之一乘上括號，單位算符 I 加上 r 括號 n 跟 sigma 的內積，括號收起來；其中 r 的長度小於一。
+
+在參數空間 S 的平方。
+ 上，我們讓 粗體的 n，括號裡是 t。
+ 繞行一個閉路徑 這個是花體的大寫 C。
+，並假設演化時間尺度足夠慢（絕熱條件），使得 Bloch 向量 粗體的 r。
+ 隨 粗體的 n。
+ 旋轉。
+
+事實上，在此簡化模型中，若考慮絕熱演化僅投影在下能階子空間，則 Hilbert 空間維度變為 1，無法產生非阿貝爾 holonomy。要看到真正的 Holonomic gate，需要退簡併子空間，例如兩個量子位元的某個雙重退簡併能階。但即使如此，單量子位元模型仍有助於理解 混態在 Bloch 球上的幾何旋轉。
+
+ 圖 2-4: Bloch sphere representation with a Bloch vector r and an effective magnetic field n; as n traces a loop, r is rotated accordingly, illustrating geometric rotation of mixed states
+
+ Prompt: Bloch sphere representation with a Bloch vector r and an effective magnetic field n; as n traces a loop, r is rotated accordingly, illustrating geometric rotation of mixed states
+
+2.5.2 退簡併範例：三能階拉曼系統中的一量子位元子空間
+
+考慮一個典型的三能階 Lambda 系統 左大括號，ket 零、ket 一、還有 ket e，右大括號。
+，其中 ket 零，逗號，ket 一。
+ 為兩個穩態（基態），ket e
+ 為激發態。透過兩個雷射場耦合：
+H 括號 t 等於歐米伽零 括號 t 乘上 ket e bra 零，加上歐米伽一 括號 t 乘上 ket e bra 一，加上它的厄米共軛。
+
+在適當共振條件與拉曼近似下，存在一個 暗態（dark state）：
+D 括號 t 這個 ket，等於，前面一個一除以大歐米伽括號 t，乘上括號裡面，歐米伽一括號 t 乘上 ket 零，減掉歐米伽零括號 t 乘上 ket 一。
+
+其中，大歐米伽括號 t 等於，絕對值歐米伽零括號 t 的平方，加上絕對值歐米伽一括號 t 的平方，整個再開根號。
+
+以及一個 亮態（bright state）ket B 括號 t。
+ 和激發態 ket e
+，組成三維空間。若設計 歐米伽零括號 t，逗號，歐米伽一括號 t。
+ 的時間變化，使演化保持在 Span，括號裡面是 ket 零 跟 ket 一。
+ 子空間，且 ket e
+ 僅作為虛擬中介而不被實佔，則可在 左大括號 ket 零，逗號，ket 一，右大括號。
+ 上實作非阿貝爾 holonomy。
+
+若初態為該子空間內的混態
+rho 下標 code，括號零，等於一個二乘二的密度矩陣， 
+左上是 rho 零零，右上是 rho 零一， 
+左下是 rho 一零，右下是 rho 一一。
+
+（在 左大括號 ket 零，逗號，ket 一，右大括號。
+ 基底），在絕熱循環後，我們得到
+rho 下標 code 在時間 T，等於 U 下標 hol，乘上 rho 下標 code 在時間零，再乘上 U 下標 hol 的 dagger（就是厄米共軛）。
+
+其中 會念成：
+
+「 底下標 hol，屬於 二。」
+ 由參數 括號裡面是：歐米伽零括號 t，逗號，歐米伽一括號 t。
+ 在參數空間所繞行之閉路徑決定。
+
+重點：此處 Holonomic 旋轉不依賴於 rho 下標 code 括號零
+ 的「純度」，無論是純態、部分混態或最大混態，只要它的支撐限制在 左大括號 ket 零，逗號，ket 一，右大括號。
+ 子空間，演化規則都是一樣的：
+rho 映到 U 下標 hol，乘上 rho，再乘上 U 下標 hol 的 dagger。
+
+這體現了 Holonomic gate 在密度矩陣層次的 結構穩定性。
+
+ , |1>, |e>, with laser couplings Ω0(t) and Ω1(t); show dark state manifold forming a qubit subspace transported along a closed loop in parameter space producing U_hol">
+ 圖 2-5: Level diagram of a three-level Lambda system with states |0>, |1>, |e>, with laser couplings Ω0(t) and Ω1(t); show dark state manifold forming a qubit subspace transported along a closed loop in parameter space producing U_hol
+
+ Prompt: Level diagram of a three-level Lambda system with states |0>, |1>, |e>, with laser couplings Ω0(t) and Ω1(t); show dark state manifold forming a qubit subspace transported along a closed loop in parameter space producing U_hol
+
+2.6 密度矩陣 Holonomic QC 的優點與挑戰
+
+2.6.1 優點：幾何魯棒性與對雜訊的部分免疫
+
+以密度矩陣視角研究 Holonomic QC，可清楚點出其對雜訊的優勢與限制：
+
+ 幾何性質（path-dependence） 
+ Holonomic gate 的主要參數是 路徑形狀（在參數流形中的幾何路徑），而非 時間細節。 
+ 這意味著只要演化足夠緩慢（保持 adiabatic）且路徑在幾何上不被大幅扭曲，小的時間抖動不會嚴重影響最終 holonomy。
+
+ 對某類誤差的整體相位不敏感 
+ 由於密度矩陣對整體相位不敏感，且 Holonomic gate 鎖定在 子空間內的相對幾何變換，因此對某些 全局相位與均勻動力學相位誤差 天生不敏感。
+
+ 自然結合穩態子空間與降噪設計 
+ 在開放系統框架下，可以利用穩態 / decoherence-free 子空間作為碼空間，配合幾何路徑設計 Holonomic gate，達成「被動」抗噪與幾何魯棒性的結合。
+
+2.6.2 挑戰：退相干、洩漏與非絕熱效應
+
+然而，在密度矩陣視角下，也可以清楚看到 Holonomic QC 的挑戰：
+
+ 退相干（decoherence） 
+ 如果 Lindblad 跳躍算符 L 下標 alpha
+ 將態從碼空間洩漏到外部，或者在碼空間內引入非對稱去相干，最終 rho 下標 code，括號裡面帶一個 T。
+ 會偏離理想的 U hol，乘上 rho 在零的時候，再乘上 U hol 的 dagger。
+，失去幾何閘的可預測性。
+
+ 非絕熱誤差 
+ 雖然幾何閘對時間細節不敏感，但 adiabatic 要求本身卻可能導致長時間操作，增加退相干影響。非絕熱修正可視為在投影子空間外產生小幅度密度矩陣成分：
+ rho 括號 t 等於 
+P 括號 lambda 括號 t 括號 乘上 rho 括號 t 再乘上 P 括號 lambda 括號 t 括號 
+加上 delta rho 底下那個垂直符號 括號 t。
+
+ 這 唸作：「delta rho 下標垂直」。
+ 導致洩漏與誤差，需要透過 shortcut-to-adiabaticity 或 non-adiabatic holonomic schemes 緩解。
+
+ 控制空間維度與實作複雜度 
+ 要設計具有足夠豐富 holonomy 的退簡併結構，往往需要較高能階系統或多粒子耦合，使實驗控制變得複雜。而在密度矩陣層次，系統維度 這個就念成：「大寫英文字母 N」。
+ 增加，算符空間維度 N 的平方。
+ 也顯著增大，分析與最佳化更具挑戰。
+
+ 圖 2-6: Conceptual chart listing pros and cons of holonomic QC at the density matrix level, with arrows from noise sources (decoherence, leakage, nonadiabaticity) into distortions of ρ, and comparison with geometric robustness mechanisms
+
+ Prompt: Conceptual chart listing pros and cons of holonomic QC at the density matrix level, with arrows from noise sources (decoherence, leakage, nonadiabaticity) into distortions of ρ, and comparison with geometric robustness mechanisms
+
+2.7 本講小結與後續銜接
+
+本講從密度矩陣出發，系統性整理了 Holonomic Quantum Computation 的幾何結構與混態推廣：
+
+ 回顧純態 Berry phase，指出在密度矩陣層次 整體相位不可見，但退簡併子空間中的非阿貝爾 holonomy 仍可透過共軛作用實現。
+
+ 介紹 Uhlmann phase 與 Sjöqvist phase，展示混態幾何相位可透過不同平行輸運準則定義。
+
+ 在投影算符與退簡併子空間的觀點下，構建一個「密度矩陣束 + 聯絡」的幾何 picture，並證明 holonomic gate 對純態與混態的結構是一致的。
+
+ 將討論延伸至 Lindblad 開放系統，說明如何在穩態子空間上定義 CPTP holonomy，並在 decoherence-free subspace 中設計幾何閘。
+
+ 透過三能階拉曼系統等例子，具體展示混態在碼空間上如何被 Holonomic unitary 操控。
+
+在接下來的講次中，我們將：
+
+ 把本講的 密度矩陣 holonomy 結構 與 量子退火（Quantum Annealing） 結合，建立所謂的 Holonomic Quantum Annealing。
+
+ 討論在最佳化問題與 Ising 模型下，如何設計一個 幾何型量子退火路徑，使解的搜尋具有幾何魯棒性。
+
+ 進一步分析 Holonomic Quantum Annealing 與 gate model 的等價性與差異，並連接至當前實驗與理論發展。
