@@ -1,0 +1,576 @@
+第 1 講：Decoherence 主題 1 — 基本概念與最簡模型
+
+本講作為整個「退相干 (Decoherence)」課程的開端，目標是從最基本的量子力學形式主義出發，嚴謹地定義何謂退相干，並透過最簡單的數學模型展示：
+
+ 為何閉合系統依然是「純態單位演化」，但子系統會呈現出「經典混合」的假象？
+
+ 密度矩陣 (density matrix) 與偏跡 (partial trace) 在退相干理論中的核心角色。
+
+ 如何以最簡二能級系統 + 環境模型，顯示 off-diagonal 元被壓抑。
+
+ 初步連結到測量 (measurement) 與「環境即測量者」的觀點。
+
+本講不會過度著墨於實驗技術，而是打好數學與概念基礎，為後續關於 Bohm 模型、弱測量、量子非破壞測量 (QND) 與 interaction-free measurement 等進階主題鋪路。
+
+1. 為何需要退相干理論？——問題設定
+
+1.1 傳統量子測量問題回顧
+
+在標準的量子力學教科書中，封閉量子系統的時間演化由薛丁格方程主導：
+i 乘上 ħ，再乘上對時間的偏微分，作用在 ket psi 括號 t，上面，等於哈密頓算符作用在 ket psi 括號 t。
+
+其解可寫為單位算符 U 帽加上 t，等於指數的負的 i 除以 h bar，乘上哈密頓算符，再乘上時間 t。
+ 的作用：
+psi 括號 t 這個 ket，等於 U 帽子括號 t，作用在 psi 括號零 這個 ket 上。
+
+因此，純態在時間演化下仍為純態；狀態向量在希爾伯特空間中僅是「轉向」，不會自動變成「機率混合」。
+
+然而，一旦談到 測量，標準教科書又引入了「波函數塌縮」公設：若測量可觀察量 A 帽。
+ 具有完備本徵態集 一組 ket，a 下標 i。
+，則
+
+ 在測量前，系統可能處於疊加態： 
+ psi 這個 ket，等於對所有 i 把 c 下標 i 乘上 ket a 下標 i，全部加總起來。
+
+ 測量後，系統「隨機地」以機率 c 下標 i 的絕對值平方
+ 塌縮到其中一個本徵態 ket，a，下標 i。
+。
+
+此處「塌縮」並非由薛丁格方程所導出，而是附加的非單位、非線性過程。這導致著名的「測量問題」：
+
+ 何時發生塌縮？
+
+ 塌縮的物理機制是什麼？
+
+ 觀測者／儀器／環境在其中扮演的角色為何？
+
+1.2 退相干的基本觀點
+
+退相干理論提供一種不改變薛丁格方程的觀點：承認整個宇宙作為一個封閉系統仍然遵守單位演化，但我們所能實際操控與觀察的只是其中一小部分（子系統）。子系統與其環境的量子糾纏會導致：
+
+ 子系統的有效狀態不再是純態向量，而是密度矩陣。
+
+ 在某個首選基底 (pointer basis) 中，密度矩陣的非對角項 (off-diagonal elements) 很快被抑制到無法觀測。
+
+ 在實驗上，這看起來好像「疊加被破壞」，只剩下機率混合。
+
+這個過程稱為 退相干 (decoherence)。概念上，它並不引入真正的「塌縮」，而是透過「忽略環境」與「有效描述子系統」的方式，解釋為何宏觀世界呈現近似經典行為。
+
+ 圖 1-5: A schematic showing a small system S coupled to a big environment E, with arrows indicating entanglement generation and a blurred 'classical world' emerging for S after tracing out E.
+
+ Prompt: A schematic showing a small system S coupled to a big environment E, with arrows indicating entanglement generation and a blurred 'classical world' emerging for S after tracing out E.
+
+2. 密度矩陣與偏跡：退相干的數學語言
+
+2.1 純態與混合態的密度矩陣表示
+
+在退相干理論中，密度算符 (density operator) 是基本工具。定義：
+
+ 純態 (pure state) ket psi。
+ 的密度算符：
+ rho 帽等於 ket psi 再乘上 bra psi。
+
+ 它滿足 rho 帽平方等於 rho 帽。
+、rho 的跡等於一。
+。
+
+ 混合態 (mixed state)：
+ 若系統以機率 p 底標 i
+ 在純態 psi 下標 i 的 ket。
+ 中，則
+ rho 帽等於對所有 i 做總和，p_i 乘上 ket psi_i 再乘上 bra psi_i。 
+其中 p_i 大於等於零，而且所有 p_i 加起來等於一。
+
+ 此時 rho 帽平方不等於 rho 帽。
+ 一般而言。
+
+態的純度可以用
+gamma 等於，rho 帽 的平方，取跡。
+
+來衡量，純態有 gamma 等於一。
+，完全混合態在 這個就是一個小寫的拉丁字母 d。
+-維希爾伯特空間中則有 γ 等於 1 除以 d。
+。
+
+2.2 偏跡與子系統的有效狀態
+
+考慮一個複合系統 S 加 E。
+（系統 + 環境），希爾伯特空間為
+哈密頓量的希爾伯特空間等於系統的希爾伯特空間張量乘上環境的希爾伯特空間。
+
+若整體處於密度算符 rho 帽子，下標 S E。
+，則只對系統 S 的有效描述由偏跡 (partial trace) 給出：
+rho 帽底 S 等於，對環境做偏跡，也就是 trace 下標 E，作用在 rho 帽底 S E 上。
+
+相對地，環境的有效狀態為
+rho 帽子，下標 E，等於，對系統 S 做偏跡，把整個 rho 帽子下標 S E 給 trace 掉。
+
+偏跡的具體定義：選取環境的一組正交規一基底 一組 ket e 下標 k 的集合。
+，則
+rho 帽子下標 S，等於對 k 做求和，內積 e_k，rho 帽子下標 S E，再乘上 ket e_k。
+
+類似地可定義對 S
+ 的偏跡。直覺上，這就像是對環境所有可能狀態求「總和」，因為我們不觀測環境細節。
+
+ 圖 1-2: Diagram showing a joint density matrix rho_SE on H_S ⊗ H_E, with an arrow indicating partial trace over E to obtain rho_S, illustrated as summing over environment basis states.
+
+ Prompt: Diagram showing a joint density matrix rho_SE on H_S ⊗ H_E, with an arrow indicating partial trace over E to obtain rho_S, illustrated as summing over environment basis states.
+
+2.3 單位演化與開放系統的非單位演化
+
+封閉系統 S 加 E。
+ 服從單位演化：
+rho 帽，底標 S E，在時間 t 的時候，等於 U 帽在時間 t，乘上 rho 帽，底標 S E，在時間 0 的時候，再乘上 U 帽的 dagger，在時間 t。
+
+其中 U 帽子括號 t，等於指數函數的負 i 除以 h bar 乘上哈密頓量算符再乘上時間 t 的指數。
+。對於子系統 S
+，其動力學為
+rho 帽子，下標 S，括號 t，等於，對環境做偏蹤，也就是 Tr 下標 E，作用在一個大括號裡面： 
+U 帽子，括號 t，乘上 rho 帽子，下標 S E，括號零，再乘上 U 帽子上標 dagger，括號 t，整個被 Tr 下標 E 作用。
+
+這一般不是由某個單一的哈密頓量在 黑板上這個符號念作「花體的 H，下標一個 S」，或者你也可以直接說「系統的哈密頓量」。
+ 上的單位演化所給出，而是一個非單位的、通常是耗散 (dissipative) 或退相干 (dephasing) 的演化。
+
+這裡已可看到退相干的要旨：
+
+ 整體 S 加 E。
+ 嚴格遵守量子力學單位演化。
+
+ 但由於我們忽略了 E
+ 的自由度，子系統 S
+ 的有效演化被「縮減」為一個 CP（完全正）跡保持 (trace-preserving) 映射，而非單純的單位算符。
+
+3. 最簡退相干模型：二能級系統 + 環境
+
+3.1 設定：一個量子比特與環境的糾纏
+
+考慮最簡模型：系統 S
+ 為一個量子比特，基底 左邊是 ket 零，右邊是 ket 一，這一對組成一個集合。
+；環境 E
+ 可以是任意維數的希爾伯特空間。有一種常見的理想化互動：
+
+左邊：系統的 ket 零 張量環境的 ket E 零， 
+經過算符 U 之後，變成系統的 ket 零 張量環境的 ket E 零 破折號。
+
+右邊：系統的 ket 一 張量環境的 ket E 零， 
+經過算符 U 之後，變成系統的 ket 一 張量環境的 ket E 一 破折號。
+
+其中 ket E 零
+ 是環境初態，而不同的系統態會「刻印」在不同的環境態 ket E 零 prime，逗號，ket E 一 prime。
+ 上。這反映一種「測量式」互動：環境獲取關於系統在 ket 零，斜線，ket 一。
+ 基底上的資訊。
+
+ branch couples to environment state |E0'>, the |1> branch to |E1'>, illustrating environment becoming correlated with system state.">
+ 圖 1-4: Simple circuit-like diagram: a qubit line (system) interacting with a large cloud-like region (environment). The |0> branch couples to environment state |E0'>, the |1> branch to |E1'>, illustrating environment becoming correlated with system state.
+
+ Prompt: Simple circuit-like diagram: a qubit line (system) interacting with a large cloud-like region (environment). The |0> branch couples to environment state |E0'>, the |1> branch to |E1'>, illustrating environment becoming correlated with system state.
+
+3.2 初始疊加態的演化
+
+令系統初態為疊加態：
+psi 下標 S 括號零 的 ket，等於 alpha 乘上 ket 零，加上 beta 乘上 ket 一；同時，alpha 的絕對值平方加上 beta 的絕對值平方，等於一。
+
+環境初態為 ket E 零
+。整體初態：
+psi 下標 S E 括號零，等於，左邊一個括號，alpha 乘上 ket 零，加上 beta 乘上 ket 一，右邊括號，整個再 tensor 乘上 ket E 零。
+
+經過上述互動 U 上有一個帽號。
+ 之後，整體態變為
+Psi 下標 S E、在時間 t 的 ket，等於 
+alpha 乘上 ket 零 張量乘上、環境在時間 t 的 E 零 prime 的 ket， 
+再加上 beta 乘上 ket 一 張量乘上、環境在時間 t 的 E 一 prime 的 ket。
+
+其中我們顯式保留時間標記在環境態上。
+
+請注意：此時整體仍然是純態，且演化完全是單位的。但從系統角度來看，發生了什麼？
+
+3.3 對環境取偏跡
+
+計算整體密度算符：
+rho 帽子下標 S E、在時間 t 的時候，等於 ket Psi 下標 S E、在時間 t，乘上 bra Psi 下標 S E、在時間 t。
+
+將上式展開：
+rho 帽，底標 S E，括號 t，等於絕對值 alpha 平方，乘上 ket 零 bra 零，tensor，ket E 零 撇，括號 t，bra E 零 撇，括號 t，
+
+再加上絕對值 beta 平方，乘上 ket 一 bra 一，tensor，ket E 一 撇，括號 t，bra E 一 撇，括號 t，
+
+再加上 alpha 乘上 beta 共軛，乘上 ket 零 bra 一，tensor，ket E 零 撇，括號 t，bra E 一 撇，括號 t，
+
+再加上 alpha 共軛乘上 beta，乘上 ket 一 bra 零，tensor，ket E 一 撇，括號 t，bra E 零 撇，括號 t。
+
+現在對環境取偏跡：
+rho 帽子下標 S，在時間 t 的時候，等於對環境做偏蹤，也就是 Tr 下標 E 作用在 rho 帽子下標 S E，在時間 t。
+
+利用
+對環境做偏跡之後， 這個算符，會等於內積 。
+
+可得
+rho 帽，底標 S，在時間 t 的時候，
+
+等於，絕對值 alpha 的平方，乘上 ket 零 bra 零，
+
+再加上，絕對值 beta 的平方，乘上 ket 一 bra 一，
+
+再加上，alpha 乘上 beta 共軛，乘上，內積 E 一 逗點 t，跟 E 零 逗點 t，
+
+再乘上 ket 零 bra 一，
+
+再加上，alpha 共軛 乘上 beta，乘上，內積 E 零 逗點 t，跟 E 一 逗點 t，
+
+再乘上 ket 一 bra 零，句號。
+
+用矩陣形式（在 大括號，ket 零，和，ket 一，的大集合。
+ 基底）表示：
+好，這個式子我會念成：
+
+「系統的密度算符 rho 下標 S，在時間 t 的時候，等於一個二乘二的矩陣。左上角是絕對值 alpha 的平方；右上角是 alpha 乘上 beta 星，乘上內積 E 一 prime、t，bra，和 E 零 prime、t，ket。左下角是 alpha 星乘上 beta，乘上內積 E 零 prime、t，bra，和 E 一 prime、t，ket。右下角是絕對值 beta 的平方。」
+
+可以看到：對角元素 絕對值 alpha 的平方，逗號，絕對值 beta 的平方。
+ 不會因為這種理想化互動而改變（這對應於 相位退相干 (pure dephasing) 模型）；而非對角元素 被一個重疊因子
+gamma 括號 t 定義為，內積 E1 prime 括號 t，跟 E0 prime 括號 t。
+
+所乘。這個因子通常稱為「退相干因子」(decoherence factor)。若
+絕對值 gamma 括號 t 括號，趨近於零。
+
+則 off-diagonal 元會趨近於零，系統看起來就像是經典機率混合：
+rho 帽子，下標 S，括號裡 decohered，約略等於，絕對值 alpha 的平方，乘上 ket 零 bra 零，加上，絕對值 beta 的平方，乘上 ket 一 bra 一。
+
+3.4 量子疊加 vs. 經典混合
+
+退相干前（純態）：
+rho 帽子下標 S 在零的時候，等於 ket psi 下標 S 在零，bra psi 下標 S 在零。
+
+那它也等於一個二乘二的矩陣，第一列是：絕對值 alpha 平方，逗號，alpha 乘上 beta 共軛。
+
+第二列是：alpha 共軛乘上 beta，逗號，絕對值 beta 平方。
+
+退相干後（有效混合態）：
+rho S 在無限時刻，大約等於一個二乘二的矩陣， 
+左上角是 alpha 的絕對值平方，右上角是零， 
+左下角是零，右下角是 beta 的絕對值平方。
+
+兩者給出的能量測量（若哈密頓量對角於此基底）結果分佈是一樣的，但在干涉實驗中會有本質不同：
+
+ 純態疊加允許後續在某個基底（如 ket 加 等於 左括號 ket 零 加 ket 一 右括號，除以 根號二。
+）出現干涉（如相位改變影響輸出機率）。
+
+ 完全退相干後的混合態則不再支持此類干涉。
+
+ 圖 1-6: Bloch sphere showing initial pure state vector off the z-axis, and decoherence causing it to shrink radially towards the z-axis (mixed state) while keeping its z-component fixed.
+
+ Prompt: Bloch sphere showing initial pure state vector off the z-axis, and decoherence causing it to shrink radially towards the z-axis (mixed state) while keeping its z-component fixed.
+
+3.5 退相干時間與環境重疊因子
+
+在更具體的模型中，環境態重疊 gamma 括號 t 等於，內積 E1 prime 括號 t，跟 E0 prime 括號 t。
+ 一般會隨時間衰減：
+絕對值 gamma 括號 t，約略等於 e 的負 t 除以 tau 下標大寫 D 次方。
+
+其中 唸作：「tau 下標 D」。
+ 是典型的退相干時間 (decoherence time)。對於巨量自由度的環境（如熱浴、電磁場模式、空氣分子），通常
+τ 下標 D 遠小於 τ 下標 relax。
+
+表示相干性喪失的時間尺度比能量弛豫還要快得多，這解釋了為何在宏觀世界幾乎看不到「薛丁格貓式疊加」。
+
+4. 退相干作為「環境測量」：直覺與形式推導
+
+4.1 環境作為「測量裝置」
+
+上述模型形式上與「測量」非常類似。回想一個理想的投影測量（von Neumann 測量）：
+
+ 測量裝置 M
+ 初態 ket，M 下標零。
+。
+
+ 系統 S
+ 有本徵態 ket，a，下標 i。
+。
+
+ 測量互動使得：
+ ket a 下標 i，系統 S，張量上 ket M 零，測量器 M， 
+映成 
+ket a 下標 i，系統 S，張量上 ket M 下標 i，測量器 M。
+
+若初態為疊加：
+psi 下標 S，等於對所有 i 做總和，c 下標 i 乘上 ket a 下標 i。
+
+則整體演化：
+左邊是，括號裡面，i 從所有可能值加總，c i 乘上 ket a i，這一整個括號，張量積 ket M 零。
+
+箭頭之後，變成 i 的總和，c i 乘上 ket a i，再張量積 ket M i。
+
+這是一個糾纏態，並無塌縮。若再考慮人眼或環境對 M
+ 的持續測量，最終對我們而言只會看到經典結果。退相干理論將環境 E 視為一連串或一大片隱含的「測量裝置」。
+
+ evolving to correlated states |Mi> depending on system eigenstates |ai>. Then an additional environment E interacts with M, leading to decoherence between different |Mi>.">
+ 圖 1-8: Von Neumann measurement scheme: system S and apparatus M, initial pointer state |M0> evolving to correlated states |Mi> depending on system eigenstates |ai>. Then an additional environment E interacts with M, leading to decoherence between different |Mi>.
+
+ Prompt: Von Neumann measurement scheme: system S and apparatus M, initial pointer state |M0> evolving to correlated states |Mi> depending on system eigenstates |ai>. Then an additional environment E interacts with M, leading to decoherence between different |Mi>.
+
+4.2 指標基 (pointer basis) 與環境選擇 (environment-induced superselection)
+
+在上述二能級模型中，可清楚看到：如果環境與系統在 大括號，ket 零，和，ket 一，的大集合。
+ 基底上建立穩定的糾纏，則此基底就是所謂的指標基 (pointer basis)——在此基底中，退相干會快速消除疊加，而保留對角元素。這個基底由系統-環境互動的形式所決定。
+
+更形式化地，若系統-環境互動哈密頓量具有型式：
+帽 H 的 int，下標 int，等於對所有 i 做總和， 
+絕對值 a i ket，bra a i，的這個投影，張量乘上帽 B i。
+
+則 一組 ket，a 下標 i。
+ 通常會形成 pointer basis。在此基底中，rho 帽子，下標 S。
+ 的對角元素相對穩定，而非對角元素快速衰減。這個現象可被視為一種由環境引起的「超選規則」 (environment-induced superselection, einselection)。
+
+4.3 形式推導：指標基的穩定性條件
+
+一個更嚴謹的觀點是：指標態 ket，pi，下標 alpha。
+ 是那些在演化下僅受相位與細微修正的態，且滿足某種穩定性準則。例如，若存在 CP 映射 大寫花體的 E，底下有一個下標 t。
+ 描述 S
+ 的演化，則指標態滿足
+Ｅ 下標 t 作用在 ket pi alpha bra pi alpha，約等於 ket pi alpha bra pi alpha，適用於所有相關的 t。
+
+而一旦初態為疊加：
+psi 下標 S，等於對所有 alpha 做總和，c 下標 alpha 乘上 ket pi 下標 alpha。
+
+則
+E 下標 t 作用在 psi 下標 S 的 ket bra 上， 
+大約等於，對所有 alpha 做總和， 
+每一項是 c 下標 alpha 的絕對值平方， 
+乘上 pi 下標 alpha 的 ket bra。
+
+即退相干產生的經典混合。這與前面 2-level 模型的具體計算本質相同，只是推廣到更一般的情況。
+
+5. 開放系統主方程與退相干：Lindblad 形式初探
+
+5.1 Markovian 開放系統與 Lindblad 方程
+
+在很多實際情況下，可以假設環境的記憶效應不那麼重要（Markov 近似），則系統的演化可由 Lindblad 主方程 描述：
+隨時間對 t 微分的系統密度矩陣，等於負的 i 除以 h bar，乘上系統哈密頓量跟密度矩陣的對易括號，再加上超算符 L 作用在這個系統密度矩陣上。
+
+其中 dissipator 這個念作：「花體的 L」。
+ 的泛形為
+L 作用在 rho 上，等於對所有的 k 作總和，每一項是： 
+L k 乘上 rho 再乘上 L k 的 dagger，減掉二分之一乘上，L k 的 dagger 乘上 L k 跟 rho 的反對易算符。
+
+大括號，裡面放兩個點。
+ 為反對易子，L 帽，底標 k。
+ 稱為 Lindblad 算符或「躍遷算符」。
+
+退相干（尤其是相位退相干）可以用特定形式的 L 帽，底標 k。
+ 來表示。例如對一個二能級系統，取
+L 帽等於根號 Gamma 乘上 sigma z 帽。
+
+則 Lindblad 項成為
+L 作用在 rho 上，等於 Γ 括號裡面，sigma z 乘上 rho 再乘上 sigma z，減掉 rho。
+
+可顯式導出 off-diagonal 元呈指數衰減。
+
+5.2 二能級相位退相干的顯式解
+
+在 大括號，ket 零，和，ket 一，的大集合。
+ 基底，令密度矩陣為
+rho 帽，括號 t，等於一個二乘二的矩陣， 
+第一列是 rho 零零 括號 t，跟 rho 零一 括號 t， 
+第二列是 rho 一零 括號 t，跟 rho 一一 括號 t。
+
+考慮僅相位退相干（不含哈密頓量，或在互動表象下）。主方程：
+對時間做微分的 rho hat 左括號 t 右括號，等於 Γ 乘上，大括號裡面是 sigma z hat 乘上 rho hat 左括號 t 右括號 再乘上 sigma z hat，減掉 rho hat 左括號 t 右括號。
+
+計算右邊：
+sigma z 帽等於一個二乘二的矩陣， 
+左上是一，右上是零， 
+左下是零，右下是負一。
+
+然後， 
+sigma z 帽乘上 rho 帽再乘上 sigma z 帽， 
+等於一個二乘二的矩陣， 
+左上是 rho 零零，右上是負的 rho 零一， 
+左下是負的 rho 一零，右下是 rho 一一。
+
+因此
+L 作用在 rho 帽子上，等於大寫的 Gamma，乘上，前面那個二乘二矩陣是：第一列，rho 零零，逗號，負的 rho 零一；第二列，負的 rho 一零，逗號，rho 一一；然後減掉，後面那個二乘二矩陣：第一列，rho 零零，逗號，rho 零一；第二列，rho 一零，逗號，rho 一一；這個結果等於 Gamma 乘上，另一個二乘二矩陣：第一列，零，逗號，負二倍的 rho 零一；第二列，負二倍的 rho 一零，逗號，零。
+
+因此元件方程為
+對時間做微分的 rho 零零，在括號裡面是 t，等於零； 
+逗號，接著，對時間做微分的 rho 一一，在括號裡面是 t，也等於零。
+
+隨時間微分的 rho 零一，在時間 t，就是等於負二 Gamma 乘上 rho 零一，在時間 t； 
+隨時間微分的 rho 一零，在時間 t，就是等於負二 Gamma 乘上 rho 一零，在時間 t。
+
+解為
+rho 零零 括號 t 等於 rho 零零 括號零， 
+rho 一一 括號 t 等於 rho 一一 括號零。
+
+rho 零一 在時間 t 的時候，等於 rho 零一 在時間零，乘上 e 的負二 Gamma t 次方； 
+rho 一零 在時間 t 的時候，等於 rho 一零 在時間零，乘上 e 的負二 Gamma t 次方。
+
+這與前面 2-level 模型中的
+gamma 括號 t，等於，內積 E1 介於 t 的態，跟 E0 介於 t 的態。
+ 指數衰減是一致的物理圖像。
+
+ 圖 1-1: Plot of |rho_01(t)| versus time t showing exponential decay, while rho_00 and rho_11 remain constant, illustrating pure dephasing behavior.
+
+ Prompt: Plot of |rho_01(t)| versus time t showing exponential decay, while rho_00 and rho_11 remain constant, illustrating pure dephasing behavior.
+
+6. 退相干與測量：從密度矩陣角度看「塌縮」
+
+6.1 投影測量作為一種極限退相干過程
+
+對於可觀察量 A 帽等於，把所有 i 加起來的總和，每一項是 a 下標 i 乘上 Π 帽 下標 i。
+，其中 皮帽皮下標 i 等於 ket a 下標 i bra a 下標 i。
+ 是投影算符。標準測量公設指出：
+
+ 測量預測值由
+ 期望值 A，在態 rho 之下，等於 A 乘上 rho 的跡。
+
+ 給出。
+
+ 測量後（但忽略結果是哪一個）的狀態為
+ rho 帽子撇 等於 對 i 求和，Pi 帽子下標 i、rho 帽子、再接一個 Pi 帽子下標 i。
+
+注意到這個映射
+ρ 這個算符，對應到 ρ 拔線之後，會變成 ρ prime，等於對所有的 i 把 Π i、ρ、再乘上一個 Π i，全部加總起來。
+
+正是把 羅帽。
+ 在 一組 ket，a 下標 i。
+ 基底上對角化的操作，消除 off-diagonal 元：
+rho i j 的 prime 等於：
+
+當 i 等於 j 的時候，是 rho i i；
+
+當 i 不等於 j 的時候，是零。
+
+這形式上等價於「瞬間、完全的退相干」。也就是說：
+投影測量可以被視為退相干的極端極限。
+
+6.2 由系統-裝置-環境三方模型導出投影測量
+
+更嚴謹地，考慮系統 S
+、測量裝置 M
+、環境 E
+ 三者的聯合演化：
+
+ 先由 S 加 M
+ 的單位演化建立糾纏：
+ 左邊是，括號裡面，sigma over i，c i 乘上 ket a i，下標 S，整個括號再 tensor 上 ket M 零，下標 M。 
+經過上標是 U S M 的這個時間演化算符之後， 
+變成 sigma over i，c i 乘上 ket a i，下標 S，tensor ket M i，下標 M。
+
+ 再由 M 加 E
+ 的互動使得不同 ket 的 下標 被不同環境態糾纏：
+ 總和 over i，c i 乘上 ket a i，下標系統 S，張量 ket M i，下標測量器 M，張量 ket E 零，下標環境 E，
+
+經過 U hat，下標 M E 的作用之後，
+
+變成總和 over i，c i 乘上 ket a i，下標系統 S，張量 ket M i，下標測量器 M，張量 ket E i，下標環境 E。
+
+考慮整體密度算符並對 大 M 逗號 大 E
+ 偏跡，若假設
+左邊是「內積 M j、E j 和 M i、E i」， 
+等於「內積 M j 和 M i，乘上內積 E j 和 E i」， 
+大約等於「delta i j」。
+
+則系統的有效密度矩陣為
+rho 帽子下標 S，大約等於對 i 做總和，絕對值 c i 平方，乘上 ket a i，再乘上 bra a i。
+
+這正是投影測量後「結果未區分」的狀態。從這角度看，所謂塌縮，只是我們忽略了巨大的 M 加 E
+ 自由度後，系統呈現出的有效退相干態。
+
+ |Mi>|Ei>, and tracing out M+E leaves a classical mixture on S.">
+ 圖 1-7: Three-part system S-M-E: first S entangles with M, then M entangles with E, leading to nearly orthogonal global branches |ai>|Mi>|Ei>, and tracing out M+E leaves a classical mixture on S.
+
+ Prompt: Three-part system S-M-E: first S entangles with M, then M entangles with E, leading to nearly orthogonal global branches |ai>|Mi>|Ei>, and tracing out M+E leaves a classical mixture on S.
+
+6.3 信息論觀點：環境中攜帶的「記錄」
+
+從量子資訊角度，環境可以視為儲存著關於系統狀態之古典資訊的「記錄」。例如在上例中，環境態 ket，E，下標 i。
+ 對應系統在 ket，a，下標 i。
+ 的指標輸出；不同 就一個小寫的虛數單位「i」。
+ 的環境態幾乎正交，因而可被未來觀測者（或更多的「環境分塊」）以古典方式讀取。
+
+這也為後續主題如「量子達爾文主義 (Quantum Darwinism)」鋪路：多重環境分塊各自攜帶冗餘的系統信息，形成「客觀經典實在」的基礎。本課程後續若有機會可進一步展開。
+
+7. 一個具體例子：Mach–Zehnder 干涉儀中的退相干
+
+7.1 理想干涉：量子疊加保持相干
+
+考慮 Mach–Zehnder 干涉儀：單光子進入第一個分束器 (BS1)，被分成兩路 ket u
+ 與 ket 的小寫字母 l。
+（上臂與下臂），在第二個分束器 (BS2) 重新匯合。忽略相位差時，理想輸出為：所有光子在探測器 這個就是「D 一」。
+ 而無光子在 念成：「D 二」。
+，這是干涉的結果。
+
+用狀態向量描述，進入 BS1 後：
+psi 這個 ket，等於二分之一開根號分之一，乘上 ket u 加上 ket l。
+
+若兩臂光程完全相同，經 BS2 後得到：
+psi 的輸出，等於 ket D1。
+
+顯然無任何機率在 念成：「D 二」。
+。
+
+7.2 引入哪一路資訊與退相干
+
+若在某一臂上放置一個「哪一路探測器」（例如可與光子相互作用並改變其偏振、頻率、或與環境糾纏），則光子狀態會與環境糾纏：
+左邊念成： 
+「二分之一開根號的倒數，乘上，括號裡面 ket u 加上 ket l，再張量乘上 ket E 零。」
+
+右邊念成： 
+「變成二分之一開根號的倒數，乘上，括號裡面 ket u 張量 ket E u，加上 ket l 張量 ket E l，括號。」
+
+若 bra E 上，ket E 下，大約等於零。
+，則對環境取偏跡：
+帽 rho 下標 path，大約等於二分之一，括號裡面是 ket u bra u，加上 ket l bra l。
+
+非對角項消失，干涉條紋完全消失；兩個探測器 D 一，逗號，D 二。
+ 得到 百分之五十減百分之五十
+ 的機率分佈。
+
+ and |El>, then recombination at BS2 with two detectors D1 and D2. Indicate that if |Eu> and |El> are distinguishable, interference vanishes.">
+ 圖 1-3: Mach-Zehnder interferometer drawing. Show single photon entering BS1, paths u and l, an environment coupling element on one path labeling states |Eu> and |El>, then recombination at BS2 with two detectors D1 and D2. Indicate that if |Eu> and |El> are distinguishable, interference vanishes.
+
+ Prompt: Mach-Zehnder interferometer drawing. Show single photon entering BS1, paths u and l, an environment coupling element on one path labeling states |Eu> and |El>, then recombination at BS2 with two detectors D1 and D2. Indicate that if |Eu> and |El> are distinguishable, interference vanishes.
+
+這裡清楚顯示：
+
+ 哪一路資訊的可獲取性（即使沒人實際去量）足以破壞干涉。
+
+ 可視為環境對「路徑基底」進行了測量，引發退相干。
+
+這個例子直接連結到日後要談的：
+
+ Information-gain–disturbance tradeoff（獲取路徑資訊 vs. 干涉能見度）。
+
+ Interaction-free measurement 與 Elitzur–Vaidman 炸彈測試（使用干涉破壞來判斷「是否有物件在路徑上」，即使光子沒與之直接作用）。
+
+8. 本講小結與後續展望
+
+8.1 本講重點整理
+
+ 退相干並非修改薛丁格方程，而是：封閉的大系統單位演化 + 子系統偏跡 = 有效的非單位演化。
+
+ 密度矩陣與偏跡是描述退相干不可或缺的數學工具。
+
+ 在二能級 + 環境的最簡模型中，退相干體現在 off-diagonal 元乘上一個環境重疊因子 伽瑪括號 t 括號。
+，其模長隨時間迅速衰減。
+
+ 指標基 (pointer basis) 由系統-環境互動決定，是環境所「測量」的基底；在此基底中退相干最明顯。
+
+ 投影測量可視為極端的退相干：測量裝置與環境將不同本徵態分支強烈糾纏並使其互相正交，子系統看來像是塌縮到經典混合。
+
+ Mach–Zehnder 干涉儀提供了直觀且數學上清晰的例子，顯示哪一路資訊與干涉能見度的互斥，這本質上是退相干的 manifestation。
+
+8.2 與後續課程的銜接
+
+接下來的講次將在本講基礎上深入：
+
+ Bohm 裝置 + 系統模型中，如何以「顯式測量裝置自由度」重寫退相干？
+
+ 一般化的測量理論：POVM、Kraus 算符、弱測量與量子非破壞 (QND) 測量，以及它們與退相干的關係。
+
+ Information-gain–disturbance tradeoff 的數學定量：獲得多少資訊必然導致多少退相干或擾動。
+
+ Interaction-free measurement、Elitzur–Vaidman 炸彈測試及其 Kwiat 強化版：如何利用干涉與退相干機制進行「幾乎不作用卻取得資訊」的測量。
+
+ Counterfactual quantum computation：在某些情況下，運算結果似乎可以在「未實際執行運算」時被讀出，其背後同樣牽涉到退相干與測量理論的深層結構。
+
+在進入這些主題之前，請同學務必對密度矩陣、偏跡、Lindblad 方程與簡單退相干模型有紮實掌握，因為所有進階概念都會反覆用到這些工具。

@@ -1,0 +1,749 @@
+第 9 講：Decoherence 主題 9 —— 退相干、測量與反事實量子資訊
+
+本講將把前幾講中分散出現的退相干與測量概念，整合成一個較完整的結構。主軸如下：
+
+ 退相干的量子物理機制與數學形式
+
+ Bohm 的 apparatus+system 圖像與退相干
+
+ 測量、弱測量、Quantum Non-Demolition (QND) 測量
+
+ Information-gain–disturbance tradeoff（訊息獲取–擾動折衷）
+
+ Interaction-free measurements（無交互作用測量）
+
+ Elitzur–Vaidman bomb tester 及 Kwiat 強化版
+
+ Counterfactual quantum computation（反事實量子計算）
+
+ 當前發展與開放問題
+
+9.1 退相干的基本數學結構：從純態到指標基底
+
+9.1.1 系統–環境框架與指標基底
+
+在當代退相干理論中，我們通常把觀察對象拆分為系統 這個就是「大寫英文字母 S」。
+ 與環境 E
+：
+
+ 系統 這個就是「大寫英文字母 S」。
+：我們有興趣、可部分控制的自由度。
+
+ 環境 E
+：大量不可控自由度（熱浴、電磁場、測量儀器、空氣分子⋯⋯）。
+
+假設初始時刻 t 等於 0
+：
+psi 在零這個時刻，等於括號裡面，i 從所有可能值做總和，c i 乘上 ket s i，這一整項，拿去做張量積，跟 ket E 零。
+
+其中 大括號裡面是一組 ket，唸作： 
+「ket s 下標 i 的這一組態。」
+ 是某個系統基底（尚未知是否為「指標基底」），ket E 零
+ 為環境初態。系統與環境演化服從總哈密頓量
+H 等於 H S 加上 H E 再加上 H int。
+
+總態
+psi 括號 t 這個 ket，等於 U 括號 t 作用在 psi 括號零這個 ket 上，逗號， 
+U 括號 t 等於 指數的 負 i 乘上哈密頓量 H 乘上 t 除以 介子 ħ。
+
+退相干的核心在於：環境對不同行為態 ket，s 下標 i。
+ 的「記錄」 使得系統態的相對相位對任何僅觀察系統的實驗者變得不可見。形式上：
+
+psi 括號 t 等於，把所有的 i 做總和，c 下標 i 乘上 ket s 下標 i，再張量乘上 ket E 下標 i 括號 t。
+
+若滿足
+內積括號裡面，左邊是 E 下標 j、括號 t，右邊是 E 下標 i、括號 t。這個內積大約等於 delta i j。
+
+則系統的約化密度矩陣
+rho 下標 S 括號 t 等於，對環境做偏跡，括號裡面是，Psi 括號 t 的 ket，乘上 Psi 括號 t 的 bra。
+
+將趨近於半經典對角形式。
+
+具體計算：
+rho 下標 S 括號 t，等於，對 i 和 j 做總和，c i 乘上 c j 的共軛複數，乘上 ket s i bra s j，再乘上括號裡面，E j 括號 t 和 E i 括號 t 的內積。
+
+若 內積，E 下標 j，在時間 t，和 E 下標 i，在時間 t，大約等於零。
+ 對 i 不等於 j
+，則
+rho 下標 S 括號 t，大約等於，把 i 做總和，裡面是絕對值 c 下標 i 的平方，乘上 ket s 下標 i 再接上 bra s 下標 i。
+
+這就是退相干：純態疊加的「干涉項」被環境「洗掉」，只剩經典機率混合。
+
+指標基底（pointer basis） 定義為在與環境交互作用下最穩定、不易產生相干疊加的那組基底。形式上，若系統–環境相互作用為
+H 下標 i n t，等於對所有 alpha 作總和，A 下標 alpha 張量積 B 下標 alpha。
+
+退相干往往在 A 下標 alpha。
+ 的共同本徵基底上發生，使得該基底成為自然的「經典極限」基底。
+
+ 圖 9-8: A schematic diagram showing system S as a small box coupled to a large environment E (cloud of many degrees of freedom). Arrows indicate entangling interaction, and a density matrix of S losing off-diagonal elements over time is shown next to it.
+
+ Prompt: A schematic diagram showing system S as a small box coupled to a large environment E (cloud of many degrees of freedom). Arrows indicate entangling interaction, and a density matrix of S losing off-diagonal elements over time is shown next to it.
+
+9.1.2 簡單模型：位移環境態的退相干
+
+考慮一個二能階系統（qubit）左括號 ket 零、還有 ket 一 右括號
+ 與一個環境模式，交互作用為
+H 下標 i n t，等於 ħ 乘上 g，再乘上 sigma z，張量積动量算符 p。
+
+其中 sigma z 作用在 ket 零，等於 ket 零。
+，sigma z 作用在 ket 一，等於 負的 ket 一。
+，帽子 p。
+ 為環境的動量算符。假設環境初態為高斯波包 ket phi 零
+，系統初態：
+psi 下標 S 在時間零的態，等於 alpha 乘上 ket 零，加上 beta 乘上 ket 一。
+
+演化算符：
+U 括號 t 等於 e 的負 i 乘上 H 下標 int 乘上 t 除以 ħ，再等於 e 的負 i g t 乘上 σ z 張量積 p ̂。
+
+作用在系統–環境初態：
+psi 括號 t ket，等於 U 括號 t，作用在括號裡面，alpha 乘上 ket 零，加上 beta 乘上 ket 一，整個再跟 ket phi 下標零 做張量積。
+
+等於 
+alpha 乘上 ket 零 張量乘上，指數的負 i g t 再乘上動量算符 p，作用在 ket phi 零 上， 
+加上 beta 乘上 ket 一 張量乘上，指數的正 i g t 再乘上動量算符 p，作用在 ket phi 零 上。
+
+等於，alpha 乘上 ket 零 張量乘上 ket phi 加 號、括號 t、括號結束，加上 beta 乘上 ket 一 張量乘上 ket phi 減 號、括號 t、括號結束。
+
+其中 phi 下標加減，括號 t 的 ket，等於指數函數，裡面是負的正負 i g t 再乘上動量算符 p 帶帽，作用在 phi 零 的 ket 上。
+ 是在位置空間中向 唸成：「正負號」。
+ 方向位移的波包。
+
+系統約化密度矩陣：
+rho 下標 S 括號 t 等於一個二乘二的矩陣，
+
+左上角是絕對值 alpha 平方，
+
+右上角是 alpha 乘上 beta 共軛，再乘上內積，phi 減 括號 t bra，phi 加 括號 t ket，
+
+左下角是 alpha 共軛乘上 beta，再乘上內積，phi 加 括號 t bra，phi 減 括號 t ket，
+
+右下角是絕對值 beta 平方。
+
+退相干因子
+gamma 括號 t 等於 內積 phi 減 括號 t 直線 phi 加 括號 t。
+
+若環境波包在位置空間中的位移大於其寬度，絕對值 gamma 括號 t，趨近於零。
+，則
+rho 下標 S 括號 t，演化到一個二乘二的矩陣，左上角是絕對值 alpha 的平方，右上角是零，左下角是零，右下角是絕對值 beta 的平方。
+
+這裡兩個關鍵點：
+
+ 退相干是 基底依賴 的（在 sigma 下標 z。
+ 本徵基底）。
+
+ 退相干是 純粹單位ary 演化 的結果，沒有在總系統上施加任何投影。
+
+9.2 Bohm 的 Apparatus+System 圖像與退相干機制
+
+9.2.1 Bohm 模型中的測量裝置與系統
+
+Bohm（1952）在發展隱變數與量子勢的同時，也提出 measurement 的 apparatus+system 模型。即使不採納 Bohmian 解讀，該模型仍是理想化 measurement–decoherence 的標準起點。
+
+設系統 這個就是「大寫英文字母 S」。
+ 擁有可觀測量 A
+，本徵態 一組 ket 的 ，也就是這些 ket 的集合。
+：
+A 作用在 ket a 下標 i，等於本徵值 a 下標 i，乘上同一個 ket a 下標 i。
+
+測量儀器 M
+ 具有 pointer 度量 Q
+，共軛動量 這個就是一個大寫的英文字母 P。
+，初態為狹窄的波包 phi 下標零 的 ket，或者說 ket phi 零。
+。測量相互作用（von Neumann 型）：
+H 下標 i n t，等於 g 括號 t，乘上算符 A，再張量乘上算符 P。
+
+其中 g 括號 t 括號
+ 在測量時間區間 中括號零逗號 T 中括號
+ 啟動，並且
+從零到大寫 T 的積分，g 括號 t，dt，等於小寫 g。
+
+若系統初態
+psi 下標 S 等於，i 從所有值把它加總起來，c 下標 i 乘上 ket a 下標 i。
+
+則在測量脈衝結束後，總狀態變為
+Psi 在時間 T 的 ket，等於對所有 i 做總和，c i 乘上 ket a i，再張量乘上 ket phi i。
+
+其中
+ket phi 下標 i 等於指數的負 i g a 下標 i 乘上 P 除以 ħ，整個當成指數去作用在 ket phi 零 上。
+
+是在 pointer 空間向不同位置 q 映到 q 加上 g 乘上 a 下標 i。
+ 位移的波包。
+
+這裡已經有 系統–儀器糾纏，但尚未「塌縮」。若此時引入「環境」 E
+ 與 pointer 交互作用，使不同 ket phi，下標 i。
+ 的環境記錄變得正交，則：
+
+絕對值 psi 括號 T 加上 tau，等於總和對所有 i，把係數 c 下標 i，乘上 ket a 下標 i，再張量乘上 ket phi 下標 i，再張量乘上 ket E 下標 i。逗號後面是，bra E 下標 i 接上 ket E 下標 j，大約等於 delta 下標 i j。
+
+系統–儀器約化狀態
+rho 下標 S M，大約等於對所有 i 做總和， 
+絕對值 c i 的平方，乘上 ket a i，乘上 ket phi i， 
+再乘上 bra phi i，乘上 bra a i。
+
+這就是由測量儀器作為「環境」 引致的退相干。
+
+ 圖 9-7: Illustration of Bohm's apparatus+system model. A system with observable A entangles with a measuring device pointer via Hamiltonian A⊗P, leading to separated pointer wavepackets corresponding to different eigenvalues.
+
+ Prompt: Illustration of Bohm's apparatus+system model. A system with observable A entangles with a measuring device pointer via Hamiltonian A⊗P, leading to separated pointer wavepackets corresponding to different eigenvalues.
+
+9.2.2 Bohmian 軌跡觀點下的退相干（簡述）
+
+在 Bohmian 力學中，波函數仍依薛丁格方程演化，但系統有實在（hidden）位置或廣義坐標。測量過程中：
+
+ 波函數分裂成多個「分支」對應不同測量結果。
+
+ 粒子軌跡只落在一個分支上。
+
+ 退相干確保不同分支之間不再有顯著干涉，使得「其他分支」對實驗結果的影響可忽略。
+
+從數學上，退相干的條件與前節相同：分支波函數在 configuration space 上幾乎不重疊。
+積分 dq，phi 下標 i 的共軛複數乘上 phi 下標 j，大約等於零，括號 i 不等於 j。
+
+這與環境引致退相干的正交條件本質一致。
+
+9.3 測量造成的退相干：投影與 POVM 的統一視角
+
+9.3.1 投影測量與退相干
+
+理想投影測量（projective measurement）對應一組投影算符 大括號裡面的一整組 ，滿足
+ 等於 乘上 
+對系統初態密度矩陣 rho。
+，測量後（忽略結果）的狀態為
+M 作用在 rho 上，等於對所有 i 把 P i、rho、P i 這三個算符相乘，再全部加起來。
+
+如果在 P 下標 i
+ 的本徵基底上寫 rho。
+，這一操作剛好抹去所有非對角元：
+rho 等於對所有 i、j 做總和的 rho i j，乘上 ket i bra j。
+
+右邊推出來，M 作用在 rho 上，等於對所有 i 做總和的 rho i i，乘上 ket i bra i。
+
+這是一種完美退相干。
+
+關鍵觀點：即便不以「塌縮」作為基本公設，我們仍可將上述 map 大寫花體的 M。
+ 視為某種「環境交互作用+追蹤失環境自由度」的有效描述；實際上任何完全正、跡保持（CPTP）map 都可以透過 Kraus 分解以「系統–環境單位ary 演化」實現。
+
+9.3.2 POVM、Kraus 表示與退相干
+
+一般測量用一組測量算符 大括號，M 下標 k，右大括號。
+ 描述，滿足
+把所有的 dagger 乘上 加總起來，等於單位算符 I。
+
+結果 k
+ 的機率：
+p 下標 k 等於，對算符 M 下標 k，乘上密度矩陣 rho，再乘上 M 下標 k 的 dagger，做跡運算。
+
+條件後狀態：
+rho 下標 k 等於，M 下標 k 乘上 rho 再乘上 M 下標 k 的 dagger，全部除以 p 下標 k。
+
+若只關心非選擇性（non-selective）測量後的總狀態：
+E 作用在 rho 上，等於把 k 從零開始一直加總，Mk 乘上 rho 再乘上 Mk 的 dagger。
+
+這裡 大寫花體的 E。
+ 就是一個 CPTP map。退相干對應於某類特殊的 大寫花體的 E。
+，其在某個基底上使非對角元衰減：
+D 作用在 rho 上，等於對所有 i 做總和，Pi i 乘上 rho 再乘上 Pi i，後面再加上，可能還有一些衰減因子。
+
+其中 大寫的希臘字母 Pi，下標 i。
+ 為指標基底投影。典型例子是相位阻尼（phase-damping）通道。
+
+以單一 qubit 為例，相位阻尼通道可寫為 Kraus 形式：
+E 零 等於 根號一減 p 乘上 兩乘二的矩陣，裡面是：第一列一、零，第二列零、一。
+
+E 一 等於 根號 p 乘上 兩乘二的矩陣，裡面是：第一列一、零，第二列零、零。
+
+E 二 等於 根號 p 乘上 兩乘二的矩陣，裡面是：第一列零、零，第二列零、一。
+
+對任意 rho 等於一個二乘二的矩陣， 
+左上角是 rho 零零，右上角是 rho 零一， 
+左下角是 rho 一零，右下角是 rho 一一。
+，
+E 作用在 rho 上，等於從 k 等於零到二的總和，E k 乘上 rho 再乘上 E k dagger。 
+這個結果可以寫成一個二乘二的矩陣： 
+
+左上角是 rho 零零， 
+右上角是括號一減 p 括號乘上 rho 零一， 
+左下角是括號一減 p 括號乘上 rho 一零， 
+右下角是 rho 一一。
+
+非對角元素以因子 一減掉 p
+ 衰減，這正是退相干的操作性描述。
+
+ 圖 9-5: A Bloch sphere where a phase damping channel shrinks the Bloch vector toward the z-axis, illustrating decay of off-diagonal coherence while populations stay the same.
+
+ Prompt: A Bloch sphere where a phase damping channel shrinks the Bloch vector toward the z-axis, illustrating decay of off-diagonal coherence while populations stay the same.
+
+9.4 弱測量與 Quantum Non-Demolition (QND) 測量
+
+9.4.1 弱測量的基本概念與數學形式
+
+弱測量（weak measurement）是指系統–儀器的耦合足夠小，單次測量對系統的擾動很小，但單次訊號也很微弱；需要多次重複來累積統計。仍使用 von Neumann 型哈密頓量：
+H 下標 i n t，等於 g 括號 t，乘上算符 A，再張量乘上算符 P。
+
+但令有效耦合強度 g
+ 很小，使 pointer 位移與其本身波包寬度相比極小。
+
+假設初始 pointer 波函數為高斯
+phi 零的函數，帶入變數 q，等於，前面一個係數是，括號裡面二拍乘上 sigma 平方，全部的四分之一次方分之一，乘上 exp 括號，裡面是負的 q 平方，除以四倍的 sigma 平方，括號閉起來。
+
+測量時間內可近似
+U 大約等於 指數的 負 i g 乘上 A 張量 P 除以 ħ。
+
+系統初態 ket psi
+ 展開在 A
+ 的本徵基底 一組 ket a 下標 n 的集合。
+：
+psi 這個 ket，等於對所有的 n 做總和，把 c 下標 n 乘上 a 下標 n 這個 ket。
+
+演化後
+大寫 psi 這個 ket 
+等於，對所有 n 做總和，c 下標 n 乘上 ket a 下標 n，張量積上，指數負 i g a 下標 n P 除以 ħ 的作用，作用在 ket phi 零。 
+又等於，對所有 n 的總和，c 下標 n 乘上 ket a 下標 n，張量積上，phi 零括號裡面 q 減掉 g a 下標 n。
+
+若 g 乘上 a 下標 n，遠小於 σ。
+ 對所有 這個就念作：「n」。
+，則 pointer 波包之間幾乎重疊，糾纏很弱；此時對 pointer 位置做測量，只得到每次都非常噪聲的結果，但平均值
+q 的期望值，大約等於 g 乘上 A 在 psi 狀態下的期望值。
+
+可在多次統計後逼近 A 的期望值。
+。與此同時，系統態的擾動（條件在 pointer 讀值上）為一小的 unitary 轉動加上極小退相干。
+
+若我們引入後選擇（post-selection），例如在測量後再對系統投影到 念作：
+
+phi 這個 ket。
+，則弱測量讀出的平均值可能是所謂的弱值（weak value）：
+A 下標 w 等於，內積 phi、A、psi 的期望值，除以 phi 跟 psi 的內積。
+
+其實部與虛部分別反映 pointer 位置與動量的平均偏移，可出現「超出本徵值範圍」的結果。這部分屬於更高階主題，此處點到為止。
+
+9.4.2 QND 測量：不破壞可觀測量的測量
+
+Quantum Non-Demolition (QND) 測量目標是測量同一個可觀測量 O
+ 多次，而不在第一次測量中摧毀之後的物理內容。其關鍵條件：
+
+ 測量互動與被測 observable 對易：
+ 中括號 O 跟 H 下標 int 的對易子等於零。
+
+ 被測 observable 與自由哈密頓量對易：
+ 中括弧 O 跟 H 下標 S 的對易算符等於零，就推出 O 括號 t 等於 O 括號零。
+
+ 或至少在感興趣的時間尺度內近似對易。
+
+一個標準例子：測量單模電磁場的光子數算符 n 等於 a dagger 乘上 a。
+，設定
+H 下標 i n t，也就是互動哈密頓量，等於 ħ 乘上 χ 再乘上 n 張量積 σ z。
+
+其中 sigma 下標 z。
+ 為輔助原子或探測器的 Pauli 算符。因為 中括號 n 跟 H 下標 int 等於零。
+，測量過程不改變光子數本身，只改變探測器的內在狀態相位。多次測量可以累積關於 這個就念作：「n」。
+ 的資訊，而不摧毀其值。
+
+形式上，QND 測量仍然建立系統–儀器糾纏。然而，因為可觀測量 O
+ 是守恆量，退相干只在 O
+ 的本徵基底間發生，但這正是我們期望保留的「經典變數」：測量只是把本來就「不變」的量讀出。
+
+ 圖 9-1: Diagram illustrating a QND measurement of photon number: a cavity mode interacts dispersively with a sequence of atoms; atomic phase shifts encode n without absorbing photons.
+
+ Prompt: Diagram illustrating a QND measurement of photon number: a cavity mode interacts dispersively with a sequence of atoms; atomic phase shifts encode n without absorbing photons.
+
+9.5 訊息獲取–擾動折衷（Information-gain–disturbance tradeoff）
+
+9.5.1 基本直覺與純態情形
+
+在量子論中，對一個未知態「獲取資訊」必然導致對該態的「擾動」。從退相干觀點來看：任何可導致我們區分某些狀態的交互作用，都會在這些狀態之間引入退相干（或糾纏後的 tracing out），從而改變被測系統的可干涉性。
+
+考慮兩個純態 ket psi 零，逗號，還有 ket psi 一。
+ 以先驗機率 二分之一。
+ 準備，觀察者 E
+ 希望判別這兩態。經過交互作用 U
+ 與輔助系統 ket 的 e。
+ 後：
+ket psi 下標 i 張量乘上 ket e，經過作用算符 U，變成 ket 大 Psi 下標 i，系統加環境。
+
+若 E
+ 在輔助系統上施測，可獲得關於 就是一個小寫的虛數單位 i。
+ 的資訊。量子資訊理論告訴我們，有多種正式化方法：
+
+ 使用 Helstrom bound 給出最小錯誤判別機率。
+
+ 使用 accessible information / Holevo bound。
+
+ 使用 Banaszek、Fuchs 等人的 disturbance measure。
+
+最簡單的一個幾何式關係：若測量成功區分這兩態，使得環境態 ket e 零，逗號，ket e 一。
+ 幾乎正交，相應地原本兩態間的內積會被減少。對極簡例：
+ket psi 零，張量 ket e，對應到 ket psi 零 prime，張量 ket e 零；
+
+ket psi 一，張量 ket e，對應到 ket psi 一 prime，張量 ket e 一。
+
+單位ary 性要求：
+內積 psi 零 跟 psi 一，等於 內積 psi 零 prime 跟 psi 一 prime，乘上 內積 e 零 跟 e 一。
+
+若 內積括號 e 零 直線 e 一 括號 的絕對值 小於 一。
+ 以便讓 E
+ 獲得資訊（狀態較易區分），則 絕對值，內積 psi 零 撇，跟 psi 一 撇。
+ 必須增加，以維持等式；但是距離界在 1 以上不可能，只能藉由「擾動」原本系統態，讓其變得彼此更不相似（例如接近正交），或者等價地：若要求 psi 零 加 上 標 的 撇 等於 psi 零
+, psi 一撇等於 psi 一。
+，則必須 bra e 零 接 ket e 一 等於一。
+，即環境未獲得任何資訊。
+
+這一簡單關係
+內積 psi 零 和 psi 一，等於 內積 psi 零 角 和 psi 一 角，乘上 內積 e 零 和 e 一。
+
+概括了訊息–擾動折衷：越大程度的可區分性（對環境）必然意味着對系統原始純態的較大干擾與退相干。
+
+9.5.2 一個量化範例：信道保真度與可區分性
+
+假設一個測量操作被描述為 CPTP 映射 大寫花體的 E。
+，定義 pure-state 保真度損失：
+D 括弧 psi 括弧 關起來，等於一減掉 F 括弧，第一個參數是 ket psi bra psi，第二個參數是 E 作用在 ket psi bra psi 上，括弧 關起來。
+
+其中 Uhlmann 保真度對純態簡化為：
+F 左括號，絕對值 psi ket，psi bra，逗點，rho，右括號，等於，psi bra，rho，psi ket。
+
+對兩態 ket psi 零，逗號，還有 ket psi 一。
+，定義擾動為
+D 的平均，等於二分之一乘上括號，D 作用在 psi 零，加上 D 作用在 psi 一，括號。
+
+另一方面，測量裝置獲得的可區分性可以用 trace distance 大寫英文字母 T。
+ 表示：
+T 等於二分之一，乘上，E 作用在 ket psi 零 bra psi 零，減掉 E 作用在 ket psi 一 bra psi 一，整個的跡範數。
+
+在多種具體模型中（如對稱二態判別），可以推導出 大寫的 D，加一個底標 a v g。
+ 與 大寫英文字母 T。
+ 之間存在單調關係：想要更大 大寫英文字母 T。
+（更能分辨輸入態），必須容許更大的平均擾動 大寫的 D，加一個底標 a v g。
+。這正是量子密鑰分發（QKD）安全性的核心：竊聽者若試圖獲得太多資訊，就必然引入可觀察的擾動與錯誤率。
+
+ 圖 9-4: Conceptual plot of information gain versus disturbance, showing a monotonically increasing curve; more extracted information corresponds to higher disturbance.
+
+ Prompt: Conceptual plot of information gain versus disturbance, showing a monotonically increasing curve; more extracted information corresponds to higher disturbance.
+
+9.6 無交互作用測量（Interaction-free Measurements, IFM）
+
+9.6.1 直覺：量子干涉與「存在」的檢測
+
+無交互作用測量（IFM）指的是：在某些量子設定下，可以在「幾乎沒有發生物理交互作用（例如吸收、碰撞）」的情況下，推斷目標物體是否存在。這個現象的代表是 Elitzur–Vaidman（EV） bomb tester。
+
+其背後邏輯：
+
+ 存在一條會與物體「致命交互作用」的路徑（例如光子經過會引爆炸彈）。
+
+ 同時，有另一條安全路徑與之形成干涉。
+
+ 如果物體存在，則打斷了干涉，使得部分機率幅流向「本來不會亮的探測器」。
+
+ 在某些點擊事件中，光子必定選了安全路徑，但我們仍然能推斷「那條危險路徑上一定有人（炸彈）」。
+
+這種「透過破壞可能干涉來探測存在」的機制，本質上與退相干密切相關：物體的存在讓路徑資訊部分可辨識，從而抹去了部分干涉。
+
+9.6.2 Elitzur–Vaidman bomb tester：MZI 模型
+
+考慮 Mach–Zehnder 乾涉儀（MZI）：
+
+ 輸入光子從埠 ket，in。
+ 打進，遇到第一個 50/50 分束器 B S 下標一
+。
+
+ 兩條路徑：上路 ket u
+，下路 ket 的 l
+。
+
+ 第二個分束器 B、S、二。
+ 重新合併兩路；在適當相位設定下，所有光子都出現在探測器 念成：「D 一」。
+，而 大寫的 D，右下角一個 2。
+ 永遠不亮（完全建設性與破壞性干涉）。
+
+ 圖 9-6: Standard Mach-Zehnder interferometer diagram with input beam, two 50/50 beam splitters, mirrors, and two detectors D1 and D2. One arm contains a possible bomb.
+
+ Prompt: Standard Mach-Zehnder interferometer diagram with input beam, two 50/50 beam splitters, mirrors, and two detectors D1 and D2. One arm contains a possible bomb.
+
+以態表示，第一個分束器作用：
+ket in 經過第一個分光鏡之後， 變成一除以根號二，乘上括號裡面，ket u 加上 i 倍的 ket l。
+
+經過第二個分束器，設定相位使得
+ket u 經過第二個分光鏡之後，變成一除以根號二，乘上括號，ket D 一 加上 i 乘上 ket D 二，括號。
+
+ket l 經過第二個分光鏡之後，變成一除以根號二，乘上，i 乘上 ket D1 加上 ket D2。
+
+因此總態
+二分之一開根號分之一，乘上括號裡面， ket u 加上 i 乘上 ket l， 
+經過第二個分束器之後，變成 ket D 一。
+
+ket 的二，或者說狄拉克符號 D 二 ket。
+ 幾率為 0。
+
+現在在上路 ket u
+ 上放一顆「理想炸彈」：若光子進入上路，炸彈必爆，光子被吸收；若上路沒有光子，炸彈保持完好。
+
+ 情形 A：光子選擇上路（機率 二分之一。
+）→ 炸彈爆炸，無探測器點擊。
+
+ 情形 B：光子選擇下路（機率 二分之一。
+）→ 在 B、S、二。
+ 前狀態為 ket 的 l
+，視同單路徑入射。
+
+在情形 B 中，ket 的 l
+ 通過 B、S、二。
+ 演化為：
+ket l 經過第二個光束分光器之後，變成，根號二分之一，乘上，i 乘上 ket D 一，加上 ket D 二。
+
+因此：
+
+ 念成：「D 一」。
+ 點擊機率：二分之一乘上二分之一，等於四分之一。
+。
+
+ 大寫的 D，右下角一個 2。
+ 點擊機率：二分之一乘上二分之一，等於四分之一。
+。
+
+總結：
+
+ 炸彈爆炸：P 下標爆 等於 二分之一。
+。
+
+ 念成：「D 一」。
+ 點擊：P 括號 D 一 括號，等於四分之一。
+。
+
+ 大寫的 D，右下角一個 2。
+ 點擊：P 括號 D 二 括號 等於 四分之一。
+。
+
+關鍵邏輯：
+
+ 若沒有炸彈，大寫的 D，右下角一個 2。
+ 永不亮。
+
+ 若有炸彈而且「未爆」，依然有機率 四分之一。
+ 讓 大寫的 D，右下角一個 2。
+ 點擊。
+
+ 大寫的 D，右下角一個 2。
+ 點擊事件 ⇒ 光子一定沒有走上路（否則炸彈早爆），但也不能說「炸彈不存在」，因為如果不存在就不會有 大寫的 D，右下角一個 2。
+ 點擊。
+
+因此，每當 大寫的 D，右下角一個 2。
+ 亮，我們就確定：
+
+「有一顆好炸彈存在，但我們並沒有讓光子與其實際作用（沒有爆炸）。」 
+
+這就是所謂「無交互作用測量」——存在性的資訊是透過干涉圖樣的改變而得知，而非透過直接的能量交換。
+
+從退相干視角：炸彈在上路的存在，使得「光子是否走上路」變成可在原理上被區分的資訊（吸收 vs. 不吸收），從而打斷 ket u
+ 與 ket 的 l
+ 之間的相干性，讓原本被破壞的振幅在 大寫的 D，右下角一個 2。
+ 出口再度出現。
+
+9.7 Kwiat 強化版 Elitzur–Vaidman 實驗：利用 Zeno 增強 IFM 效率
+
+9.7.1 量子 Zeno 與多次「弱撞」
+
+EV 原始方案中，有效無交互作用測量的成功機率（炸彈完好、未爆，且 大寫的 D，右下角一個 2。
+ 點擊）最多是 四分之一。
+。Kwiat 等人在 1995–1999 年提出一系列改良，利用量子 Zeno 效應把成功機率逼近 1。
+
+基本構想：用 這個念成：「大寫英文字母 N」。
+ 次非常小的「分束」取代一次 50/50 分束；每次只輕微把光子從安全路徑轉入危險路徑；如果危險路徑上有炸彈，那麼量子 Zeno 效應會抑制光子真正進入炸彈路徑，卻仍足以改變干涉模式，讓我們知道炸彈存在。
+
+ 圖 9-9: Multi-stage interferometer (N cascaded beam splitters) representing Kwiat's high-efficiency interaction-free measurement. Safe and dangerous paths with a bomb in one arm are highlighted.
+
+ Prompt: Multi-stage interferometer (N cascaded beam splitters) representing Kwiat's high-efficiency interaction-free measurement. Safe and dangerous paths with a bomb in one arm are highlighted.
+
+9.7.2 簡化兩能階模型推導
+
+用兩能階系統表示兩條路徑：
+ket S 定義成 safe path， 
+ket D 定義成 dangerous path。
+
+初態 psi 下標零，等於 ket S。
+。 
+一次小分束操作（角度 θ 遠小於 1。
+）可表示為旋轉：
+U 括號 theta 等於一個二乘二的矩陣， 
+第一列是 cos theta、然後負的 sin theta， 
+第二列是 sin theta、然後 cos theta。
+
+作用於 一組括號裡面的 ket S 跟 ket D。
+ 空間。
+
+若沒有炸彈，經過 這個念成：「大寫英文字母 N」。
+ 次小分束：
+絕對值 psi 底下 N 這個 ket，等於 U 括號 theta 的 N 次方 作用在 ket S 上， 
+等於 cos 括號 N theta，乘上 ket S，加上 sin 括號 N theta，乘上 ket D。
+
+選擇 θ 等於 π 除以 2N。
+，則
+cos N θ 等於 cos π 除以二，等於零， 
+sin N θ 等於一。
+
+即光子最終全部轉移到危險路徑出口。這相當於「沒有炸彈」時，經過一連串干涉後光子一定出在某個特定輸出埠。
+
+現在引入炸彈：一旦光子進入 ket D
+ 就被吸收（炸彈爆）。我們把每次小分束後的「進入危險路徑？」視為一次投影測量。於是，在未爆炸條件下，演化等價於每一步都把 ket D
+ 分量投掉再正規化：
+
+第一次小分束：
+psi 一 等於 U 括號 theta 作用在 ket S，等於 cos theta 乘上 ket S，加上 sin theta 乘上 ket D。
+
+若光子未爆炸，即未落入 ket D
+，則條件化狀態
+psi 一，括號裡是「cond」，這個態，等於，投影算符 pi 下標 S 作用在 ket psi 一，上面再除以存活機率 P surv 逗點一 的平方根，結果等於 ket S。
+
+其中存活機率
+P 下標 surv 逗號一，等於絕對值 cos θ 的平方。
+
+因此，在每一步，「未爆炸且存活」的條件下，狀態維持在 ket S
+，存活機率乘上一個 cos 平方 θ
+。 
+經過 這個念成：「大寫英文字母 N」。
+ 次：
+P 下標 surv 括號 N，等於 cos 平方括號 θ 括號的 N 次方。
+
+對小角度 θ 等於 π 除以二 N。
+ 使用近似 cos θ 大約等於 1 減掉 θ 的平方 除以 2。
+，
+cos 平方 θ，大約等於 1 減掉 θ 平方，又大約等於 1 減掉 π 的平方除以 4 N 的平方。
+
+P survive 括號 N，大約等於，括號一減掉 π 的平方除以四 N 平方，這個括號的 N 次方， 
+大約等於 exp 括號，負的 π 的平方除以四 N，括號，當 N 趨近無限大時，趨近於一。
+
+也就是說：在炸彈存在的情況下，光子幾乎總是「安全存活」並留在 ket S
+。 
+然而，若沒有炸彈，光子會確定性地被轉移到 ket D
+ 輸出埠。於是：
+
+ 若輸出在 ket D
+ ⇒ 幾乎可確定「沒有炸彈」。
+
+ 若輸出在 ket S
+ ⇒ 在大多數情況下「一定有炸彈」，且幾乎不曾接觸炸彈（因為進入 ket D
+ 的機率在 Zeno 極限下趨零）。
+
+因此，透過量子 Zeno 效應，可將「不引爆炸彈卻又確定其存在」的成功率逼近 1。
+
+從退相干觀點：每一步把危險路徑視為「對環境可被觀測」的子空間（吸收⇒炸彈爆⇒環境記錄），因此路徑疊加在有炸彈時被「連續地測量」，抑制其演化到危險態。這同時是一種極端的 measurement–decoherence–Zeno 極限。
+
+9.8 反事實量子計算（Counterfactual Quantum Computation）
+
+9.8.1 概念與標準設定
+
+反事實量子計算提出：在某些干涉式量子網路中，可以在「計算實際上沒有真正運行」的情況下，推斷出其輸出結果。 
+典型結構：以「計算是否執行」作為一條危險路徑（如有炸彈）、另一條為安全路徑，透過多次弱分束與 Zeno 效應，形成類似 Kwiat 的高效率 IFM。當某個輸出端出現點擊時，我們知道「計算的結果必然是某個值」，而同時也幾乎可以確定計算機從未被觸發。
+
+以「量子搜尋黑盒是否為 0 或 1」為例： 
+在一個插入黑盒單位ary U 下標 f
+ 的干涉網路中，若 f 等於零。
+（計算結果 0），演化模式與 f 等於 1
+ 不同；精心設計的干涉可使得某個探測器僅在 f 等於 1
+ 時亮。如果此探測器亮了，而設計又保證「亮時幾乎不可能經過實際執行 U 下標 f
+ 的路徑」，即可聲稱我們「在幾乎未執行計算的情況下」得到結果 1。
+
+ 圖 9-3: Schematic of a counterfactual computation setup: an interferometer-like circuit with a "black box computer" in one arm, and detectors whose click implies a definite classical output without the computer being activated.
+
+ Prompt: Schematic of a counterfactual computation setup: an interferometer-like circuit with a "black box computer" in one arm, and detectors whose click implies a definite classical output without the computer being activated.
+
+9.8.2 退相干與反事實性
+
+這些方案的 subtlety 在於：若我們將「計算是否執行」視為一個可觀測量，其與環境的交互（例如計算裝置的實際物理運作）會引入退相干，而這正是破壞或改變干涉模式的來源。但我們又希望「在反事實事件中」，實際上這種交互沒有發生或發生得極少。
+
+通常的分析方式：
+
+ 在理想化極限中（perfect interferometer, lossless, no decoherence），可以定義「實際沒有進入計算路徑的振幅」為 0，從而談論某些事件是「完全反事實」的。
+
+ 在實際情況中，退相干與雜訊使得路徑資訊不那麼清楚；形式上我們仍能計算探測器點擊條件下經驗性機率，並估計「平均有多少比例的嘗試是真正沒有執行計算而得知結果」。
+
+以簡化形式表示，一個理想 counterfactual protocol 可以滿足：
+
+ 若輸出結果 f 等於零。
+，則某探測器 念作：「D 下標零」。
+ 亮，且光子實際從未經過黑盒。
+
+ 若輸出結果 f 等於 1
+，則某探測器 念成：「D 一」。
+ 亮，且光子實際仍幾乎從未經過黑盒（在某種合適定義下）。
+
+這在數學上通常被表述為：存在一組路徑投影算符 大括號裡面是： 下標 comp，逗號，跟 下標 safe。也就是：「大括號，P comp，逗號，P safe，大括號」。
+，以及一個 unitary 網路 U
+，使得對應某些測量結果的條件態在 P 下標 c o m p。
+ 支持上機率趨近於 0。
+
+這些設計往往高度依賴干涉的精確控制，因此對退相干與雜訊非常敏感。實驗實現需要非常高的相干時間與穩定度。
+
+9.9 當前發展與開放問題
+
+9.9.1 退相干工程與量子科技
+
+在量子資訊與量子計算領域中，退相干已從「測量問題的哲學困擾」轉變為「可工程化的物理資源與限制」：
+
+ 退相干工程（decoherence engineering）：設計系統–環境耦合，刻意利用特定退相干過程實現
+
+ 環境輔助量子控制（environment-assisted control）；
+
+ 量子熱機與熱整流（quantum thermodynamics）；
+
+ 主動錯誤抑制（dynamical decoupling、reservoir engineering）。
+
+ measurement-based quantum computing：將單位ary 門操作大幅轉換為測量和 feedforward；退相干與測量在此扮演創造性角色。
+
+ Quantum metrology：弱測量與 QND 測量在超高精度參數估計（如重力波探測，LIGO 中挖掘 QND 原理）扮演核心角色。
+
+ 圖 9-2: Concept map linking decoherence to quantum computing, quantum sensing, quantum thermodynamics, and measurement-based quantum computing, with arrows indicating roles of environment, measurement, and control.
+
+ Prompt: Concept map linking decoherence to quantum computing, quantum sensing, quantum thermodynamics, and measurement-based quantum computing, with arrows indicating roles of environment, measurement, and control.
+
+9.9.2 退相干與量子測量問題
+
+退相干理論可以解釋為何在實驗上看起來有「狀態塌縮」與「經典機率混合」，但是仍有幾個根本問題尚未在共識層面完全解決：
+
+ 結果唯一性（problem of outcomes）：退相干只給出密度矩陣的對角化，卻不指定哪一個結果在一次實驗中實現。
+
+ 指標基底的選擇：雖然環境–系統哈密頓量往往給出自然的指標基底，但在某些複雜系統中，指標基底的確切定義仍具技術困難。
+
+ 量子–經典邊界：在多大 scale 上，退相干不足以解釋 classicality？例如大型超導迴路、機械振盪子是否仍維持「宏觀疊加」？
+
+9.9.3 IFM 與反事實技術的現況與挑戰
+
+在實驗層面：
+
+ 高效率 IFM 已在光學與冷原子平台中實現，效率可達 90% 以上。
+
+ 反事實量子計算在簡單黑盒函數上有 proof-of-principle 實驗，但大規模應用仍受限於退相干與損耗。
+
+ IFM 思想也衍伸至「反事實通信」與「反事實密碼學」，但對其嚴格定義與安全性仍有爭議。
+
+在理論層面：
+
+ 如何在一般開放量子系統框架中給出 IFM 與反事實計算的完備描述，包括所有雜訊源與退相干？
+
+ 在相對論與量子場論背景下，IFM 與反事實性是否仍保持一致性？
+
+ 在量子重力或時空不確定性背景下，干涉與退相干的極限為何？這會否限制反事實技術的最終可行性？
+
+9.10 小結與展望
+
+本講從系統–環境糾纏的觀點出發，闡述了退相干在測量過程中的角色與數學結構，並延伸到若干高度非直觀但已被實驗驗證的現象：
+
+ 退相干是單位ary 演化下 tracing out 環境的結果，並在指標基底中抹去相干項。
+
+ Bohm 的 apparatus+system 模型給出了測量過程的一致圖像：先是系統–儀器糾纏，再由環境引致退相干。
+
+ 弱測量與 QND 測量展示了「可以控制的、有限退相干的測量」，在量子都卜勒冷卻、重力波探測與量子訊號處理中皆扮演重要角色。
+
+ Information-gain–disturbance tradeoff 從根本上限制了量子測量與量子通訊中的可達性能。
+
+ Elitzur–Vaidman bomb tester 與 Kwiat 高效率 IFM 展現了透過干涉與 Zeno 效應，在幾乎沒有實際交互作用下檢測物體存在的可能。
+
+ Counterfactual quantum computation 則將這一邏輯推向更極端，嘗試在幾乎未執行計算的情況下得到輸出結果。
+
+下一步的自然方向，包括：
+
+ 將退相干、測量與量子熱力學統一於更廣義的「量子資訊流」圖像中。
+
+ 探討在大規模量子電腦中，如何主動利用退相干（而非完全避免）來設計錯誤更容忍的架構。
+
+ 在更基礎層面，評估退相干是否足以解答所有與測量相關的哲學與物理問題，或是否需要新理論（例如客觀塌縮、時空結構修正）。
+
+至此，我們已對退相干、測量、以及反事實量子資訊有了較完整的高階視角。後續講次可進一步深入具體主題，如連續測量理論、量子過程張量、或具體平台（超導、離子阱、光學）中的退相干機制建模與實驗對比。
